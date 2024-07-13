@@ -1,0 +1,26 @@
+#!/bin/bash
+#SBATCH --partition=A40medium
+#SBATCH --time=2:00:00
+#SBATCH --gpus=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
+
+#python checkGPU.py
+#module load PyTorch/1.12.1-foss-2022a-CUDA-11.7.0
+#python checkGPU.py
+#source ~/.bashrc
+#conda activate thesis
+#module list
+#module load PyTorch/1.12.1-foss-2022a-CUDA-11.7.0
+#module list
+python checkGPU.py
+# python swinUnet/videoSwinUnetMMAction.py
+
+# python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/experiments/config.yml
+# python swinUnet/trainVideoSwinUnetV2.py --config /home/nikoskot/experiments/config.yml
+# python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/experiments/config.yml --resumeTraining --resumeCheckpoint /home/nikoskot/experiments/videoSwinUnet_02-07-2024_17:14:41/checkpoint.pth
+python channelUnet/channelUnetReproduction.py --config /home/nikoskot/experiments/config.yml
+# python swinUnet/testVideoSwinUnet.py --trainingFolder /home/nikoskot/experiments/videoSwinUnet_02-07-2024_17:14:41 --testSplit iid_test_split
+# python swinUnet/testVideoSwinUnetV2.py --trainingFolder /home/nikoskot/experiments/videoSwinUNetV2_08-07-2024_20:45:11 --testSplit iid_test_split
+
+# python swinUnet/ensScoreCalculation.py --predictionsFolder /home/nikoskot/experiments/videoSwinUnet_02-07-2024_17:14:41/predictions/iid_test_split --targetsFolder /home/nikoskot/EarthnetDataset/iid_test_split/target --dataOutputFilePath /home/nikoskot/experiments/videoSwinUnet_02-07-2024_17:14:41/data_output.json --scoreOutputFilePath /home/nikoskot/experiments/videoSwinUnet_02-07-2024_17:14:41/score_output.json
