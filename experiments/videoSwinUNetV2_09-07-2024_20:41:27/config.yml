@@ -1,0 +1,25 @@
+batchSize: 32
+C: 96            # C of Video Swin Transformer (number of channels after patch embedding)
+modelInputCh: 12 # Number of channels of the input data
+extraInputCh: 5
+mainInputTime: 10
+numBlocks: 3
+inputHeightWidth: 128
+windowSizeT: 3
+windowSizeH: 7
+windowSizeW: 7
+patchSizeT: 2
+patchSizeH: 4
+patchSizeW: 4
+numWorkers: 8    # Number of workers for Dataloaders
+epochs: 300      # Number of epochs to run the training for
+modelType: "videoSwinUNetV2"
+lr: 0.002         # Def 0.0005
+trainDataDir: "/home/nikoskot/EarthnetDataset/train"
+testDataDir: "/home/nikoskot/EarthnetDataset/"
+dataDtype: "float32"
+trainSplit: 0.8
+validationSplit: 0.2
+experimentsFolder: "/home/nikoskot/experiments"
+trainLossFunction: "mse"
+trainingOptimizer: "adamw"

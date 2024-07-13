@@ -1,0 +1,5 @@
+EarthnetDataset/
+*.npz
+*.pth
+predictions/
+*.out
