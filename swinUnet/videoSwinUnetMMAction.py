@@ -339,6 +339,23 @@ class PatchExpansion(nn.Module):
 
         #x = x.permute(0,4,1,2,3) # B,Ch,T,H,W
         return x
+
+class PatchExpansionV2(nn.Module):
+
+    def __init__(
+            self,
+            inputChannels
+    ):
+        super().__init__()
+        self.conv = nn.Conv3d(in_channels=inputChannels, out_channels=inputChannels//2, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
+
+    def forward(self, x):
+        # x -> B C T H W
+        x = F.interpolate(x, size=(x.shape[2], x.shape[3]*2, x.shape[4]*2))
+
+        x = self.conv(x)
+
+        return x
     
 class FinalPatchExpansion(nn.Module):
 
@@ -363,6 +380,45 @@ class FinalPatchExpansion(nn.Module):
         x = self.norm(x)
 
         x = x.permute(0,4,1,2,3) # B,Ch,T,H,W
+        return x
+
+class FinalPatchExpansionV2(nn.Module):
+
+    def __init__(
+            self,
+            inputChannels
+    ):
+        super().__init__()
+        self.conv = nn.Conv3d(in_channels=inputChannels, out_channels=inputChannels, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
+
+    def forward(self, x):
+        # x -> B C T H W
+        x = F.interpolate(x, size=(x.shape[2], x.shape[3]*4, x.shape[4]*4))
+
+        x = self.conv(x)
+
+        return x
+    
+class RegressionHead(nn.Module):
+    
+    def __init__(self, in_channels, out_channels):
+        super(RegressionHead, self).__init__()
+
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+
+        self.conv1 = nn.Conv3d(self.in_channels, self.in_channels // 2, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True)
+        self.conv2 = nn.Conv3d(self.in_channels // 2, self.out_channels, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True)
+        self.act = nn.LeakyReLU(0.2, inplace=True)
+
+    def forward(self, x):
+        """
+        x : torch.tensor [N, C, H, W]
+        """
+        x = self.conv1(x)
+        x = self.act(x)
+        x = self.conv2(x)
+
         return x
 
 # cache each stage results
@@ -534,28 +590,30 @@ class Decoder(nn.Module):
     def __init__(self, C, window_size):
         super().__init__()
         self.dec_swin_blocks = nn.ModuleList([
-            BasicLayer(dim=4*C, depth=2, num_heads=12, window_size=window_size, downsample=None),
-            BasicLayer(dim=2*C, depth=2, num_heads=6, window_size=window_size, downsample=None),
-            BasicLayer(dim=C,   depth=2, num_heads=3, window_size=window_size, downsample=None)
+            BasicLayer(dim=8*C, depth=2, num_heads=3, window_size=window_size, downsample=None),
+            BasicLayer(dim=4*C, depth=2, num_heads=6, window_size=window_size, downsample=None),
+            BasicLayer(dim=2*C,   depth=2, num_heads=12, window_size=window_size, downsample=None)
         ])
         self.dec_patch_expand_blocks = nn.ModuleList([
-            PatchExpansion(8*C),
-            PatchExpansion(4*C),
-            PatchExpansion(2*C)
+            PatchExpansionV2(8*C),
+            PatchExpansionV2(4*C),
+            PatchExpansionV2(2*C)
         ])
         self.skip_conn_concat = nn.ModuleList([
-            nn.Linear(8*C, 4*C),
-            nn.Linear(4*C, 2*C),
-            nn.Linear(2*C, 1*C)
+            nn.Conv3d(in_channels=8*C, out_channels=4*C, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
+            nn.Conv3d(in_channels=4*C, out_channels=2*C, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
+            nn.Conv3d(in_channels=2*C, out_channels=C, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
         ])
 
     def forward(self, x, encoder_features):
-        for patch_expand,swin_block, enc_ftr, linear_concatter in zip(self.dec_patch_expand_blocks, self.dec_swin_blocks, encoder_features,self.skip_conn_concat):
-            x = patch_expand(x)
-            x = torch.cat([x, enc_ftr.permute(0,2,3,4,1)], dim=-1)
-            x = linear_concatter(x)
-            x = x.permute(0,4,1,2,3) # B,Ch,T,H,W
+        for patch_expand, swin_block, enc_ftr, conv_conc in zip(self.dec_patch_expand_blocks, self.dec_swin_blocks, encoder_features, self.skip_conn_concat):
             x = swin_block(x)
+            x = patch_expand(x)
+            enc_ftr = F.interpolate(enc_ftr, size=(enc_ftr.shape[2]*2, enc_ftr.shape[3], enc_ftr.shape[4]), mode='trilinear')
+            x = torch.cat([x, enc_ftr], dim=1)
+            x = conv_conc(x)
+            # x = x.permute(0,4,1,2,3) # B,Ch,T,H,W
+            # x = swin_block(x)
         return x
 
 class VideoSwinUNet(nn.Module):
@@ -565,10 +623,10 @@ class VideoSwinUNet(nn.Module):
         self.encoder         = Encoder(C, window_size=window_size)
         self.bottleneck      = BasicLayer(dim = C*(2**num_blocks), depth=2, num_heads=12, window_size=window_size, downsample=None)
         self.decoder         = Decoder(C, window_size=window_size)
-        self.timeUpsampling1 = nn.ConvTranspose3d(in_channels=C, out_channels=C, kernel_size=(2, 1, 1), stride=(2,1,1))
-        self.final_expansion = FinalPatchExpansion(dim=C)
-        self.timeUpsampling2 = nn.ConvTranspose3d(in_channels=C, out_channels=C, kernel_size=(2, 1, 1), stride=(2,1,1))
-        self.head            = nn.Conv3d(in_channels=C, out_channels=5, kernel_size=1, padding='same')
+        # self.timeUpsampling1 = nn.ConvTranspose3d(in_channels=C, out_channels=C, kernel_size=(2, 1, 1), stride=(2,1,1))
+        self.final_expansion = FinalPatchExpansionV2(inputChannels=C)
+        # self.timeUpsampling2 = nn.ConvTranspose3d(in_channels=C, out_channels=C, kernel_size=(2, 1, 1), stride=(2,1,1))
+        self.head            = RegressionHead(in_channels=C, out_channels=5)
 
     def forward(self, x):
 
@@ -593,6 +651,10 @@ class VideoSwinUNet(nn.Module):
         # endTime = time.time()
         # print("Bottleneck time {}".format(endTime - startTime))
 
+        # Double the time dimension
+        x = F.interpolate(x, size=(x.shape[2]*2, x.shape[3], x.shape[4]), mode='trilinear')
+        print("Interpolated bottleneck output shape {}".format(x.shape))
+
         # startTime = time.time()
         x = self.decoder(x, skip_ftrs[::-1])
         print("Decoder output shape {}".format(x.shape))
@@ -601,8 +663,8 @@ class VideoSwinUNet(nn.Module):
 
         # startTime = time.time()
         # for time upsampling from 5 to 10 frames
-        x = self.timeUpsampling1(x)
-        print("Tiem upsampling 1 output shape {}".format(x.shape))
+        # x = self.timeUpsampling1(x)
+        # print("Tiem upsampling 1 output shape {}".format(x.shape))
         # endTime = time.time()
         # print("Time upsampling 1 time {}".format(endTime - startTime))
 
@@ -614,8 +676,8 @@ class VideoSwinUNet(nn.Module):
 
         # startTime = time.time()
         # for time upsampling from 10 to 20 frames
-        x = self.timeUpsampling2(x)
-        print("Time upsampling 2 output shape {}".format(x.shape))
+        # x = self.timeUpsampling2(x)
+        # print("Time upsampling 2 output shape {}".format(x.shape))
         # endTime = time.time()
         # print("Time upsampling 2 time {}".format(endTime - startTime))
 
@@ -640,7 +702,7 @@ if __name__ == "__main__":
     totalParams = sum(p.numel() for p in model.parameters())
 
     startTime = time.time()
-    x = torch.rand(16, 12, 10, 128, 128).to(torch.device('cuda')) # B, C, T, H, W
+    x = torch.rand(2, 12, 10, 128, 128).to(torch.device('cuda')) # B, C, T, H, W
     endTime = time.time()
     print("Dummy data creation time {}".format(endTime - startTime))
 
@@ -657,7 +719,13 @@ if __name__ == "__main__":
 
     print("Number of model parameters {}".format(totalParams))
 
-    print(torch.nn.functional.interpolate(x, size=(20, 128, 128), mode='trilinear').shape)
+    # print(torch.nn.functional.interpolate(x, size=(20, 128, 128), mode='trilinear').shape)
+
+    # x1 = torch.rand(2, 384, 20, 8, 8).to(torch.device('cuda'))
+    # x2 = torch.rand(2, 384, 20, 8, 8).to(torch.device('cuda'))
+    # layer = nn.Conv3d(in_channels=768, out_channels=384, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True).to(torch.device('cuda'))
+    # x3 = layer(torch.cat([x1, x2], dim=1))
+    # print("x3 shape {}".format(x3.shape))
 
     # embed = PatchEmbed3D(patch_size=(2, 4, 4), in_chans=3, embed_dim=C)
     # y1 = embed(x)

@@ -4,3 +4,4 @@ EarthnetDataset/
 predictions/
 *.out
 experiments/configWindows.yml
+__pycache__/
