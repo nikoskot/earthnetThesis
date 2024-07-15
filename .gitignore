@@ -3,3 +3,4 @@ EarthnetDataset/
 *.pth
 predictions/
 *.out
+experiments/configWindows.yml
