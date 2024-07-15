@@ -6,7 +6,7 @@ from earthnetDataloader import EarthnetTestDataset, EarthnetTrainDataset, Prepro
 from torch.utils.data import DataLoader, random_split, Subset
 import torchmetrics
 from earthnet_scores import EarthNet2021ScoreUpdateWithoutCompute
-from ..channelUnet.maskedLoss import BaseLoss
+from maskedLoss import BaseLoss
 import tqdm
 import time
 import datetime
@@ -16,6 +16,7 @@ import yaml
 import os
 import logging
 import shutil
+from torch.utils.tensorboard import SummaryWriter
 
 
 def parseArgs():
@@ -128,9 +129,13 @@ def main():
     logger = logging.getLogger(__name__)
     logging.basicConfig(filename=os.path.join(outputFolder, 'training.log'), encoding='utf-8', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
     logger.info("NOTE: {}".format(args.note))
+    tbWriter = SummaryWriter(os.path.join(config['experimentsFolder'], 'tensorboardLogs', config['modelType'] + '_' + runDateTime))
 
     # Intiialize Video Swin Unet model and move to GPU
-    model = VideoSwinUNet(inputChannels=config['modelInputCh'], C=config['C']).to(torch.device('cuda'))
+    model = VideoSwinUNet(inputChannels=config['modelInputCh'], inputHW=config['inputHeightWidth'], 
+                          C=config['C'], num_blocks=config['numBlocks'], 
+                          patch_size=(config['patchSizeT'], config['patchSizeH'], config['patchSizeW']), 
+                          window_size=(config['windowSizeT'], config['windowSizeH'], config['windowSizeW'])).to(torch.device('cuda'))
 
     # Setup Loss Function and Optimizer
     if config['trainLossFunction'] == "mse":
@@ -210,8 +215,12 @@ def main():
                            'scheduler'  : scheduler.state_dict()}
             torch.save(checkpoint, os.path.join(outputFolder, 'checkpoint.pth'))
             logger.info("New best validation Loss {}, at epoch {}".format(bestValLoss, i))
+        
+        tbWriter.add_scalar('Loss/Train', trainLoss, i)
+        tbWriter.add_scalar('Loss/Val', valLoss, i)
 
     logger.info("Training Finished")
+    tbWriter.flush()
 
 if __name__ == "__main__":
     main()

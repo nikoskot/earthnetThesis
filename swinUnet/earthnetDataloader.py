@@ -4,6 +4,7 @@ import numpy as np
 from pathlib import Path
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
+import os
 
 class EarthnetTrainDataset(Dataset):
 
@@ -22,8 +23,9 @@ class EarthnetTrainDataset(Dataset):
     def __getitem__(self, index):
         
         cubeFile = np.load(self.cubesPathList[index])
-        tile            = str(self.cubesPathList[index]).split("/")[-2]
-        cubename        = str(self.cubesPathList[index]).split("/")[-1]
+        split    = os.path.split(self.cubesPathList[index])
+        tile     = os.path.split(split[0])[1]
+        cubename = split[1]
 
         # keep only [blue, green, red, nir, mask] channels
         highresdynamic = cubeFile["highresdynamic"].astype(self.dtype)[:, :, [0, 1, 2, 3, 6], :]
