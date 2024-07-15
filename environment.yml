@@ -1,0 +1,9 @@
+name: dev
+channels:
+  - defaults
+dependencies:
+  - python=3.11
+  - torchvision
+  - pytorch
+  - pytorch-cuda=11.8
+prefix: /home/nikoskot/.conda/envs/dev

@@ -15,7 +15,6 @@ from torch.utils.data import DataLoader, random_split, Subset
 from maskedLoss import BaseLoss
 
 
-model = smp.Unet(encoder_name='densenet161', encoder_weights='imagenet', in_channels=191, classes=80, activation='sigmoid')
 upsample = nn.Upsample(size =(128,128))
 
 def parseArgs():
@@ -60,7 +59,7 @@ def train_loop(dataloader, model, lossFunction, optimizer, device):
 
         # Compute prediction and loss
         pred = model(inputs).reshape(b, 20, 4, h, w)
-        loss, lossLogs = lossFunction(pred, inputs, None, None)
+        loss, lossLogs = lossFunction(pred, data, None, None)
 
         # Backpropagation
         loss.backward()
@@ -113,7 +112,7 @@ def validation_loop(dataloader, model, lossFunction, device):
 
             # Compute prediction and loss
             pred = model(inputs).reshape(b, 20, 4, h, w)
-            loss, lossLogs = lossFunction(pred, inputs, None, None)
+            loss, lossLogs = lossFunction(pred, data, None, None)
 
             # Add the loss to the total loss of the batch and keep track of the number of samples
             lossSum += loss.item()
@@ -134,10 +133,10 @@ def validation_loop(dataloader, model, lossFunction, device):
 def main():
 
     # Get the date and time when the execution started
-    runDateTime = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
+    runDateTime = datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S')
 
     # Setup device
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda')
 
     # Parse the input arguments and load the configuration file
     args   = parseArgs()
@@ -162,7 +161,7 @@ def main():
     if config['trainLossFunction'] == "mse":
         lossFunction = nn.MSELoss(reduction='sum')
     elif config['trainLossFunction'] == "maskedL1":
-        lossFunction = BaseLoss()
+        lossFunction = BaseLoss({}, device=device)
     else:
         raise NotImplementedError
     
@@ -190,15 +189,15 @@ def main():
     preprocessingStage = None
 
     # Create dataset of training part of Earthnet dataset
-    trainDataset = EarthNet2021Dataset(folder=config['trainDataDir'], dtype=config['dataDtype'], noisy_masked_pixels = False, use_meso_static_as_dynamic = False, fp16 = False)
-    trainDataset = Subset(trainDataset, range(3))
+    trainDataset = EarthNet2021Dataset(folder=config['trainDataDir'], noisy_masked_pixels = False, use_meso_static_as_dynamic = False, fp16 = False)
+    # trainDataset = Subset(trainDataset, range(3))
 
     # Split to training and validation dataset
-    # trainDataset, valDataset = random_split(trainDataset, [config['trainSplit'], config['validationSplit']])
+    trainDataset, valDataset = random_split(trainDataset, [config['trainSplit'], config['validationSplit']])
 
     # Create training and validation Dataloaders
     trainDataloader = DataLoader(trainDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
-    valDataloader   = DataLoader(trainDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
+    valDataloader   = DataLoader(valDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
 
     # Create objects for calculation of Earthnet Score during training, validation and testing
     # trainENSCalculator = EarthNet2021ScoreUpdateWithoutCompute(layout="NHWCT", eps=1E-4)
@@ -208,12 +207,12 @@ def main():
     for i in range(startEpoch, config['epochs']):
 
         logger.info("Epoch {}\n-------------------------------".format(i))
-        trainLoss = train_loop(trainDataloader, model, lossFunction, optimizer)
+        trainLoss = train_loop(trainDataloader, model, lossFunction, optimizer, device=device)
         logger.info("Mean training loss: {}".format(trainLoss))
         # print("Training ENS metrics:")
         # print(trainENS)
 
-        valLoss = validation_loop(valDataloader, model, lossFunction)
+        valLoss = validation_loop(valDataloader, model, lossFunction, device=device)
         logger.info("Mean validation loss: {}".format(valLoss))
         # print("Validation ENS metrics:")
         # print(valENS)

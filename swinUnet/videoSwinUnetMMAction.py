@@ -535,8 +535,8 @@ class Decoder(nn.Module):
         super().__init__()
         self.dec_swin_blocks = nn.ModuleList([
             BasicLayer(dim=4*C, depth=2, num_heads=12, window_size=window_size, downsample=None),
-            BasicLayer(dim=2*C, depth=2, num_heads=12, window_size=window_size, downsample=None),
-            BasicLayer(dim=C,   depth=2, num_heads=12, window_size=window_size, downsample=None)
+            BasicLayer(dim=2*C, depth=2, num_heads=6, window_size=window_size, downsample=None),
+            BasicLayer(dim=C,   depth=2, num_heads=3, window_size=window_size, downsample=None)
         ])
         self.dec_patch_expand_blocks = nn.ModuleList([
             PatchExpansion(8*C),
@@ -575,53 +575,53 @@ class VideoSwinUNet(nn.Module):
         # Input shape B,C,T,H,W
         # startTime = time.time()
         x = self.patch_embed(x)
-        # print("Patch embedding output shape {}".format(x.shape))
+        print("Patch embedding output shape {}".format(x.shape))
         # endTime = time.time()
         # print("Patch embedding time {}".format(endTime - startTime))
 
         # startTime = time.time()
         x,skip_ftrs = self.encoder(x)
-        # print("Encoder output shape {}".format(x.shape))
-        # for s in skip_ftrs:
-            # print("Skip feature output shape {}".format(s.shape))
+        print("Encoder output shape {}".format(x.shape))
+        for s in skip_ftrs:
+            print("Skip feature output shape {}".format(s.shape))
         # endTime = time.time()
         # print("Encoder time {}".format(endTime - startTime))
 
         # startTime = time.time()
         x = self.bottleneck(x)
-        # print("Bottleneck output shape {}".format(x.shape))
+        print("Bottleneck output shape {}".format(x.shape))
         # endTime = time.time()
         # print("Bottleneck time {}".format(endTime - startTime))
 
         # startTime = time.time()
         x = self.decoder(x, skip_ftrs[::-1])
-        # print("Decoder output shape {}".format(x.shape))
+        print("Decoder output shape {}".format(x.shape))
         # endTime = time.time()
         # print("Decoder time {}".format(endTime - startTime))
 
         # startTime = time.time()
         # for time upsampling from 5 to 10 frames
         x = self.timeUpsampling1(x)
-        # print("Tiem upsampling 1 output shape {}".format(x.shape))
+        print("Tiem upsampling 1 output shape {}".format(x.shape))
         # endTime = time.time()
         # print("Time upsampling 1 time {}".format(endTime - startTime))
 
         # startTime = time.time()
         x = self.final_expansion(x)
-        # print("Final expansion output shape {}".format(x.shape))
+        print("Final expansion output shape {}".format(x.shape))
         # endTime = time.time()
         # print("Final exxpansion time {}".format(endTime - startTime))
 
         # startTime = time.time()
         # for time upsampling from 10 to 20 frames
         x = self.timeUpsampling2(x)
-        # print("Time upsampling 2 output shape {}".format(x.shape))
+        print("Time upsampling 2 output shape {}".format(x.shape))
         # endTime = time.time()
         # print("Time upsampling 2 time {}".format(endTime - startTime))
 
         # startTime = time.time()
         x = self.head(x)
-        # print("Head output shape {}".format(x.shape))
+        print("Head output shape {}".format(x.shape))
         # endTime = time.time()
         # print("Head time {}".format(endTime - startTime))
 
@@ -631,7 +631,7 @@ class VideoSwinUNet(nn.Module):
 if __name__ == "__main__":
 
     startTime = time.time()
-    model = VideoSwinUNet(inputChannels=12, C=96).to(torch.device('cuda'))
+    model = VideoSwinUNet(inputChannels=12, inputHW=128, C=96, num_blocks=3, patch_size=(1, 4, 4), window_size=(3, 7, 7)).to(torch.device('cuda'))
     endTime = time.time()
     print("Model creation time {}".format(endTime - startTime))
 
@@ -656,6 +656,8 @@ if __name__ == "__main__":
     print("Output shape {}".format(y.shape))
 
     print("Number of model parameters {}".format(totalParams))
+
+    print(torch.nn.functional.interpolate(x, size=(20, 128, 128), mode='trilinear').shape)
 
     # embed = PatchEmbed3D(patch_size=(2, 4, 4), in_chans=3, embed_dim=C)
     # y1 = embed(x)

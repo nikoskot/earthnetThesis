@@ -29,32 +29,32 @@ def main():
         for var in args.variablesToPlot:
 
             fig1 = en.cube_gallery(os.path.join(str(predictionsFolderPath), cubeRelativePath), variable=var, save_path=os.path.join(imagesFolderPath, cubeRelativePath.removesuffix('.npz') + var))
-            fig2 = en.cube_gallery(os.path.join(args.groundTruthFolder, cubeRelativePath), variable=var, save_path=os.path.join(imagesFolderPath, cubeRelativePath.removesuffix('.npz') + var))
+            # fig2 = en.cube_gallery(os.path.join(args.groundTruthFolder, cubeRelativePath), variable=var, save_path=os.path.join(imagesFolderPath, cubeRelativePath.removesuffix('.npz') + var))
             
-            ax1 = fig1.gca()
+            # ax1 = fig1.gca()
 
-            # Access the axes from the second figure
-            ax2 = fig2.gca()
+            # # Access the axes from the second figure
+            # ax2 = fig2.gca()
 
-            # Create a new figure to combine the plots
-            combined_fig, (combined_ax1, combined_ax2) = plt.subplots(2, 1, figsize=(8, 10))
+            # # Create a new figure to combine the plots
+            # combined_fig, (combined_ax1, combined_ax2) = plt.subplots(2, 1, figsize=(8, 10))
 
-            # Plot the data from the first figure on the first subplot
-            combined_ax1.plot(x1, y1, label='Sine')
-            combined_ax1.set_title('Sine Wave')
-            combined_ax1.legend()
+            # # Plot the data from the first figure on the first subplot
+            # combined_ax1.plot(x1, y1, label='Sine')
+            # combined_ax1.set_title('Sine Wave')
+            # combined_ax1.legend()
 
-            # Plot the data from the second figure on the second subplot
-            combined_ax2.plot(x2, y2, label='Cosine')
-            combined_ax2.set_title('Cosine Wave')
-            combined_ax2.legend()
+            # # Plot the data from the second figure on the second subplot
+            # combined_ax2.plot(x2, y2, label='Cosine')
+            # combined_ax2.set_title('Cosine Wave')
+            # combined_ax2.legend()
 
-            # Adjust layout for better appearance
-            plt.tight_layout()
+            # # Adjust layout for better appearance
+            # plt.tight_layout()
 
-            # Save the combined figure
-            combined_fig.savefig('combined_figure.png')
-            plt.close(fig)
+            # # Save the combined figure
+            # combined_fig.savefig('combined_figure.png')
+            plt.close(fig1)
 
 
 
