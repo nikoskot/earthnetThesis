@@ -27,11 +27,11 @@ class EarthnetTrainDataset(Dataset):
         tile     = os.path.split(split[0])[1]
         cubename = split[1]
 
-        # keep only [blue, green, red, nir, mask] channels
-        highresdynamic = cubeFile["highresdynamic"].astype(self.dtype)[:, :, [0, 1, 2, 3, 6], :]
-        highresstatic  = cubeFile["highresstatic"].astype(self.dtype)
-        mesodynamic    = cubeFile["mesodynamic"].astype(self.dtype)
-        mesostatic     = cubeFile["mesostatic"].astype(self.dtype)
+        highresdynamic = cubeFile["highresdynamic"].astype(self.dtype)[:, :, [0, 1, 2, 3], :] # Keep only [blue, green, red, nir] channels HWCT C=4 T=30
+        mask           = (1 - cubeFile["highresdynamic"].astype(self.dtype)[:, :, 6, :])[:, :, np.newaxis, :] # Isolate mask channel HWCT C=1 T=30
+        highresstatic  = cubeFile["highresstatic"].astype(self.dtype)                         # HWC C=1
+        mesodynamic    = cubeFile["mesodynamic"].astype(self.dtype)                           # hwCT C=5 T=150
+        mesostatic     = cubeFile["mesostatic"].astype(self.dtype)                            # hwC C=1
 
         highresdynamic = np.nan_to_num(highresdynamic, copy=False, nan=0.0, posinf=1.0, neginf=0.0)
         highresdynamic = np.clip(highresdynamic, a_min=0.0, a_max=1.0)
@@ -39,6 +39,28 @@ class EarthnetTrainDataset(Dataset):
         highresstatic  = np.nan_to_num(highresstatic, copy=False, nan=0.0)
         mesostatic     = np.nan_to_num(mesostatic, copy=False, nan=0.0)
 
+        data = {
+            "context": {
+                "images" : highresdynamic[:, :, :, :10].transpose(2, 3, 0, 1),  # CTHW C=4 T=10(context)
+                "weather": mesodynamic[:, :, :, :50].transpose(2, 3, 0, 1),     # CThw C=5 T=50(context)
+                "mask"   : mask[:, :, :, :10].transpose(2, 3, 0, 1)             # CTHW C=1 T=10(context)
+            },
+            "target": {
+                "images" : highresdynamic[:, :, :, 10::].transpose(2, 3, 0, 1), # CTHW C=4 T=20(target)
+                "weather": mesodynamic[:, :, :, 50::].transpose(2, 3, 0, 1),    # CThw C=5 T=100(target)
+                "mask"   : mask[:, :, :, 10::].transpose(2, 3, 0, 1)            # CTHW C=1 T=20(target)
+            },
+            "demHigh" : highresstatic.transpose(2, 0, 1),                       # CHW C=1
+            "demMeso" : mesostatic.transpose(2, 0, 1),                          # Chw C=1
+            "tile"    : tile,
+            "cubename": cubename
+        }
+
+        if self.transform:
+            return self.transform(data)
+        
+        return data
+    
         X = {
             "highresdynamic": highresdynamic[..., :10], # HWCT C=5 T=10(context)
             "highresstatic" : highresstatic,            # HWC  C=1
@@ -55,7 +77,7 @@ class EarthnetTrainDataset(Dataset):
         if self.transform:
             X, Y, xMesodynamicTarget = self.transform((X, Y))
         
-        return X, Y, tile, cubename,  xMesodynamicTarget    # CTHW, CTHW
+        return X, Y, tile, cubename,  0    # CTHW, CTHW
 
 
 class EarthnetTestDataset(Dataset):
@@ -83,6 +105,46 @@ class EarthnetTestDataset(Dataset):
         pathString      = str(self.targetPathList[index])
         tile            = pathString.split("/")[-2]
         cubename        = pathString.split("/")[-1]
+
+        contextHighresdynamic = contextCubeFile["highresdynamic"].astype(self.dtype)[:, :, [0, 1, 2, 3], :] # Keep only [blue, green, red, nir] channels HWCT C=4 T=10
+        contextMask           = (1 - contextCubeFile["highresdynamic"].astype(self.dtype)[:, :, 4, :])[:, :, np.newaxis, :] # Isolate mask channel HWCT C=1 T=10
+        contextHighresstatic  = contextCubeFile["highresstatic"].astype(self.dtype)                         # HWC C=1
+        contextMesodynamic    = contextCubeFile["mesodynamic"].astype(self.dtype)                           # hwCT C=5 T=150
+        contextMesostatic     = contextCubeFile["mesostatic"].astype(self.dtype)                            # hwC C=1
+
+        contextHighresdynamic = np.nan_to_num(contextHighresdynamic, copy=False, nan=0.0, posinf=1.0, neginf=0.0)
+        contextHighresdynamic = np.clip(contextHighresdynamic, a_min=0.0, a_max=1.0)
+        contextHighresstatic    = np.nan_to_num(contextHighresstatic, copy=False, nan=0.0)
+        contextMesodynamic  = np.nan_to_num(contextMesodynamic, copy=False, nan=0.0)
+        contextMesostatic     = np.nan_to_num(contextMesostatic, copy=False, nan=0.0)
+
+        targetHighresdynamic = targetCubeFile["highresdynamic"].astype(self.dtype)[:, :, [0, 1, 2, 3], :] # Keep only [blue, green, red, nir] channels HWCT C=4 T=20
+        targetMask           = (1 - targetCubeFile["highresdynamic"].astype(self.dtype)[:, :, 4, :])[:, :, np.newaxis, :] # Isolate mask channel HWCT C=1 T=20
+
+        targetHighresdynamic = np.nan_to_num(targetHighresdynamic, copy=False, nan=0.0, posinf=1.0, neginf=0.0)
+        targetHighresdynamic = np.clip(targetHighresdynamic, a_min=0.0, a_max=1.0)
+
+        data = {
+            "context": {
+                "images" : contextHighresdynamic.transpose(2, 3, 0, 1),  # CTHW C=4 T=10(context)
+                "weather": contextMesodynamic[:, :, :, :50].transpose(2, 3, 0, 1),     # CThw C=5 T=50(context)
+                "mask"   : contextMask.transpose(2, 3, 0, 1)             # CTHW C=1 T=10(context)
+            },
+            "target": {
+                "images" : targetHighresdynamic.transpose(2, 3, 0, 1), # CTHW C=4 T=20(target)
+                "weather": contextMesodynamic[:, :, :, 50::].transpose(2, 3, 0, 1),    # CThw C=5 T=100(target)
+                "mask"   : targetMask.transpose(2, 3, 0, 1)            # CTHW C=1 T=20(target)
+            },
+            "demHigh" : contextHighresstatic.transpose(2, 0, 1),                       # CHW C=1
+            "demMeso" : contextMesostatic.transpose(2, 0, 1),                          # Chw C=1
+            "tile"    : tile,
+            "cubename": cubename
+        }
+
+        if self.transform:
+            return self.transform(data)
+        
+        return data
 
         # keep only [blue, green, red, nir, mask] channels
         contextHighresdynamic = contextCubeFile["highresdynamic"].astype(self.dtype)
@@ -124,7 +186,40 @@ class Preprocessing(object):
     def __init__(self):
         None
 
-    def __call__(self, sample):
+    def __call__(self, data):
+
+        contextImages = torch.from_numpy(data['context']['images'])
+        contextWeather = torch.from_numpy(data['context']['weather'])
+        contextMask = torch.from_numpy(data['context']['mask'])
+        targetImages = torch.from_numpy(data['target']['images'])
+        targetWeather = torch.from_numpy(data['target']['weather'])
+        targetMask = torch.from_numpy(data['target']['mask'])
+        demHigh = torch.from_numpy(data['demHigh'])
+        demMeso = torch.from_numpy(data['demMeso'])
+
+        H, W = contextImages.shape[2::]
+
+        allWeather = torch.cat((contextWeather, targetWeather), 1) # Concatenate all weather data across time to get full 150 days
+        allWeather = F.interpolate(allWeather, size=(H, W))         # CThw -> CTHW T=150
+        allWeather = allWeather.reshape(allWeather.shape[0], 10, 15, H, W).mean(2).reshape(allWeather.shape[0], 10, H, W) # CTHW T=10
+        
+        demHigh = demHigh.unsqueeze(1)   # from CHW -> CTHW C=1 T=1
+        demHigh = torch.repeat_interleave(demHigh, repeats=10, dim=1)  # CTHW T=10
+        
+
+        demMeso = demMeso.unsqueeze(1)                  # from Chw -> CThw C=1 T=1
+        demMeso = F.interpolate(demMeso, size=(H, W))   # CTHW C=1 T=1
+        demMeso = torch.repeat_interleave(demMeso, repeats=10, dim=1) # CTHW T=10
+
+        data = {
+            "x": torch.cat((contextImages, allWeather, demHigh, demMeso)),
+            "y": targetImages,
+            "targetMask": targetMask,
+            "tile"    : data['tile'],
+            "cubename": data['cubename']
+        }
+
+        return data
 
         X, Y = sample
         
@@ -184,20 +279,21 @@ class PreprocessingV2(object):
 if __name__ == "__main__":
 
     # Set paremeters
-    BATCH_SIZE           = 1 # Bactch size
+    BATCH_SIZE           = 2 # Bactch size
     NUM_WORKERS          = 2  # Number of workers for Dataloaders
 
-    preprocessingStage = PreprocessingV2()
+    preprocessingStage = Preprocessing()
+    v = '1'
     # preprocessingStage = None
 
     # Create dataset of training part of Earthnet dataset
-    trainDataset = EarthnetTrainDataset(dataDir='/home/nikoskot/EarthnetDataset/train', dtype=np.float32, transform=preprocessingStage)
+    trainDataset = EarthnetTrainDataset(dataDir='/home/nikoskot/earthnetThesis/EarthnetDataset/train', dtype=np.float32, transform=preprocessingStage)
 
     # Create training and validation Dataloaders
     trainDataloader = DataLoader(trainDataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, pin_memory=True)
 
     # Create dataset of training part of Earthnet dataset
-    testDataset = EarthnetTestDataset(dataDir='/home/nikoskot/EarthnetDataset/iid_test_split', dtype=np.float32, transform=preprocessingStage)
+    testDataset = EarthnetTestDataset(dataDir='/home/nikoskot/earthnetThesis/EarthnetDataset/iid_test_split', dtype=np.float32, transform=preprocessingStage)
 
     # Create training and validation Dataloaders
     testDataloader = DataLoader(testDataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, pin_memory=True)
@@ -205,26 +301,50 @@ if __name__ == "__main__":
     if preprocessingStage == None:
         print("Training dataloader:")
         print("Length {}".format(len(trainDataloader)))
-        x, y, t, c, _ = next(iter(trainDataloader))
-        print(x['highresdynamic'].shape)
-        print(x['highresstatic'].shape)
-        print(x['mesodynamic'].shape)
-        print(x['mesostatic'].shape)
-        print(y['highresdynamic'].shape)
-        print(t)
-        print(c)
+        data = next(iter(trainDataloader))
+        print(data['context']['images'].shape)
+        print(data['context']['weather'].shape)
+        print(data['context']['mask'].shape)
+        print(data['target']['images'].shape)
+        print(data['target']['weather'].shape)
+        print(data['target']['mask'].shape)
+        print(data['demHigh'].shape)
+        print(data['demMeso'].shape)
+        print(data['tile'])
+        print(data['cubename'])
 
         print("Testing dataloader sample")
         print("Length {}".format(len(testDataloader)))
-        x, y, t, c, _ = next(iter(testDataloader))
-        print(x['highresdynamic'].shape)
-        print(x['highresstatic'].shape)
-        print(x['mesodynamic'].shape)
-        print(x['mesostatic'].shape)
-        print(y['highresdynamic'].shape)
-        print(t)
-        print(c)
-    else:
+        data = next(iter(testDataloader))
+        print(data['context']['images'].shape)
+        print(data['context']['weather'].shape)
+        print(data['context']['mask'].shape)
+        print(data['target']['images'].shape)
+        print(data['target']['weather'].shape)
+        print(data['target']['mask'].shape)
+        print(data['demHigh'].shape)
+        print(data['demMeso'].shape)
+        print(data['tile'])
+        print(data['cubename'])
+    elif v == '1':
+        print("Training dataloader:")
+        print("Length {}".format(len(trainDataloader)))
+        data = next(iter(trainDataloader))
+        print(data['x'].shape)
+        print(data['y'].shape)
+        print(data['targetMask'].shape)
+        print(data['tile'])
+        print(data['cubename'])
+
+        print("Testing dataloader sample")
+        print("Length {}".format(len(testDataloader)))
+        data = next(iter(testDataloader))
+        print(data['x'].shape)
+        print(data['y'].shape)
+        print(data['targetMask'].shape)
+        print(data['tile'])
+        print(data['cubename'])
+    elif v == '2':
         print("Training dataloader:")
         print("Length {}".format(len(trainDataloader)))
         x, y, t, c, xMesodynamic = next(iter(trainDataloader))

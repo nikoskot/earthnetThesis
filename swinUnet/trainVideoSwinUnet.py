@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.utils.checkpoint as checkpoint
 import numpy as np
+import random
 from earthnetDataloader import EarthnetTestDataset, EarthnetTrainDataset, Preprocessing
 from torch.utils.data import DataLoader, random_split, Subset
 import torchmetrics
@@ -35,41 +36,59 @@ def load_config(config_path):
 
 
 # Training loop
-def train_loop(dataloader, model, lossFunction, optimizer):
+def train_loop(dataloader, model, lossFunction, optimizer, config):
 
     # Set the model to training mode - important for batch normalization and dropout layers
     model.train()
     lossSum = 0
-    # numberOfSamples = 0
 
-    for X, y, _ in tqdm.tqdm(dataloader):
+    # maxGradPre = torch.tensor(0)
+    # minGradPre = torch.tensor(0)
+    # maxGradAfter = torch.tensor(0)
+    # minGradAfter = torch.tensor(0)
+
+    for data in tqdm.tqdm(dataloader):
+
+        optimizer.zero_grad()
 
         # Move data to GPU
-        X = X.to(torch.device('cuda'))
-        y = y.to(torch.device('cuda'))
+        x = data['x'].to(torch.device('cuda'))
+        y = data['y'].to(torch.device('cuda'))
+        masks = data['targetMask'].to(torch.device('cuda'))
 
         # Compute prediction and loss
-        pred = model(X)
-        loss = lossFunction(pred, y)
+        pred = model(x)
+        loss = lossFunction(pred, y, masks)
 
         # Backpropagation
         loss.backward()
+
+        # for param in model.parameters():
+        #     mx = torch.max(param.grad.view(-1))
+        #     mn = torch.min(param.grad.view(-1))
+        #     maxGradPre = torch.maximum(mx, maxGradPre)
+        #     minGradPre = torch.minimum(mn, minGradPre)
+            # grads.append(param.grad.view(-1))
+        # grads = torch.cat(grads)
+        # maxGrad = torch.max(grads)
+        # logger.info("Maximum gradient before clipping: {}".format(maxGradPre))
+        # logger.info("Minimum gradient before clipping: {}".format(minGradPre))
+        if config['gradientClipping']:
+            nn.utils.clip_grad_value_(model.parameters(), config['gradientClipValue'])
+        # for param in model.parameters():
+        #     mx = torch.max(param.grad.view(-1))
+        #     mn = torch.min(param.grad.view(-1))
+        #     maxGradAfter = torch.maximum(mx, maxGradAfter)
+        #     minGradAfter = torch.minimum(mn, minGradAfter)
+        # logger.info("Maximum gradient after clipping: {}".format(maxGradAfter))
+        # logger.info("Minimum gradient after clipping: {}".format(minGradAfter))
+
         optimizer.step()
-        optimizer.zero_grad()
 
         # Add the loss to the total loss of the batch and keep track of the number of samples
-        lossSum         += loss.item()
-        # numberOfSamples += len(X)
+        lossSum += loss.item()
 
-        # Isolate the mask from the ground truth and update the Earthnet Score Calculator
-        # mask = y[:, 4, :, :, :].unsqueeze(1).permute(0, 3, 4, 1, 2)
-        # trainENSCalculator.update(pred.permute(0, 3, 4, 1, 2)[:, :, :, :4, :], y.permute(0, 3, 4, 1, 2)[:, :, :, :4, :], mask=mask)
-
-    # Calculate Earthnet Score and reset the calculator
-    # trainENS = trainENSCalculator.compute()
-    # trainENSCalculator.reset()
-
-    return lossSum #/ numberOfSamples#, trainENS
+    return lossSum
         
 
 def validation_loop(dataloader, model, lossFunction):
@@ -77,46 +96,42 @@ def validation_loop(dataloader, model, lossFunction):
     # Set the model to evaluation mode - important for batch normalization and dropout layers
     model.eval()
     lossSum = 0
-    # numberOfSamples = 0
 
     # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
     # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
     with torch.no_grad():
-        for X, y, _ in tqdm.tqdm(dataloader):
+        for data in tqdm.tqdm(dataloader):
             
             # Move data to GPU
-            X = X.to(torch.device('cuda'))
-            y = y.to(torch.device('cuda'))
+            x = data['x'].to(torch.device('cuda'))
+            y = data['y'].to(torch.device('cuda'))
+            masks = data['targetMask'].to(torch.device('cuda'))
 
             # Compute prediction and loss
-            pred = model(X)
-            loss = lossFunction(pred, y)
+            pred = model(x)
+            loss = lossFunction(pred, y, masks)
 
             # Add the loss to the total loss of the batch and keep track of the number of samples
-            lossSum         += loss.item()
-            # numberOfSamples += len(X)
+            lossSum += loss.item()
 
-            # Isolate the mask from the ground truth and update the Earthnet Score Calculator
-            # mask = y[:, 4, :, :, :].unsqueeze(1).permute(0, 3, 4, 1, 2)
-            # validENSCalculator.update(pred.permute(0, 3, 4, 1, 2)[:, :, :, :4, :], y.permute(0, 3, 4, 1, 2)[:, :, :, :4, :], mask=mask)
-
-    # Calculate Earthnet Score and reset the calculator
-    # validationENS = validENSCalculator.compute()
-    # validENSCalculator.reset()
-
-    return lossSum #/ numberOfSamples#, validationENS
-
+    return lossSum
 
 def main():
 
     # Get the date and time when the execution started
     runDateTime = datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S')
 
+    # Set device
     device = torch.device('cuda')
 
     # Parse the input arguments and load the configuration file
     args   = parseArgs()
     config = load_config(args.config)
+
+    # Setup seeds
+    torch.manual_seed(config['torchSeed'])
+    random.seed(config['pythonSeed'])
+    np.random.seed(config['numpySeed'])
 
     # Setup the output folder structure
     outputFolder = os.path.join(config['experimentsFolder'], config['modelType'] + '_' + runDateTime) # .../experiments/modelType_trainDatetime/
@@ -129,11 +144,11 @@ def main():
     logger = logging.getLogger(__name__)
     logging.basicConfig(filename=os.path.join(outputFolder, 'training.log'), encoding='utf-8', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
     logger.info("NOTE: {}".format(args.note))
-    tbWriter = SummaryWriter(os.path.join(config['experimentsFolder'], 'tensorboardLogs', config['modelType'] + '_' + runDateTime))
+    tbWriter = SummaryWriter(outputFolder)
 
     # Intiialize Video Swin Unet model and move to GPU
-    model = VideoSwinUNet(inputChannels=config['modelInputCh'], inputHW=config['inputHeightWidth'], 
-                          C=config['C'], num_blocks=config['numBlocks'], 
+    model = VideoSwinUNet(inputChannels=config['modelInputCh'], outputChannels=config['modelOutputCh'], 
+                          inputHW=config['inputHeightWidth'], C=config['C'], num_blocks=config['numBlocks'], 
                           patch_size=(config['patchSizeT'], config['patchSizeH'], config['patchSizeW']), 
                           window_size=(config['windowSizeT'], config['windowSizeH'], config['windowSizeW'])).to(torch.device('cuda'))
 
@@ -142,6 +157,8 @@ def main():
         lossFunction = nn.MSELoss(reduction='mean')
     elif config['trainLossFunction'] == "maskedL1":
         lossFunction = BaseLoss({}, device=device)
+    elif config['trainLossFunction'] == "l1":
+        lossFunction = nn.L1Loss(reduction='mean')
     else:
         raise NotImplementedError
     
@@ -149,7 +166,7 @@ def main():
         optimizer = torch.optim.AdamW(model.parameters(), lr=config['lr'])
     elif config['trainingOptimizer'] == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'])
-        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=[40, 70, 90], gamma=0.1)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=0.1, patience=config['schedulerPatience'])
     else:
         raise NotImplementedError
     
@@ -157,6 +174,9 @@ def main():
         checkpoint = torch.load(args.resumeCheckpoint)
         model.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = config['lr']
+        scheduler.load_state_dict(checkpoint['scheduler'])
         startEpoch = checkpoint['epoch'] + 1
         bestValLoss = checkpoint['valLoss']
         logger.info("Resuming training from checkpoint {} from epoch {}".format(args.resumeCheckpoint, startEpoch))
@@ -170,14 +190,14 @@ def main():
 
     # Create dataset of training part of Earthnet dataset
     trainDataset = EarthnetTrainDataset(dataDir=config['trainDataDir'], dtype=config['dataDtype'], transform=preprocessingStage)
-    trainDataset = Subset(trainDataset, range(3))
+    # trainDataset = Subset(trainDataset, range(3))
 
     # Split to training and validation dataset
-    # trainDataset, valDataset = random_split(trainDataset, [config['trainSplit'], config['validationSplit']])
+    trainDataset, valDataset = random_split(trainDataset, [config['trainSplit'], config['validationSplit']])
 
     # Create training and validation Dataloaders
     trainDataloader = DataLoader(trainDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
-    valDataloader   = DataLoader(trainDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
+    valDataloader   = DataLoader(valDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
 
     # Create objects for calculation of Earthnet Score during training, validation and testing
     # trainENSCalculator = EarthNet2021ScoreUpdateWithoutCompute(layout="NHWCT", eps=1E-4)
@@ -187,7 +207,8 @@ def main():
     for i in range(startEpoch, config['epochs']):
 
         logger.info("Epoch {}\n-------------------------------".format(i))
-        trainLoss = train_loop(trainDataloader, model, lossFunction, optimizer)
+        logger.info("Learning Rate: {}".format(scheduler.print_lr()))
+        trainLoss = train_loop(trainDataloader, model, lossFunction, optimizer, config)
         logger.info("Mean training loss: {}".format(trainLoss))
         # print("Training ENS metrics:")
         # print(trainENS)
@@ -215,6 +236,8 @@ def main():
                            'scheduler'  : scheduler.state_dict()}
             torch.save(checkpoint, os.path.join(outputFolder, 'checkpoint.pth'))
             logger.info("New best validation Loss {}, at epoch {}".format(bestValLoss, i))
+
+        scheduler.step(valLoss)
         
         tbWriter.add_scalar('Loss/Train', trainLoss, i)
         tbWriter.add_scalar('Loss/Val', valLoss, i)

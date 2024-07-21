@@ -11,11 +11,14 @@ import os
 import argparse
 import yaml
 import logging
+from maskedLoss import BaseLoss
+import random
 
 def parseArgs():
     parser = argparse.ArgumentParser()
     parser.add_argument('--trainingFolder', help='The path to the folder of the training run whose testing we want to execute.')
     parser.add_argument('--testSplit', default='iid_test_split', choices=['iid_test_split', 'ood_test_split', 'seasonal_test_split', 'extreme_test_split'], help='The split of the testing dataset to use.')
+    parser.add_argument('--note', help='Note to write at beginning of log file.')
     return parser.parse_args()
 
 
@@ -30,46 +33,51 @@ def testing_loop(dataloader, model, lossFunction, predsFolder):
     # Set the model to evaluation mode - important for batch normalization and dropout layers
     model.eval()
     lossSum = 0
-    numberOfSamples = 0
 
     # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
     # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
     with torch.no_grad():
-        for X, y, tiles, cubenames, _ in tqdm.tqdm(dataloader):
+        for data in tqdm.tqdm(dataloader):
             
             # Move data to GPU
-            X = X.to(torch.device('cuda'))
-            y = y.to(torch.device('cuda'))
+            x = data['x'].to(torch.device('cuda'))
+            y = data['y'].to(torch.device('cuda'))
+            masks = data['targetMask'].to(torch.device('cuda'))
 
             # Compute prediction and loss
-            pred = model(X)
-            loss = lossFunction(pred, y)
+            pred = model(x)
+            loss = lossFunction(pred, y, masks)
 
             # Add the loss to the total loss of the batch and keep track of the number of samples
-            lossSum         += loss.item()
-            numberOfSamples += len(X)
+            lossSum += loss.item()
 
-            # Isolate the mask from the ground truth and update the Earthnet Score Calculator
-            # mask = y[:, 4, :, :, :].unsqueeze(1).permute(0, 3, 4, 1, 2)
-            # validENSCalculator.update(pred.permute(0, 3, 4, 1, 2)[:, :, :, :4, :], y.permute(0, 3, 4, 1, 2)[:, :, :, :4, :], mask=mask)
+            tiles = data['tile']
+            cubenames = data['cubename']
 
             # Save predictions
             for i in range(len(tiles)):
                 path = os.path.join(predsFolder, tiles[i])
                 os.makedirs(path, exist_ok=True)
-                np.savez_compressed(os.path.join(path, cubenames[i]), highresdynamic=pred[0].permute(2, 3, 0, 1).detach().cpu().numpy().astype(np.float16))
+                np.savez_compressed(os.path.join(path, cubenames[i]), highresdynamic=pred[i].permute(2, 3, 0, 1).detach().cpu().numpy().astype(np.float16))
 
     # Calculate Earthnet Score and reset the calculator
     # validationENS = validENSCalculator.compute()
     # validENSCalculator.reset()
 
-    return lossSum / numberOfSamples#, validationENS
+    return lossSum
 
 
 def main():
     # Parse the input arguments and load the corresponding configuration file
     args   = parseArgs()
     config = load_config(os.path.join(args.trainingFolder, 'config.yml'))
+
+    device = torch.device('cuda')
+
+    # Setup seeds
+    torch.manual_seed(config['torchSeed'])
+    random.seed(config['pythonSeed'])
+    np.random.seed(config['numpySeed'])
 
     # Setup the predictions output folder
     predsFolder = os.path.join(args.trainingFolder, 'predictions', args.testSplit) # .../experiments/modelType_trainDatetime/predictions/split/
@@ -78,17 +86,25 @@ def main():
     # Initialize logging
     logger = logging.getLogger(__name__)
     logging.basicConfig(filename=os.path.join(args.trainingFolder, 'testing_{}.log'.format(args.testSplit)), encoding='utf-8', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
-
+    logger.info("NOTE: {}".format(args.note))
+    
     # Load training checkpoint
     checkpoint = torch.load(os.path.join(args.trainingFolder, 'checkpoint.pth'))
 
     # Intiialize Video Swin Unet model and move to GPU
-    model = VideoSwinUNet(inputChannels=config['modelInputCh'], C=config['C']).to(torch.device('cuda'))
+    model = VideoSwinUNet(inputChannels=config['modelInputCh'], outputChannels=config['modelOutputCh'], 
+                          inputHW=config['inputHeightWidth'], C=config['C'], num_blocks=config['numBlocks'], 
+                          patch_size=(config['patchSizeT'], config['patchSizeH'], config['patchSizeW']), 
+                          window_size=(config['windowSizeT'], config['windowSizeH'], config['windowSizeW'])).to(torch.device('cuda'))
     model.load_state_dict(checkpoint['state_dict'])
 
     # Setup Loss Function
     if config['trainLossFunction'] == "mse":
-        lossFunction = nn.MSELoss(reduction='sum')
+        lossFunction = nn.MSELoss(reduction='mean')
+    elif config['trainLossFunction'] == "maskedL1":
+        lossFunction = BaseLoss({}, device=device)
+    elif config['trainLossFunction'] == "l1":
+        lossFunction = nn.L1Loss(reduction='mean')
     else:
         raise NotImplementedError
 
@@ -98,6 +114,8 @@ def main():
     # Create dataset for testing part of Earthnet dataset
     testDataset = EarthnetTestDataset(dataDir=os.path.join(config['testDataDir'], args.testSplit), dtype=config['dataDtype'], transform=preprocessingStage)
     # testDataset = Subset(testDataset, range(450))
+    # testDataset = EarthnetTrainDataset(dataDir=config['trainDataDir'], dtype=config['dataDtype'], transform=preprocessingStage)
+    # testDataset = Subset(testDataset, range(3))
 
     # Create testing Dataloader
     testDataloader = DataLoader(testDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)  

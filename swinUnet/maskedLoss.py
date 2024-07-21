@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 import torch.nn.functional as F
 
@@ -25,12 +26,11 @@ class BaseLoss(nn.Module):
         self.distance = MaskedLoss(distance_type="L1")
         self.device = device
 
-    def forward(self, preds, batch, aux, current_step = None):
+    def forward(self, preds, targs, masks):
         
         logs = {}
 
-        targs = batch["dynamic"][0][:,-preds.shape[1]:,...].to(self.device)
-        masks = batch["dynamic_mask"][0][:,-preds.shape[1]:,...].to(self.device)
+        masks = torch.repeat_interleave(masks, repeats=4, dim=1)
 
         dist = self.distance(preds, targs, masks)
         
@@ -40,4 +40,4 @@ class BaseLoss(nn.Module):
 
         logs["loss"] = loss
 
-        return loss, logs
+        return loss

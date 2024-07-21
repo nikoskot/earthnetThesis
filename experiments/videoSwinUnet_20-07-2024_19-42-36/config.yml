@@ -1,0 +1,40 @@
+# Data
+batchSize: 24
+numWorkers: 8    # Number of workers for Dataloaders
+trainDataDir: "/home/nikoskot/earthnetThesis/EarthnetDataset/train"
+testDataDir: "/home/nikoskot/earthnetThesis/EarthnetDataset/"
+dataDtype: "float32"
+trainSplit: 0.8
+validationSplit: 0.2
+experimentsFolder: "/home/nikoskot/earthnetThesis/experiments"
+torchSeed: 58
+numpySeed: 58
+pythonSeed: 58
+
+
+# Model
+modelType: "videoSwinUnet"
+C: 96            # C of Video Swin Transformer (number of channels after patch embedding)
+modelInputCh: 11 # Number of channels of the input data
+extraInputCh: 5
+mainInputTime: 10
+modelOutputCh: 4
+numBlocks: 3
+inputHeightWidth: 128
+windowSizeT: 3
+windowSizeH: 7
+windowSizeW: 7
+patchSizeT: 1
+patchSizeH: 4
+patchSizeW: 4
+
+
+# Optimization
+epochs: 40      # Number of epochs to run the training for
+trainLossFunction: "maskedL1"
+trainingOptimizer: "adam"
+lr: 0.0002         # Def 0.0005
+scheduler: "ReduceLROnPlateau"
+schedulerPatience: 10
+gradientClipping: True
+gradientClipValue: 20

@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=A40medium
-#SBATCH --time=1:00:00
+#SBATCH --time=20:00:00
 #SBATCH --gpus=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
@@ -16,13 +16,13 @@
 python checkGPU.py
 # python swinUnet/videoSwinUnetMMAction.py
 
-# python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/experiments/config.yml
+# python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/config.yml
 # python swinUnet/trainVideoSwinUnetV2.py --config /home/nikoskot/experiments/config.yml
-# python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/experiments/config.yml --resumeTraining --resumeCheckpoint /home/nikoskot/experiments/videoSwinUnet_02-07-2024_17:14:41/checkpoint.pth
+python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/config.yml --resumeTraining --resumeCheckpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnet_18-07-2024_16-57-37/checkpoint.pth
 # python channelUnet/channelUnetReproduction.py --config /home/nikoskot/earthnetThesis/experiments/config.yml
 
-# python swinUnet/testVideoSwinUnet.py --trainingFolder /home/nikoskot/experiments/videoSwinUnet_02-07-2024_17:14:41 --testSplit iid_test_split
+# python swinUnet/testVideoSwinUnet.py --trainingFolder /home/nikoskot/earthnetThesis/experiments/videoSwinUnet_18-07-2024_16-57-37 --testSplit iid_test_split
 # python swinUnet/testVideoSwinUnetV2.py --trainingFolder /home/nikoskot/experiments/videoSwinUNetV2_08-07-2024_20:45:11 --testSplit iid_test_split
 # python channelUnet/testChannelUnet.py --trainingFolder /home/nikoskot/earthnetThesis/experiments/ChannelUnet_13-07-2024_17-59-15 --testSplit iid_test_split
 
-python swinUnet/ensScoreCalculation.py --predictionsFolder /home/nikoskot/earthnetThesis/experiments/ChannelUnet_13-07-2024_17-59-15/predictions/iid_test_split --targetsFolder /home/nikoskot/earthnetThesis/EarthnetDataset/iid_test_split/target --dataOutputFilePath /home/nikoskot/earthnetThesis/experiments/ChannelUnet_13-07-2024_17-59-15/data_output.json --scoreOutputFilePath /home/nikoskot/earthnetThesis/experiments/ChannelUnet_13-07-2024_17-59-15/score_output.json
+# python swinUnet/ensScoreCalculation.py --predictionsFolder /home/nikoskot/earthnetThesis/experiments/ChannelUnet_13-07-2024_17-59-15/predictions/iid_test_split --targetsFolder /home/nikoskot/earthnetThesis/EarthnetDataset/iid_test_split/target --dataOutputFilePath /home/nikoskot/earthnetThesis/experiments/ChannelUnet_13-07-2024_17-59-15/data_output.json --scoreOutputFilePath /home/nikoskot/earthnetThesis/experiments/ChannelUnet_13-07-2024_17-59-15/score_output.json

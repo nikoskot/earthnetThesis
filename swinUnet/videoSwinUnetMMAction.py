@@ -617,7 +617,7 @@ class Decoder(nn.Module):
         return x
 
 class VideoSwinUNet(nn.Module):
-    def __init__(self, inputChannels, inputHW, C=96, num_blocks=3, patch_size=(1, 4, 4), window_size=(3, 7, 7)):
+    def __init__(self, inputChannels, outputChannels, inputHW, C=96, num_blocks=3, patch_size=(1, 4, 4), window_size=(3, 7, 7)):
         super().__init__()
         self.patch_embed     = PatchEmbed3D(patch_size=patch_size, in_chans=inputChannels, embed_dim=C)
         self.encoder         = Encoder(C, window_size=window_size)
@@ -626,38 +626,41 @@ class VideoSwinUNet(nn.Module):
         # self.timeUpsampling1 = nn.ConvTranspose3d(in_channels=C, out_channels=C, kernel_size=(2, 1, 1), stride=(2,1,1))
         self.final_expansion = FinalPatchExpansionV2(inputChannels=C)
         # self.timeUpsampling2 = nn.ConvTranspose3d(in_channels=C, out_channels=C, kernel_size=(2, 1, 1), stride=(2,1,1))
-        self.head            = RegressionHead(in_channels=C, out_channels=5)
+        self.head            = RegressionHead(in_channels=C, out_channels=outputChannels)
 
     def forward(self, x):
 
         # Input shape B,C,T,H,W
         # startTime = time.time()
         x = self.patch_embed(x)
-        print("Patch embedding output shape {}".format(x.shape))
+        # print("Patch embedding output shape {}".format(x.shape))
         # endTime = time.time()
         # print("Patch embedding time {}".format(endTime - startTime))
 
         # startTime = time.time()
         x,skip_ftrs = self.encoder(x)
-        print("Encoder output shape {}".format(x.shape))
-        for s in skip_ftrs:
-            print("Skip feature output shape {}".format(s.shape))
+        # print("Encoder output shape {}".format(x.shape))
+        # for s in skip_ftrs:
+        #     print("Skip feature output shape {}".format(s.shape))
         # endTime = time.time()
         # print("Encoder time {}".format(endTime - startTime))
 
         # startTime = time.time()
         x = self.bottleneck(x)
-        print("Bottleneck output shape {}".format(x.shape))
+        # print("Bottleneck output shape {}".format(x.shape))
         # endTime = time.time()
         # print("Bottleneck time {}".format(endTime - startTime))
 
         # Double the time dimension
+        # startTime = time.time()
         x = F.interpolate(x, size=(x.shape[2]*2, x.shape[3], x.shape[4]), mode='trilinear')
-        print("Interpolated bottleneck output shape {}".format(x.shape))
+        # endTime = time.time()
+        # print("Time upsampling time {}".format(endTime - startTime))
+        # print("Interpolated bottleneck output shape {}".format(x.shape))
 
         # startTime = time.time()
         x = self.decoder(x, skip_ftrs[::-1])
-        print("Decoder output shape {}".format(x.shape))
+        # print("Decoder output shape {}".format(x.shape))
         # endTime = time.time()
         # print("Decoder time {}".format(endTime - startTime))
 
@@ -670,7 +673,7 @@ class VideoSwinUNet(nn.Module):
 
         # startTime = time.time()
         x = self.final_expansion(x)
-        print("Final expansion output shape {}".format(x.shape))
+        # print("Final expansion output shape {}".format(x.shape))
         # endTime = time.time()
         # print("Final exxpansion time {}".format(endTime - startTime))
 
@@ -683,7 +686,7 @@ class VideoSwinUNet(nn.Module):
 
         # startTime = time.time()
         x = self.head(x)
-        print("Head output shape {}".format(x.shape))
+        # print("Head output shape {}".format(x.shape))
         # endTime = time.time()
         # print("Head time {}".format(endTime - startTime))
 
@@ -702,16 +705,16 @@ if __name__ == "__main__":
     totalParams = sum(p.numel() for p in model.parameters())
 
     startTime = time.time()
-    x = torch.rand(2, 12, 10, 128, 128).to(torch.device('cuda')) # B, C, T, H, W
+    x = torch.rand(8, 12, 10, 128, 128).to(torch.device('cuda')) # B, C, T, H, W
     endTime = time.time()
     print("Dummy data creation time {}".format(endTime - startTime))
 
-    # for i in range(20):
-    #     _ = torch.randn(1).cuda()        
-    #     startTime = time.time()
-    #     y = model(x)
-    #     endTime = time.time()
-    #     print("Pass time {}".format(endTime - startTime))
+    for i in range(20):
+        _ = torch.randn(1).cuda()        
+        startTime = time.time()
+        y = model(x)
+        endTime = time.time()
+        print("Pass time {}".format(endTime - startTime))
 
     y = model(x)
 
