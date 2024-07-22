@@ -1,0 +1,141 @@
+2024-07-21 16:12:56,446 - INFO - NOTE: None
+2024-07-21 16:12:57,695 - INFO - Resuming training from checkpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnet_18-07-2024_16-57-37/checkpoint.pth from epoch 14
+2024-07-21 16:12:58,138 - INFO - Epoch 14
+-------------------------------
+2024-07-21 16:12:58,139 - INFO - Learning Rate of group 0: 2e-05
+2024-07-21 16:41:07,702 - INFO - Mean training loss: 17.67373487725854
+2024-07-21 16:44:00,987 - INFO - Mean validation loss: 4.461843932047486
+2024-07-21 16:44:02,292 - INFO - New best validation Loss 4.461843932047486, at epoch 14
+2024-07-21 16:44:02,293 - INFO - Epoch 15
+-------------------------------
+2024-07-21 16:44:02,294 - INFO - Learning Rate of group 0: 2e-05
+2024-07-21 17:12:07,709 - INFO - Mean training loss: 17.269218262284994
+2024-07-21 17:14:31,398 - INFO - Mean validation loss: 4.430561976507306
+2024-07-21 17:14:32,779 - INFO - New best validation Loss 4.430561976507306, at epoch 15
+2024-07-21 17:14:32,780 - INFO - Epoch 16
+-------------------------------
+2024-07-21 17:14:32,781 - INFO - Learning Rate of group 0: 2e-05
+2024-07-21 17:42:34,990 - INFO - Mean training loss: 16.978330275043845
+2024-07-21 17:44:58,788 - INFO - Mean validation loss: 4.409132672473788
+2024-07-21 17:45:00,453 - INFO - New best validation Loss 4.409132672473788, at epoch 16
+2024-07-21 17:45:00,454 - INFO - Epoch 17
+-------------------------------
+2024-07-21 17:45:00,454 - INFO - Learning Rate of group 0: 2e-05
+2024-07-21 18:13:02,117 - INFO - Mean training loss: 16.690007124096155
+2024-07-21 18:15:27,272 - INFO - Mean validation loss: 4.402072362601757
+2024-07-21 18:15:28,799 - INFO - New best validation Loss 4.402072362601757, at epoch 17
+2024-07-21 18:15:28,800 - INFO - Epoch 18
+-------------------------------
+2024-07-21 18:15:28,800 - INFO - Learning Rate of group 0: 2e-05
+2024-07-21 18:43:31,810 - INFO - Mean training loss: 16.46006229147315
+2024-07-21 18:45:59,141 - INFO - Mean validation loss: 4.4167041759938
+2024-07-21 18:45:59,142 - INFO - Epoch 19
+-------------------------------
+2024-07-21 18:45:59,142 - INFO - Learning Rate of group 0: 2e-05
+2024-07-21 19:14:01,735 - INFO - Mean training loss: 16.336897702887654
+2024-07-21 19:16:28,500 - INFO - Mean validation loss: 4.396040365099907
+2024-07-21 19:16:29,823 - INFO - New best validation Loss 4.396040365099907, at epoch 19
+2024-07-21 19:16:29,824 - INFO - Epoch 20
+-------------------------------
+2024-07-21 19:16:29,824 - INFO - Learning Rate of group 0: 2e-05
+2024-07-21 19:44:32,604 - INFO - Mean training loss: 16.256972782313824
+2024-07-21 19:46:59,300 - INFO - Mean validation loss: 4.417871965095401
+2024-07-21 19:46:59,300 - INFO - Epoch 21
+-------------------------------
+2024-07-21 19:46:59,301 - INFO - Learning Rate of group 0: 2e-05
+2024-07-21 20:15:01,491 - INFO - Mean training loss: 16.132341105490923
+2024-07-21 20:17:28,577 - INFO - Mean validation loss: 4.479772504419088
+2024-07-21 20:17:28,578 - INFO - Epoch 22
+-------------------------------
+2024-07-21 20:17:28,578 - INFO - Learning Rate of group 0: 2e-05
+2024-07-21 20:45:32,616 - INFO - Mean training loss: 16.000077238306403
+2024-07-21 20:47:58,902 - INFO - Mean validation loss: 4.398939598351717
+2024-07-21 20:47:58,904 - INFO - Epoch 23
+-------------------------------
+2024-07-21 20:47:58,904 - INFO - Learning Rate of group 0: 2e-05
+2024-07-21 21:16:02,258 - INFO - Mean training loss: 15.881370034068823
+2024-07-21 21:18:28,380 - INFO - Mean validation loss: 4.360607389360666
+2024-07-21 21:18:29,745 - INFO - New best validation Loss 4.360607389360666, at epoch 23
+2024-07-21 21:18:29,746 - INFO - Epoch 24
+-------------------------------
+2024-07-21 21:18:29,746 - INFO - Learning Rate of group 0: 2e-05
+2024-07-21 21:46:34,605 - INFO - Mean training loss: 15.729487909004092
+2024-07-21 21:49:01,444 - INFO - Mean validation loss: 4.351981043815613
+2024-07-21 21:49:02,899 - INFO - New best validation Loss 4.351981043815613, at epoch 24
+2024-07-21 21:49:02,900 - INFO - Epoch 25
+-------------------------------
+2024-07-21 21:49:02,900 - INFO - Learning Rate of group 0: 2e-05
+2024-07-21 22:17:06,932 - INFO - Mean training loss: 15.564375584945083
+2024-07-21 22:19:34,370 - INFO - Mean validation loss: 4.438871202990413
+2024-07-21 22:19:34,372 - INFO - Epoch 26
+-------------------------------
+2024-07-21 22:19:34,372 - INFO - Learning Rate of group 0: 2e-05
+2024-07-21 22:47:37,863 - INFO - Mean training loss: 15.512755575589836
+2024-07-21 22:50:05,547 - INFO - Mean validation loss: 4.393023753538728
+2024-07-21 22:50:05,548 - INFO - Epoch 27
+-------------------------------
+2024-07-21 22:50:05,548 - INFO - Learning Rate of group 0: 2e-05
+2024-07-21 23:18:08,832 - INFO - Mean training loss: 15.515299186110497
+2024-07-21 23:20:36,665 - INFO - Mean validation loss: 4.38970572501421
+2024-07-21 23:20:36,666 - INFO - Epoch 28
+-------------------------------
+2024-07-21 23:20:36,666 - INFO - Learning Rate of group 0: 2e-05
+2024-07-21 23:48:39,679 - INFO - Mean training loss: 15.408388038165867
+2024-07-21 23:51:06,495 - INFO - Mean validation loss: 4.369945017620921
+2024-07-21 23:51:06,497 - INFO - Epoch 29
+-------------------------------
+2024-07-21 23:51:06,497 - INFO - Learning Rate of group 0: 2e-05
+2024-07-22 00:19:10,627 - INFO - Mean training loss: 15.211112480610609
+2024-07-22 00:21:36,900 - INFO - Mean validation loss: 4.372896157205105
+2024-07-22 00:21:36,901 - INFO - Epoch 30
+-------------------------------
+2024-07-22 00:21:36,901 - INFO - Learning Rate of group 0: 2e-05
+2024-07-22 00:49:39,850 - INFO - Mean training loss: 15.0953957894817
+2024-07-22 00:52:06,029 - INFO - Mean validation loss: 4.3926880322396755
+2024-07-22 00:52:06,030 - INFO - Epoch 31
+-------------------------------
+2024-07-22 00:52:06,030 - INFO - Learning Rate of group 0: 2e-05
+2024-07-22 01:20:08,545 - INFO - Mean training loss: 15.045131929218769
+2024-07-22 01:22:35,407 - INFO - Mean validation loss: 4.4307749308645725
+2024-07-22 01:22:35,408 - INFO - Epoch 32
+-------------------------------
+2024-07-22 01:22:35,408 - INFO - Learning Rate of group 0: 2e-05
+2024-07-22 01:50:38,820 - INFO - Mean training loss: 15.010076398961246
+2024-07-22 01:53:05,976 - INFO - Mean validation loss: 4.388479879125953
+2024-07-22 01:53:05,977 - INFO - Epoch 33
+-------------------------------
+2024-07-22 01:53:05,977 - INFO - Learning Rate of group 0: 2e-05
+2024-07-22 02:21:10,779 - INFO - Mean training loss: 14.971705111674964
+2024-07-22 02:23:37,621 - INFO - Mean validation loss: 4.348714342340827
+2024-07-22 02:23:39,012 - INFO - New best validation Loss 4.348714342340827, at epoch 33
+2024-07-22 02:23:39,013 - INFO - Epoch 34
+-------------------------------
+2024-07-22 02:23:39,014 - INFO - Learning Rate of group 0: 2e-05
+2024-07-22 02:51:43,648 - INFO - Mean training loss: 14.916978302411735
+2024-07-22 02:54:10,126 - INFO - Mean validation loss: 4.405536947771907
+2024-07-22 02:54:10,128 - INFO - Epoch 35
+-------------------------------
+2024-07-22 02:54:10,128 - INFO - Learning Rate of group 0: 2e-05
+2024-07-22 03:22:14,333 - INFO - Mean training loss: 14.849649406969547
+2024-07-22 03:24:40,923 - INFO - Mean validation loss: 4.518999759107828
+2024-07-22 03:24:40,924 - INFO - Epoch 36
+-------------------------------
+2024-07-22 03:24:40,924 - INFO - Learning Rate of group 0: 2e-05
+2024-07-22 03:52:44,633 - INFO - Mean training loss: 14.765843425877392
+2024-07-22 03:55:10,763 - INFO - Mean validation loss: 4.408561076968908
+2024-07-22 03:55:10,764 - INFO - Epoch 37
+-------------------------------
+2024-07-22 03:55:10,764 - INFO - Learning Rate of group 0: 2e-05
+2024-07-22 04:23:13,522 - INFO - Mean training loss: 14.687816969119012
+2024-07-22 04:25:40,589 - INFO - Mean validation loss: 4.512130882591009
+2024-07-22 04:25:40,591 - INFO - Epoch 38
+-------------------------------
+2024-07-22 04:25:40,591 - INFO - Learning Rate of group 0: 2e-05
+2024-07-22 04:53:43,496 - INFO - Mean training loss: 14.624835696071386
+2024-07-22 04:56:10,464 - INFO - Mean validation loss: 4.4319311790168285
+2024-07-22 04:56:10,466 - INFO - Epoch 39
+-------------------------------
+2024-07-22 04:56:10,466 - INFO - Learning Rate of group 0: 2e-05
+2024-07-22 05:24:15,983 - INFO - Mean training loss: 14.582401756197214
+2024-07-22 05:26:42,493 - INFO - Mean validation loss: 4.349139802157879
+2024-07-22 05:26:42,495 - INFO - Training Finished

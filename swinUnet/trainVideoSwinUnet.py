@@ -166,7 +166,7 @@ def main():
         optimizer = torch.optim.AdamW(model.parameters(), lr=config['lr'])
     elif config['trainingOptimizer'] == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'])
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=0.1, patience=config['schedulerPatience'])
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=config['lrScaleFactor'], patience=config['schedulerPatience'])
     else:
         raise NotImplementedError
     
@@ -207,7 +207,8 @@ def main():
     for i in range(startEpoch, config['epochs']):
 
         logger.info("Epoch {}\n-------------------------------".format(i))
-        logger.info("Learning Rate: {}".format(scheduler.print_lr()))
+        for j, param_group in enumerate(optimizer.param_groups):
+            logger.info("Learning Rate of group {}: {}".format(j, param_group['lr']))
         trainLoss = train_loop(trainDataloader, model, lossFunction, optimizer, config)
         logger.info("Mean training loss: {}".format(trainLoss))
         # print("Training ENS metrics:")

@@ -14,6 +14,7 @@ import tqdm
 import time
 import datetime
 from earthnet.parallel_score import CubeCalculator
+import yaml
 
 
 class Mlp(nn.Module):
@@ -342,16 +343,14 @@ class PatchExpansion(nn.Module):
 
 class PatchExpansionV2(nn.Module):
 
-    def __init__(
-            self,
-            inputChannels
-    ):
+    def __init__(self, inputChannels, outputChannels, spatialScale):
         super().__init__()
-        self.conv = nn.Conv3d(in_channels=inputChannels, out_channels=inputChannels//2, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
+        self.conv = nn.Conv3d(in_channels=inputChannels, out_channels=outputChannels, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
+        self.spatialScale = spatialScale
 
     def forward(self, x):
         # x -> B C T H W
-        x = F.interpolate(x, size=(x.shape[2], x.shape[3]*2, x.shape[4]*2))
+        x = F.interpolate(x, size=(x.shape[2], x.shape[3]*self.spatialScale, x.shape[4]*self.spatialScale))
 
         x = self.conv(x)
 
@@ -384,16 +383,14 @@ class FinalPatchExpansion(nn.Module):
 
 class FinalPatchExpansionV2(nn.Module):
 
-    def __init__(
-            self,
-            inputChannels
-    ):
+    def __init__(self, inputChannels, outputChannels, spatialScale):
         super().__init__()
-        self.conv = nn.Conv3d(in_channels=inputChannels, out_channels=inputChannels, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
+        self.conv = nn.Conv3d(in_channels=inputChannels, out_channels=outputChannels, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
+        self.spatialScale = spatialScale
 
     def forward(self, x):
         # x -> B C T H W
-        x = F.interpolate(x, size=(x.shape[2], x.shape[3]*4, x.shape[4]*4))
+        x = F.interpolate(x, size=(x.shape[2], x.shape[3]*self.spatialScale, x.shape[4]*self.spatialScale))
 
         x = self.conv(x)
 
@@ -565,17 +562,17 @@ class PatchEmbed3D(nn.Module):
         return x
 
 class Encoder(nn.Module):
-    def __init__(self, C, window_size):
+    def __init__(self, C, layerDepths, numHeads, windowSize, mlpRatio, qkvBias, qkScale, drop, attnDrop, dropPath, norm, downsample, useCheckpoint):
         super().__init__()
         self.enc_swin_blocks = nn.ModuleList([
-            BasicLayer(dim=C,   depth=2, num_heads=3, window_size=window_size, downsample=None),
-            BasicLayer(dim=2*C, depth=2, num_heads=6, window_size=window_size, downsample=None),
-            BasicLayer(dim=4*C, depth=2, num_heads=12, window_size=window_size, downsample=None)
+            BasicLayer(dim=C,   depth=layerDepths[0], num_heads=numHeads[0], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint),
+            BasicLayer(dim=2*C, depth=layerDepths[0], num_heads=numHeads[1], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint),
+            BasicLayer(dim=4*C, depth=layerDepths[0], num_heads=numHeads[2], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint)
         ])
         self.enc_patch_merge_blocks = nn.ModuleList([
-            PatchMerging(C),
-            PatchMerging(2*C),
-            PatchMerging(4*C)
+            PatchMerging(C,   norm_layer=nn.LayerNorm),
+            PatchMerging(2*C, norm_layer=nn.LayerNorm),
+            PatchMerging(4*C, norm_layer=nn.LayerNorm)
         ])
 
     def forward(self, x):
@@ -587,22 +584,22 @@ class Encoder(nn.Module):
         return x, skip_conn_ftrs
     
 class Decoder(nn.Module):
-    def __init__(self, C, window_size):
+    def __init__(self, C, layerDepths, numHeads, windowSize, mlpRatio, qkvBias, qkScale, drop, attnDrop, dropPath, norm, downsample, useCheckpoint):
         super().__init__()
         self.dec_swin_blocks = nn.ModuleList([
-            BasicLayer(dim=8*C, depth=2, num_heads=3, window_size=window_size, downsample=None),
-            BasicLayer(dim=4*C, depth=2, num_heads=6, window_size=window_size, downsample=None),
-            BasicLayer(dim=2*C,   depth=2, num_heads=12, window_size=window_size, downsample=None)
+            BasicLayer(dim=8*C, depth=layerDepths[0], num_heads=numHeads[0], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint),
+            BasicLayer(dim=4*C, depth=layerDepths[1], num_heads=numHeads[1], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint),
+            BasicLayer(dim=2*C, depth=layerDepths[2], num_heads=numHeads[2], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint)
         ])
         self.dec_patch_expand_blocks = nn.ModuleList([
-            PatchExpansionV2(8*C),
-            PatchExpansionV2(4*C),
-            PatchExpansionV2(2*C)
+            PatchExpansionV2(inputChannels=8*C, outputChannels=4*C, spatialScale=2),
+            PatchExpansionV2(inputChannels=4*C, outputChannels=2*C, spatialScale=2),
+            PatchExpansionV2(inputChannels=2*C, outputChannels=C,   spatialScale=2)
         ])
         self.skip_conn_concat = nn.ModuleList([
             nn.Conv3d(in_channels=8*C, out_channels=4*C, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
             nn.Conv3d(in_channels=4*C, out_channels=2*C, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
-            nn.Conv3d(in_channels=2*C, out_channels=C, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
+            nn.Conv3d(in_channels=2*C, out_channels=C,   kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
         ])
 
     def forward(self, x, encoder_features):
@@ -617,16 +614,56 @@ class Decoder(nn.Module):
         return x
 
 class VideoSwinUNet(nn.Module):
-    def __init__(self, inputChannels, outputChannels, inputHW, C=96, num_blocks=3, patch_size=(1, 4, 4), window_size=(3, 7, 7)):
+    def __init__(self, config):
         super().__init__()
-        self.patch_embed     = PatchEmbed3D(patch_size=patch_size, in_chans=inputChannels, embed_dim=C)
-        self.encoder         = Encoder(C, window_size=window_size)
-        self.bottleneck      = BasicLayer(dim = C*(2**num_blocks), depth=2, num_heads=12, window_size=window_size, downsample=None)
-        self.decoder         = Decoder(C, window_size=window_size)
+
+        self.patch_embed = PatchEmbed3D(patch_size=(config['patchSizeT'], config['patchSizeH'], config['patchSizeW']), 
+                                        in_chans=config['modelInputCh'], 
+                                        embed_dim=config['C'], 
+                                        norm_layer=nn.LayerNorm if config['patchEmbedding']['norm'] else None)
+        
+        self.encoder = Encoder(C=config['C'],
+                               layerDepths=config['encoder']['layerDepths'], 
+                               numHeads=config['encoder']['layerNumHeads'],
+                               windowSize=(config['windowSizeT'], config['windowSizeH'], config['windowSizeW']),
+                               mlpRatio=config['encoder']['mlpRatio'],
+                               qkvBias=config['encoder']['qkvBias'],
+                               qkScale=config['encoder']['qkScale'],
+                               drop=config['encoder']['drop'],
+                               attnDrop=config['encoder']['attnDrop'],
+                               dropPath=config['encoder']['dropPath'], 
+                               norm=nn.LayerNorm if config['encoder']['norm'] else None,
+                               downsample=config['encoder']['downsample'],
+                               useCheckpoint=config['encoder']['useCheckpoint'])
+        
+        self.bottleneck = BasicLayer(dim=config['C']*(2**len(config['encoder']['layerDepths'])),
+                                     depth=config['bottleneck']['depth'], 
+                                     num_heads=config['bottleneck']['numHeads'],
+                                     window_size=(config['windowSizeT'], config['windowSizeH'], config['windowSizeW']),
+                                     downsample=None)
+        
+        self.decoder = Decoder(C=config['C'],
+                               layerDepths=config['decoder']['layerDepths'], 
+                               numHeads=config['decoder']['layerNumHeads'],
+                               windowSize=(config['windowSizeT'], config['windowSizeH'], config['windowSizeW']),
+                               mlpRatio=config['decoder']['mlpRatio'],
+                               qkvBias=config['decoder']['qkvBias'],
+                               qkScale=config['decoder']['qkScale'],
+                               drop=config['decoder']['drop'],
+                               attnDrop=config['decoder']['attnDrop'],
+                               dropPath=config['decoder']['dropPath'], 
+                               norm=nn.LayerNorm if config['decoder']['norm'] else None,
+                               downsample=config['decoder']['downsample'],
+                               useCheckpoint=config['decoder']['useCheckpoint'])
+        
         # self.timeUpsampling1 = nn.ConvTranspose3d(in_channels=C, out_channels=C, kernel_size=(2, 1, 1), stride=(2,1,1))
-        self.final_expansion = FinalPatchExpansionV2(inputChannels=C)
+        
+        self.final_expansion = FinalPatchExpansionV2(inputChannels=config['C'], outputChannels=config['C'], spatialScale=4)
+        
         # self.timeUpsampling2 = nn.ConvTranspose3d(in_channels=C, out_channels=C, kernel_size=(2, 1, 1), stride=(2,1,1))
-        self.head            = RegressionHead(in_channels=C, out_channels=outputChannels)
+        
+        self.head = RegressionHead(in_channels=config['C'], out_channels=config['modelOutputCh'])
+        
 
     def forward(self, x):
 
@@ -695,8 +732,15 @@ class VideoSwinUNet(nn.Module):
 
 if __name__ == "__main__":
 
+    def load_config(config_path):
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+        return config
+    
+    config = load_config('/home/nikoskot/earthnetThesis/experiments/config.yml')
+
     startTime = time.time()
-    model = VideoSwinUNet(inputChannels=12, inputHW=128, C=96, num_blocks=3, patch_size=(1, 4, 4), window_size=(3, 7, 7)).to(torch.device('cuda'))
+    model = VideoSwinUNet(config).to(torch.device('cuda'))
     endTime = time.time()
     print("Model creation time {}".format(endTime - startTime))
 
@@ -705,7 +749,7 @@ if __name__ == "__main__":
     totalParams = sum(p.numel() for p in model.parameters())
 
     startTime = time.time()
-    x = torch.rand(8, 12, 10, 128, 128).to(torch.device('cuda')) # B, C, T, H, W
+    x = torch.rand(8, 11, 10, 128, 128).to(torch.device('cuda')) # B, C, T, H, W
     endTime = time.time()
     print("Dummy data creation time {}".format(endTime - startTime))
 

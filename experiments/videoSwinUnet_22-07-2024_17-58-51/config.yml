@@ -28,33 +28,30 @@ patchSizeT: 1
 patchSizeH: 4
 patchSizeW: 4
 patchEmbedding:
-  norm: False
+  norm: None
 encoder:
   layerDepths: [2, 2, 2]
   layerNumHeads: [3, 6, 12]
   mlpRatio: 4.
   qkvBias: False
-  qkScale: null
+  qkScale: None
   drop: 0.
   attnDrop: 0.
   dropPath: 0.
-  norm: True
-  downsample: null
+  normLayer: nn.LayerNorm
+  downsample: None
   useCheckpoint: False
-bottleneck:
-  depth: 2
-  numHeads: 12
 decoder:
   layerDepths: [2, 2, 2]
   layerNumHeads: [3, 6, 12]
   mlpRatio: 4.
   qkvBias: False
-  qkScale: null
+  qkScale: None
   drop: 0.
   attnDrop: 0.
   dropPath: 0.
-  norm: True
-  downsample: null
+  normLayer: nn.LayerNorm
+  downsample: None
   useCheckpoint: False
 
 

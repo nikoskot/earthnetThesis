@@ -27,43 +27,13 @@ windowSizeW: 7
 patchSizeT: 1
 patchSizeH: 4
 patchSizeW: 4
-patchEmbedding:
-  norm: False
-encoder:
-  layerDepths: [2, 2, 2]
-  layerNumHeads: [3, 6, 12]
-  mlpRatio: 4.
-  qkvBias: False
-  qkScale: null
-  drop: 0.
-  attnDrop: 0.
-  dropPath: 0.
-  norm: True
-  downsample: null
-  useCheckpoint: False
-bottleneck:
-  depth: 2
-  numHeads: 12
-decoder:
-  layerDepths: [2, 2, 2]
-  layerNumHeads: [3, 6, 12]
-  mlpRatio: 4.
-  qkvBias: False
-  qkScale: null
-  drop: 0.
-  attnDrop: 0.
-  dropPath: 0.
-  norm: True
-  downsample: null
-  useCheckpoint: False
 
 
 # Optimization
 epochs: 40      # Number of epochs to run the training for
 trainLossFunction: "maskedL1"
 trainingOptimizer: "adam"
-lr: 0.0001         # Def 0.0005
-lrScaleFactor: 0.5
+lr: 0.00002         # Def 0.0005
 scheduler: "ReduceLROnPlateau"
 schedulerPatience: 10
 gradientClipping: True

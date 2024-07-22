@@ -1,0 +1,11 @@
+2024-07-22 17:58:51,714 - INFO - NOTE: None
+2024-07-22 17:58:54,846 - INFO - Resuming training from checkpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnet_18-07-2024_16-57-37/checkpoint.pth from epoch 14
+2024-07-22 17:58:55,355 - INFO - Epoch 14
+-------------------------------
+2024-07-22 17:58:55,356 - INFO - Learning Rate of group 0: 0.0001
+2024-07-22 18:27:15,637 - INFO - Mean training loss: 18.110488653182983
+2024-07-22 18:30:24,472 - INFO - Mean validation loss: 4.633486604318023
+2024-07-22 18:30:25,688 - INFO - New best validation Loss 4.633486604318023, at epoch 14
+2024-07-22 18:30:25,688 - INFO - Epoch 15
+-------------------------------
+2024-07-22 18:30:25,688 - INFO - Learning Rate of group 0: 0.0001
