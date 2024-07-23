@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=A40medium
-#SBATCH --time=20:00:00
+#SBATCH --time=24:00:00
 #SBATCH --gpus=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
@@ -16,9 +16,9 @@
 python checkGPU.py
 # python swinUnet/videoSwinUnetMMAction.py
 
-# python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/config.yml
+python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/config.yml
 # python swinUnet/trainVideoSwinUnetV2.py --config /home/nikoskot/experiments/config.yml
-python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/config.yml --resumeTraining --resumeCheckpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnet_18-07-2024_16-57-37/checkpoint.pth
+# python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/config.yml --resumeTraining --resumeCheckpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnet_18-07-2024_16-57-37/checkpoint.pth
 # python channelUnet/channelUnetReproduction.py --config /home/nikoskot/earthnetThesis/experiments/config.yml
 
 # python swinUnet/testVideoSwinUnet.py --trainingFolder /home/nikoskot/earthnetThesis/experiments/videoSwinUnet_18-07-2024_16-57-37 --testSplit iid_test_split

@@ -68,7 +68,7 @@ def train_loop(dataloader, model, lossFunction, optimizer, config):
         #     mn = torch.min(param.grad.view(-1))
         #     maxGradPre = torch.maximum(mx, maxGradPre)
         #     minGradPre = torch.minimum(mn, minGradPre)
-            # grads.append(param.grad.view(-1))
+        #     grads.append(param.grad.view(-1))
         # grads = torch.cat(grads)
         # maxGrad = torch.max(grads)
         # logger.info("Maximum gradient before clipping: {}".format(maxGradPre))
@@ -147,10 +147,7 @@ def main():
     tbWriter = SummaryWriter(outputFolder)
 
     # Intiialize Video Swin Unet model and move to GPU
-    model = VideoSwinUNet(inputChannels=config['modelInputCh'], outputChannels=config['modelOutputCh'], 
-                          inputHW=config['inputHeightWidth'], C=config['C'], num_blocks=config['numBlocks'], 
-                          patch_size=(config['patchSizeT'], config['patchSizeH'], config['patchSizeW']), 
-                          window_size=(config['windowSizeT'], config['windowSizeH'], config['windowSizeW'])).to(torch.device('cuda'))
+    model = VideoSwinUNet(config, logger).to(torch.device('cuda'))
 
     # Setup Loss Function and Optimizer
     if config['trainLossFunction'] == "mse":

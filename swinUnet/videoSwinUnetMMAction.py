@@ -318,12 +318,9 @@ class PatchMerging(nn.Module):
 
 class PatchExpansion(nn.Module):
 
-    def __init__(
-            self,
-            dim
-    ):
+    def __init__(self, dim, norm):
         super().__init__()
-        self.norm = nn.LayerNorm(dim//2)
+        self.norm = nn.LayerNorm(dim//2) if norm else None
         self.expand = nn.Linear(dim, 2*dim, bias=False)
 
     def forward(self, x):
@@ -343,10 +340,11 @@ class PatchExpansion(nn.Module):
 
 class PatchExpansionV2(nn.Module):
 
-    def __init__(self, inputChannels, outputChannels, spatialScale):
+    def __init__(self, inputChannels, outputChannels, spatialScale, norm):
         super().__init__()
         self.conv = nn.Conv3d(in_channels=inputChannels, out_channels=outputChannels, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
         self.spatialScale = spatialScale
+        self.norm = nn.LayerNorm(outputChannels) if norm else None
 
     def forward(self, x):
         # x -> B C T H W
@@ -354,14 +352,15 @@ class PatchExpansionV2(nn.Module):
 
         x = self.conv(x)
 
+        x = x.permute(0, 2, 3, 4, 1) # x -> B T H W C
+        x = self.norm(x)
+        x = x.permute(0, 4, 1, 2, 3) # x -> B C T H W
+
         return x
     
 class FinalPatchExpansion(nn.Module):
 
-    def __init__(
-            self,
-            dim
-    ):
+    def __init__(self, dim):
         super().__init__()
         self.norm = nn.LayerNorm(dim)
         self.expand = nn.Linear(dim, 16*dim, bias=False)
@@ -383,16 +382,21 @@ class FinalPatchExpansion(nn.Module):
 
 class FinalPatchExpansionV2(nn.Module):
 
-    def __init__(self, inputChannels, outputChannels, spatialScale):
+    def __init__(self, inputChannels, outputChannels, spatialScale, norm):
         super().__init__()
         self.conv = nn.Conv3d(in_channels=inputChannels, out_channels=outputChannels, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
         self.spatialScale = spatialScale
+        self.norm = nn.LayerNorm(outputChannels) if norm else None
 
     def forward(self, x):
         # x -> B C T H W
         x = F.interpolate(x, size=(x.shape[2], x.shape[3]*self.spatialScale, x.shape[4]*self.spatialScale))
 
         x = self.conv(x)
+
+        x = x.permute(0, 2, 3, 4, 1) # x -> B T H W C
+        x = self.norm(x)
+        x = x.permute(0, 4, 1, 2, 3) # x -> B C T H W
 
         return x
     
@@ -562,7 +566,7 @@ class PatchEmbed3D(nn.Module):
         return x
 
 class Encoder(nn.Module):
-    def __init__(self, C, layerDepths, numHeads, windowSize, mlpRatio, qkvBias, qkScale, drop, attnDrop, dropPath, norm, downsample, useCheckpoint):
+    def __init__(self, C, layerDepths, numHeads, windowSize, mlpRatio, qkvBias, qkScale, drop, attnDrop, dropPath, norm, downsample, useCheckpoint, patchMergingNorm):
         super().__init__()
         self.enc_swin_blocks = nn.ModuleList([
             BasicLayer(dim=C,   depth=layerDepths[0], num_heads=numHeads[0], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint),
@@ -570,9 +574,9 @@ class Encoder(nn.Module):
             BasicLayer(dim=4*C, depth=layerDepths[0], num_heads=numHeads[2], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint)
         ])
         self.enc_patch_merge_blocks = nn.ModuleList([
-            PatchMerging(C,   norm_layer=nn.LayerNorm),
-            PatchMerging(2*C, norm_layer=nn.LayerNorm),
-            PatchMerging(4*C, norm_layer=nn.LayerNorm)
+            PatchMerging(C,   norm_layer=patchMergingNorm),
+            PatchMerging(2*C, norm_layer=patchMergingNorm),
+            PatchMerging(4*C, norm_layer=patchMergingNorm)
         ])
 
     def forward(self, x):
@@ -584,7 +588,7 @@ class Encoder(nn.Module):
         return x, skip_conn_ftrs
     
 class Decoder(nn.Module):
-    def __init__(self, C, layerDepths, numHeads, windowSize, mlpRatio, qkvBias, qkScale, drop, attnDrop, dropPath, norm, downsample, useCheckpoint):
+    def __init__(self, C, layerDepths, numHeads, windowSize, mlpRatio, qkvBias, qkScale, drop, attnDrop, dropPath, norm, downsample, useCheckpoint, patchExpansionNorm):
         super().__init__()
         self.dec_swin_blocks = nn.ModuleList([
             BasicLayer(dim=8*C, depth=layerDepths[0], num_heads=numHeads[0], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint),
@@ -592,9 +596,9 @@ class Decoder(nn.Module):
             BasicLayer(dim=2*C, depth=layerDepths[2], num_heads=numHeads[2], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint)
         ])
         self.dec_patch_expand_blocks = nn.ModuleList([
-            PatchExpansionV2(inputChannels=8*C, outputChannels=4*C, spatialScale=2),
-            PatchExpansionV2(inputChannels=4*C, outputChannels=2*C, spatialScale=2),
-            PatchExpansionV2(inputChannels=2*C, outputChannels=C,   spatialScale=2)
+            PatchExpansionV2(inputChannels=8*C, outputChannels=4*C, spatialScale=2, norm=patchExpansionNorm),
+            PatchExpansionV2(inputChannels=4*C, outputChannels=2*C, spatialScale=2, norm=patchExpansionNorm),
+            PatchExpansionV2(inputChannels=2*C, outputChannels=C,   spatialScale=2, norm=patchExpansionNorm)
         ])
         self.skip_conn_concat = nn.ModuleList([
             nn.Conv3d(in_channels=8*C, out_channels=4*C, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
@@ -614,7 +618,7 @@ class Decoder(nn.Module):
         return x
 
 class VideoSwinUNet(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, logger):
         super().__init__()
 
         self.patch_embed = PatchEmbed3D(patch_size=(config['patchSizeT'], config['patchSizeH'], config['patchSizeW']), 
@@ -634,12 +638,14 @@ class VideoSwinUNet(nn.Module):
                                dropPath=config['encoder']['dropPath'], 
                                norm=nn.LayerNorm if config['encoder']['norm'] else None,
                                downsample=config['encoder']['downsample'],
-                               useCheckpoint=config['encoder']['useCheckpoint'])
+                               useCheckpoint=config['encoder']['useCheckpoint'],
+                               patchMergingNorm=nn.LayerNorm if config['encoder']['patchMerging']['norm'] else None)
         
         self.bottleneck = BasicLayer(dim=config['C']*(2**len(config['encoder']['layerDepths'])),
                                      depth=config['bottleneck']['depth'], 
                                      num_heads=config['bottleneck']['numHeads'],
                                      window_size=(config['windowSizeT'], config['windowSizeH'], config['windowSizeW']),
+                                     norm=nn.LayerNorm if config['bottleneck']['norm'] else None,
                                      downsample=None)
         
         self.decoder = Decoder(C=config['C'],
@@ -654,16 +660,132 @@ class VideoSwinUNet(nn.Module):
                                dropPath=config['decoder']['dropPath'], 
                                norm=nn.LayerNorm if config['decoder']['norm'] else None,
                                downsample=config['decoder']['downsample'],
-                               useCheckpoint=config['decoder']['useCheckpoint'])
+                               useCheckpoint=config['decoder']['useCheckpoint'],
+                               patchExpansionNorm=config['decoder']['patchExpansion']['norm'])
         
         # self.timeUpsampling1 = nn.ConvTranspose3d(in_channels=C, out_channels=C, kernel_size=(2, 1, 1), stride=(2,1,1))
         
-        self.final_expansion = FinalPatchExpansionV2(inputChannels=config['C'], outputChannels=config['C'], spatialScale=4)
+        self.final_expansion = FinalPatchExpansionV2(inputChannels=config['C'], outputChannels=config['C'], spatialScale=4, norm=config['decoder']['patchExpansion']['norm'])
         
         # self.timeUpsampling2 = nn.ConvTranspose3d(in_channels=C, out_channels=C, kernel_size=(2, 1, 1), stride=(2,1,1))
         
         self.head = RegressionHead(in_channels=config['C'], out_channels=config['modelOutputCh'])
+
+        self.init_weights(logger=logger, config=config)
+
         
+    def inflate_weights(self, logger, config):
+        """Inflate the swin2d parameters to swin3d.
+
+        The differences between swin3d and swin2d mainly lie in an extra
+        axis. To utilize the pretrained parameters in 2d model,
+        the weight of swin2d models should be inflated to fit in the shapes of
+        the 3d counterpart.
+
+        Args:
+            logger (logging.Logger): The logger used to print
+                debugging infomation.
+        """
+        checkpoint = torch.load(self.pretrained, map_location='cpu')
+        state_dict = checkpoint['model']
+
+        # delete relative_position_index since we always re-init it
+        relative_position_index_keys = [k for k in state_dict.keys() if "relative_position_index" in k]
+        for k in relative_position_index_keys:
+            del state_dict[k]
+
+        # delete attn_mask since we always re-init it
+        attn_mask_keys = [k for k in state_dict.keys() if "attn_mask" in k]
+        for k in attn_mask_keys:
+            del state_dict[k]
+
+        # delete head and last norm layer
+        del state_dict['head.weight'], state_dict['head.bias']
+        if not config['patchEmbedding']['norm']:
+            del state_dict['norm.weight'], state_dict['norm.bias']
+
+        # state_dict['patch_embed.proj.weight'] = state_dict['patch_embed.proj.weight'].unsqueeze(2).repeat(1,1,config['patchSizeT'],1,1) / config['patchSizeT']
+        # prepare patch embed weights
+        m1 = state_dict['patch_embed.proj.weight'].mean()
+        s1 = state_dict['patch_embed.proj.weight'].std()
+        state_dict['patch_embed.proj.weight'] = state_dict['patch_embed.proj.weight'].mean(axis=(1, 2, 3)).\
+        unsqueeze(-1).unsqueeze(-1).unsqueeze(-1).unsqueeze(-1).repeat(1, config['modelInputCh'], config['patchSizeT'], config['patchSizeH'], config['patchSizeW'])
+        m2 = state_dict['patch_embed.proj.weight'].mean()
+        s2 = state_dict['patch_embed.proj.weight'].std()
+        state_dict['patch_embed.proj.weight'] = m1 + (state_dict['patch_embed.proj.weight'] - m2) * s1/s2
+
+        # Change names of relative position bias tables
+        relative_position_bias_table_keys = [k for k in state_dict.keys() if "relative_position_bias_table" in k]
+        # Set pretrained weights only on encoder
+        relative_position_bias_table_keys_ori = sorted([k for k in self.state_dict().keys() if ("relative_position_bias_table" in k and ('encoder' in k))])
+        
+        rel_pos_bias_table_tmp = {}
+        for k, j in zip(relative_position_bias_table_keys, relative_position_bias_table_keys_ori):
+            rel_pos_bias_table_tmp[j] = state_dict[k]
+
+        for k in rel_pos_bias_table_tmp.keys():
+                state_dict[k] = rel_pos_bias_table_tmp[k]
+
+
+        # bicubic interpolate relative_position_bias_table if not match
+        relative_position_bias_table_keys = [k for k in state_dict.keys() if "relative_position_bias_table" in k]
+        for k in relative_position_bias_table_keys:
+            if k in list(self.state_dict().keys()):
+                relative_position_bias_table_pretrained = state_dict[k]
+                relative_position_bias_table_current = self.state_dict()[k]
+                L1, nH1 = relative_position_bias_table_pretrained.size()
+                L2, nH2 = relative_position_bias_table_current.size()
+                L2 = (2*config['windowSizeH']-1) * (2*config['windowSizeW']-1)
+                wd = config['windowSizeT']
+                if nH1 != nH2:
+                    if logger: logger.warning(f"Error in loading {k}, passing")
+                else:
+                    if L1 != L2:
+                        S1 = int(L1 ** 0.5)
+                        relative_position_bias_table_pretrained_resized = torch.nn.functional.interpolate(
+                            relative_position_bias_table_pretrained.permute(1, 0).view(1, nH1, S1, S1), size=(2*config['windowSizeH']-1, 2*config['windowSizeW']-1),
+                            mode='bicubic')
+                        relative_position_bias_table_pretrained = relative_position_bias_table_pretrained_resized.view(nH2, L2).permute(1, 0)
+                state_dict[k] = relative_position_bias_table_pretrained.repeat(2*wd-1,1)
+
+        msg = self.load_state_dict(state_dict, strict=False)
+        if logger:
+            logger.info(msg)
+            logger.info(f"=> loaded successfully '{self.pretrained}'")
+        del checkpoint
+        torch.cuda.empty_cache()
+
+    def init_weights(self, logger, config):
+        """Initialize the weights in backbone.
+
+        Args:
+            pretrained (str, optional): Path to pre-trained weights.
+                Defaults to None.
+        """
+        def _init_weights(m):
+            if isinstance(m, nn.Linear):
+                trunc_normal_(m.weight, std=.02)
+                if isinstance(m, nn.Linear) and m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.LayerNorm):
+                nn.init.constant_(m.bias, 0)
+                nn.init.constant_(m.weight, 1.0)
+
+        self.apply(_init_weights)
+
+        if config['pretrained']:
+            self.pretrained = config['pretrained']
+        if isinstance(config['pretrained'], str):
+            if logger: logger.info(f'load model from: {self.pretrained}')
+
+            if config['pretrained2D']:
+                # Inflate 2D model into 3D model.
+                self.inflate_weights(logger, config)
+            else:
+                # Directly load 3D model.
+                torch.load(self, self.pretrained, strict=False, logger=logger)
+        else:
+            if logger: logger.info("No pretrained loading")
 
     def forward(self, x):
 
@@ -740,7 +862,7 @@ if __name__ == "__main__":
     config = load_config('/home/nikoskot/earthnetThesis/experiments/config.yml')
 
     startTime = time.time()
-    model = VideoSwinUNet(config).to(torch.device('cuda'))
+    model = VideoSwinUNet(config, logger=None).to(torch.device('cuda'))
     endTime = time.time()
     print("Model creation time {}".format(endTime - startTime))
 
