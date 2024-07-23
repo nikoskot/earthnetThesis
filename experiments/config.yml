@@ -4,6 +4,7 @@ numWorkers: 8    # Number of workers for Dataloaders
 trainDataDir: "/home/nikoskot/earthnetThesis/EarthnetDataset/train"
 testDataDir: "/home/nikoskot/earthnetThesis/EarthnetDataset/"
 dataDtype: "float32"
+trainDataSubset: 500
 trainSplit: 0.8
 validationSplit: 0.2
 experimentsFolder: "/home/nikoskot/earthnetThesis/experiments"

@@ -187,14 +187,15 @@ def main():
 
     # Create dataset of training part of Earthnet dataset
     trainDataset = EarthnetTrainDataset(dataDir=config['trainDataDir'], dtype=config['dataDtype'], transform=preprocessingStage)
-    # trainDataset = Subset(trainDataset, range(3))
+    if isinstance(config['trainDataSubset'], int):
+        trainDataset = Subset(trainDataset, range(config['trainDataSubset']))
 
     # Split to training and validation dataset
     trainDataset, valDataset = random_split(trainDataset, [config['trainSplit'], config['validationSplit']])
 
     # Create training and validation Dataloaders
     trainDataloader = DataLoader(trainDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
-    valDataloader   = DataLoader(valDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
+    valDataloader   = DataLoader(valDataset,   batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
 
     # Create objects for calculation of Earthnet Score during training, validation and testing
     # trainENSCalculator = EarthNet2021ScoreUpdateWithoutCompute(layout="NHWCT", eps=1E-4)
