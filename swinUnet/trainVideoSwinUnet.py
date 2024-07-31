@@ -5,11 +5,9 @@ import numpy as np
 import random
 from earthnetDataloader import EarthnetTestDataset, EarthnetTrainDataset, Preprocessing
 from torch.utils.data import DataLoader, random_split, Subset
-import torchmetrics
 from earthnet_scores import EarthNet2021ScoreUpdateWithoutCompute
-from maskedLoss import BaseLoss
+import losses
 import tqdm
-import time
 import datetime
 from videoSwinUnetMMAction import VideoSwinUNet
 import argparse
@@ -18,34 +16,34 @@ import os
 import logging
 import shutil
 from torch.utils.tensorboard import SummaryWriter
+from piqa import SSIM
+from focal_frequency_loss import FocalFrequencyLoss as FFL
 
 
 def parseArgs():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', help='The path to the configuration file.')
+    parser.add_argument('--config', default='/home/nikoskot/earthnetThesis/experiments/config.yml', help='The path to the configuration file.')
     parser.add_argument('--resumeTraining', default=False, action='store_true', help='If we want to resume the training from a checkpoint.')
     parser.add_argument('--resumeCheckpoint', help='The path of the checkpoint to resume training from.')
     parser.add_argument('--note', help='Note to write at beginning of log file.')
     return parser.parse_args()
 
 
-def load_config(config_path):
-    with open(config_path, 'r') as f:
+def load_config(args):
+    with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
     return config
 
 
 # Training loop
-def train_loop(dataloader, model, lossFunction, optimizer, config):
+def train_loop(dataloader, model, lossFunction, optimizer, config, logger):
 
     # Set the model to training mode - important for batch normalization and dropout layers
     model.train()
     lossSum = 0
 
-    # maxGradPre = torch.tensor(0)
-    # minGradPre = torch.tensor(0)
-    # maxGradAfter = torch.tensor(0)
-    # minGradAfter = torch.tensor(0)
+    maxGradPre = torch.tensor(0)
+    minGradPre = torch.tensor(0)
 
     for data in tqdm.tqdm(dataloader):
 
@@ -59,39 +57,31 @@ def train_loop(dataloader, model, lossFunction, optimizer, config):
         # Compute prediction and loss
         pred = model(x)
         loss = lossFunction(pred, y, masks)
+        # print("Train loss: {}".format(loss))
 
         # Backpropagation
         loss.backward()
 
-        # for param in model.parameters():
-        #     mx = torch.max(param.grad.view(-1))
-        #     mn = torch.min(param.grad.view(-1))
-        #     maxGradPre = torch.maximum(mx, maxGradPre)
-        #     minGradPre = torch.minimum(mn, minGradPre)
-        #     grads.append(param.grad.view(-1))
-        # grads = torch.cat(grads)
-        # maxGrad = torch.max(grads)
-        # logger.info("Maximum gradient before clipping: {}".format(maxGradPre))
-        # logger.info("Minimum gradient before clipping: {}".format(minGradPre))
+        for param in model.parameters():
+            maxGradPre = torch.maximum(maxGradPre, torch.max(param.grad.view(-1)))
+            minGradPre = torch.minimum(minGradPre, torch.min(param.grad.view(-1)))
+
         if config['gradientClipping']:
             nn.utils.clip_grad_value_(model.parameters(), config['gradientClipValue'])
-        # for param in model.parameters():
-        #     mx = torch.max(param.grad.view(-1))
-        #     mn = torch.min(param.grad.view(-1))
-        #     maxGradAfter = torch.maximum(mx, maxGradAfter)
-        #     minGradAfter = torch.minimum(mn, minGradAfter)
-        # logger.info("Maximum gradient after clipping: {}".format(maxGradAfter))
-        # logger.info("Minimum gradient after clipping: {}".format(minGradAfter))
 
         optimizer.step()
 
-        # Add the loss to the total loss of the batch and keep track of the number of samples
+        # Add the loss to the total loss 
         lossSum += loss.item()
+        # print("Train loss: {}".format(loss.item()))
+    
+    logger.info("Maximum gradient before clipping: {}".format(maxGradPre))
+    logger.info("Minimum gradient before clipping: {}".format(minGradPre))
 
     return lossSum
         
 
-def validation_loop(dataloader, model, lossFunction):
+def validation_loop(dataloader, model, lossFunction, config):
 
     # Set the model to evaluation mode - important for batch normalization and dropout layers
     model.eval()
@@ -110,9 +100,11 @@ def validation_loop(dataloader, model, lossFunction):
             # Compute prediction and loss
             pred = model(x)
             loss = lossFunction(pred, y, masks)
+            # print("Val loss: {}".format(loss))
 
-            # Add the loss to the total loss of the batch and keep track of the number of samples
+            # Add the loss to the total loss
             lossSum += loss.item()
+            # print("Val loss: {}".format(loss.item()))
 
     return lossSum
 
@@ -126,12 +118,7 @@ def main():
 
     # Parse the input arguments and load the configuration file
     args   = parseArgs()
-    config = load_config(args.config)
-
-    # Setup seeds
-    torch.manual_seed(config['torchSeed'])
-    random.seed(config['pythonSeed'])
-    np.random.seed(config['numpySeed'])
+    config = load_config(args)
 
     # Setup the output folder structure
     outputFolder = os.path.join(config['experimentsFolder'], config['modelType'] + '_' + runDateTime) # .../experiments/modelType_trainDatetime/
@@ -146,34 +133,40 @@ def main():
     logger.info("NOTE: {}".format(args.note))
     tbWriter = SummaryWriter(outputFolder)
 
+    # Setup seeds
+    seed = np.random.randint(0, 100)
+    logger.info("Torch, random, numpy seed: {}".format(seed))
+    torch.manual_seed(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+
     # Intiialize Video Swin Unet model and move to GPU
-    model = VideoSwinUNet(config, logger).to(torch.device('cuda'))
+    model = VideoSwinUNet(config, logger).to(device)
 
     # Setup Loss Function and Optimizer
-    if config['trainLossFunction'] == "mse":
-        lossFunction = nn.MSELoss(reduction='mean')
-    elif config['trainLossFunction'] == "maskedL1":
-        lossFunction = BaseLoss({}, device=device)
-    elif config['trainLossFunction'] == "l1":
-        lossFunction = nn.L1Loss(reduction='mean')
-    else:
-        raise NotImplementedError
-    
+    lossFunction = losses.MaskedLoss(lossType='l1', lossFunction=nn.L1Loss(reduction='sum'), maskFlag=True)
+
     if config['trainingOptimizer'] == "adamw":
         optimizer = torch.optim.AdamW(model.parameters(), lr=config['lr'])
     elif config['trainingOptimizer'] == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'])
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=config['lrScaleFactor'], patience=config['schedulerPatience'])
     else:
         raise NotImplementedError
+
+    if config['scheduler'] == 'ReduceLROnPlateau':
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=config['lrScaleFactor'], patience=config['schedulerPatience'])
+    else:
+        logger.info('No scheduler used')
     
+    # Load model in case we want to resume training
     if args.resumeTraining:
         checkpoint = torch.load(args.resumeCheckpoint)
         model.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         for param_group in optimizer.param_groups:
             param_group['lr'] = config['lr']
-        scheduler.load_state_dict(checkpoint['scheduler'])
+        if config['scheduler'] is not None:
+            scheduler.load_state_dict(checkpoint['scheduler'])
         startEpoch = checkpoint['epoch'] + 1
         bestValLoss = checkpoint['valLoss']
         logger.info("Resuming training from checkpoint {} from epoch {}".format(args.resumeCheckpoint, startEpoch))
@@ -190,53 +183,48 @@ def main():
     if isinstance(config['trainDataSubset'], int):
         trainDataset = Subset(trainDataset, range(config['trainDataSubset']))
 
-    # Split to training and validation dataset
-    trainDataset, valDataset = random_split(trainDataset, [config['trainSplit'], config['validationSplit']])
-
     # Create training and validation Dataloaders
-    trainDataloader = DataLoader(trainDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
-    valDataloader   = DataLoader(valDataset,   batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
+    if config['overfitTraining']:
+        # If we want to overfit the model to a subset of the training data
+        trainDataloader = DataLoader(trainDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
+        valDataloader   = DataLoader(trainDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
+    else:
+        # Normal training
+        trainDataset, valDataset = random_split(trainDataset, [config['trainSplit'], config['validationSplit']])
+        # Split to training and validation dataset
+        trainDataloader = DataLoader(trainDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
+        valDataloader   = DataLoader(valDataset,   batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
 
-    # Create objects for calculation of Earthnet Score during training, validation and testing
-    # trainENSCalculator = EarthNet2021ScoreUpdateWithoutCompute(layout="NHWCT", eps=1E-4)
-    # validENSCalculator = EarthNet2021ScoreUpdateWithoutCompute(layout="NHWCT", eps=1E-4)
-    # testENSCalculator  = EarthNet2021ScoreUpdateWithoutCompute(layout="NHWCT", eps=1E-4)
 
     for i in range(startEpoch, config['epochs']):
 
         logger.info("Epoch {}\n-------------------------------".format(i))
         for j, param_group in enumerate(optimizer.param_groups):
             logger.info("Learning Rate of group {}: {}".format(j, param_group['lr']))
-        trainLoss = train_loop(trainDataloader, model, lossFunction, optimizer, config)
+
+        trainLoss = train_loop(trainDataloader, model, lossFunction, optimizer, config, logger)
         logger.info("Mean training loss: {}".format(trainLoss))
-        # print("Training ENS metrics:")
-        # print(trainENS)
 
-        valLoss = validation_loop(valDataloader, model, lossFunction)
+        valLoss = validation_loop(valDataloader, model, lossFunction, config)
         logger.info("Mean validation loss: {}".format(valLoss))
-        # print("Validation ENS metrics:")
-        # print(valENS)
 
-        # Early stopping based on validation loss
+        # Save checkpoint based on validation loss
         if valLoss < bestValLoss:
 
             bestValLoss = valLoss
             checkpoint  = {'state_dict' : model.state_dict(),
                            'modelType'  : config['modelType'],
                            'epoch'      : i,
-                        #    'bestValENS' : bestValENS['EarthNetScore'],
-                         #   'valMAD'     : bestValENS['MAD'],
-                         #   'valOLS'     : bestValENS['OLS'],
-                         #   'valEMD'     : bestValENS['EMD'],
-                         #   'valSSIM'    : bestValENS['SSIM'],
                            'valLoss'    : valLoss,
-                           'trainLoss'  : trainLoss,
                            'optimizer'  : optimizer.state_dict(),
-                           'scheduler'  : scheduler.state_dict()}
+                           'scheduler'  : scheduler.state_dict() if config['scheduler'] is not None else None
+                           }
+            
             torch.save(checkpoint, os.path.join(outputFolder, 'checkpoint.pth'))
             logger.info("New best validation Loss {}, at epoch {}".format(bestValLoss, i))
 
-        scheduler.step(valLoss)
+        if config['scheduler'] is not None:
+            scheduler.step(valLoss)
         
         tbWriter.add_scalar('Loss/Train', trainLoss, i)
         tbWriter.add_scalar('Loss/Val', valLoss, i)

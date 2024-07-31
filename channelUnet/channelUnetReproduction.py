@@ -13,13 +13,15 @@ from torch.utils.tensorboard import SummaryWriter
 from channelUnetDataset import EarthNet2021Dataset
 from torch.utils.data import DataLoader, random_split, Subset
 from maskedLoss import BaseLoss
+import losses
+import random
 
 
 upsample = nn.Upsample(size =(128,128))
 
 def parseArgs():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', help='The path to the configuration file.')
+    parser.add_argument('--config', default='/home/nikoskot/earthnetThesis/experiments/config.yml', help='The path to the configuration file.')
     parser.add_argument('--resumeTraining', default=False, action='store_true', help='If we want to resume the training from a checkpoint.')
     parser.add_argument('--resumeCheckpoint', help='The path of the checkpoint to resume training from.')
     return parser.parse_args()
@@ -59,7 +61,9 @@ def train_loop(dataloader, model, lossFunction, optimizer, device):
 
         # Compute prediction and loss
         pred = model(inputs).reshape(b, 20, 4, h, w)
-        loss, lossLogs = lossFunction(pred, data, None, None)
+        # loss, lossLogs = lossFunction(pred, data, None, None)
+        loss = lossFunction(pred, data["dynamic"][0][:,10::,...].to(device), data['dynamic_mask'][0][:,-pred.shape[1]:,...].to(device))
+        print(loss)
 
         # Backpropagation
         loss.backward()
@@ -112,7 +116,8 @@ def validation_loop(dataloader, model, lossFunction, device):
 
             # Compute prediction and loss
             pred = model(inputs).reshape(b, 20, 4, h, w)
-            loss, lossLogs = lossFunction(pred, data, None, None)
+            # loss, lossLogs = lossFunction(pred, data, None, None)
+            loss = lossFunction(pred, data["dynamic"][0][:,10::,...].to(device), data['dynamic_mask'][0][:,-pred.shape[1]:,...].to(device))
 
             # Add the loss to the total loss of the batch and keep track of the number of samples
             lossSum += loss.item()
@@ -152,16 +157,24 @@ def main():
     # Initialize logging
     logger = logging.getLogger(__name__)
     logging.basicConfig(filename=os.path.join(outputFolder, 'training.log'), encoding='utf-8', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
-    tbWriter = SummaryWriter(os.path.join(config['experimentsFolder'], 'tensorboardLogs', 'ChannelUnet_' + runDateTime))
+    tbWriter = SummaryWriter(outputFolder)
+
+    # Set seeds
+    seed = np.random.randint(0, 100)
+    logger.info("Torch, random, numpy seed: {}".format(seed))
+    torch.manual_seed(seed)
+    random.seed(seed)
+    np.random.seed(seed)
 
     # Intiialize Video Swin Unet model and move to GPU
-    model = smp.Unet(encoder_name='densenet161', encoder_weights='imagenet', in_channels=191, classes=80, activation='sigmoid').to(device)
+    model = smp.Unet(encoder_name='densenet161', encoder_weights='imagenet', in_channels=191, classes=80, activation='sigmoid', decoder_use_batchnorm=False).to(device)
 
     # Setup Loss Function and Optimizer
-    if config['trainLossFunction'] == "mse":
+    if config['trainLossFunctions'][0] == "mse":
         lossFunction = nn.MSELoss(reduction='sum')
-    elif config['trainLossFunction'] == "maskedL1":
-        lossFunction = BaseLoss({}, device=device)
+    elif config['trainLossFunctions'][0] == "maskedL1":
+        # lossFunction = BaseLoss({}, device=device)
+        lossFunction = losses.MaskedLoss(lossType='l1', lossFunction=nn.L1Loss(reduction='sum'), maskFlag=True)
     else:
         raise NotImplementedError
     
@@ -169,7 +182,7 @@ def main():
         optimizer = torch.optim.AdamW(model.parameters(), lr=config['lr'])
     elif config['trainingOptimizer'] == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'])
-        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=[40, 70, 90], gamma=0.1)
+        # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=[40, 70, 90], gamma=0.1)
     else:
         raise NotImplementedError
     
@@ -190,14 +203,14 @@ def main():
 
     # Create dataset of training part of Earthnet dataset
     trainDataset = EarthNet2021Dataset(folder=config['trainDataDir'], noisy_masked_pixels = False, use_meso_static_as_dynamic = False, fp16 = False)
-    # trainDataset = Subset(trainDataset, range(3))
+    trainDataset = Subset(trainDataset, range(1))
 
     # Split to training and validation dataset
-    trainDataset, valDataset = random_split(trainDataset, [config['trainSplit'], config['validationSplit']])
+    # trainDataset, valDataset = random_split(trainDataset, [config['trainSplit'], config['validationSplit']])
 
     # Create training and validation Dataloaders
     trainDataloader = DataLoader(trainDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
-    valDataloader   = DataLoader(valDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
+    valDataloader   = DataLoader(trainDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)
 
     # Create objects for calculation of Earthnet Score during training, validation and testing
     # trainENSCalculator = EarthNet2021ScoreUpdateWithoutCompute(layout="NHWCT", eps=1E-4)
@@ -232,11 +245,12 @@ def main():
                            'valLoss'    : valLoss,
                            'trainLoss'  : trainLoss,
                            'optimizer'  : optimizer.state_dict(),
-                           'scheduler'  : scheduler.state_dict()}
+                        #    'scheduler'  : scheduler.state_dict()
+                           }
             torch.save(checkpoint, os.path.join(outputFolder, 'checkpoint.pth'))
             logger.info("New best validation Loss {}, at epoch {}".format(bestValLoss, i))
         
-        scheduler.step()
+        # scheduler.step()
 
         tbWriter.add_scalar('Loss/Train', trainLoss, i)
         tbWriter.add_scalar('Loss/Val', valLoss, i)

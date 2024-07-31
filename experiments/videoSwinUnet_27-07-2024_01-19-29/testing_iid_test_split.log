@@ -1,0 +1,6 @@
+2024-07-28 02:24:03,115 - INFO - NOTE: None
+2024-07-28 02:24:18,704 - INFO - No pretrained loading
+2024-07-28 02:24:44,061 - INFO - Mean validation loss maskedL1: 0.021040692925453186
+2024-07-28 02:24:44,061 - INFO - Mean validation loss SSIM: 0.11780983209609985
+2024-07-28 02:24:44,062 - INFO - Mean validation loss FFL: 2.2351658302000033e-09
+2024-07-28 02:24:44,062 - INFO - Testing Finished

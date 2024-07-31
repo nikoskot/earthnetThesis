@@ -1,0 +1,79 @@
+# Data
+batchSize: 24
+numWorkers: 8    # Number of workers for Dataloaders
+trainDataDir: "/home/nikoskot/earthnetThesis/EarthnetDataset/train"
+testDataDir: "/home/nikoskot/earthnetThesis/EarthnetDataset/"
+dataDtype: "float32"
+trainDataSubset: null
+trainSplit: 0.8
+validationSplit: 0.2
+experimentsFolder: "/home/nikoskot/earthnetThesis/experiments"
+torchSeed: 58
+numpySeed: 58
+pythonSeed: 58
+overfitTraining: False
+
+
+# Model
+modelType: "videoSwinUnet"
+pretrained: null #"/home/nikoskot/earthnetThesis/swin_tiny_patch4_window7_224_22k.pth"
+pretrained2D: True
+C: 96            # C of Video Swin Transformer (number of channels after patch embedding)
+modelInputCh: 11 # Number of channels of the input data
+extraInputCh: 5
+mainInputTime: 10
+modelOutputCh: 4
+numBlocks: 3
+inputHeightWidth: 128
+windowSizeT: 3
+windowSizeH: 7
+windowSizeW: 7
+patchSizeT: 1
+patchSizeH: 4
+patchSizeW: 4
+patchEmbedding:
+  norm: True
+encoder:
+  layerDepths: [2, 2, 2]
+  layerNumHeads: [3, 6, 12]
+  mlpRatio: 4.
+  qkvBias: False
+  qkScale: null
+  drop: 0.
+  attnDrop: 0.
+  dropPath: 0.
+  norm: True
+  downsample: null
+  useCheckpoint: False
+  patchMerging:
+    norm: True
+bottleneck:
+  depth: 2
+  numHeads: 12
+  norm: True
+decoder:
+  layerDepths: [2, 2, 2]
+  layerNumHeads: [3, 6, 12]
+  mlpRatio: 4.
+  qkvBias: False
+  qkScale: null
+  drop: 0.
+  attnDrop: 0.
+  dropPath: 0.
+  norm: True
+  downsample: null
+  useCheckpoint: False
+  patchExpansion:
+    norm: True
+
+
+# Optimization
+epochs: 20      # Number of epochs to run the training for
+trainLossFunctions: ["maskedL1", "SSIM", "FFL"] # First one is the one that is used for checkpoint saving
+trainingOptimizer: "adam"
+lr: 0.0001         # Def 0.0005
+lrScaleFactor: 0.5
+scheduler: "ReduceLROnPlateau"
+schedulerPatience: 20
+gradientClipping: False
+gradientClipValue: 0.5

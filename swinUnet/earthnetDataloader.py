@@ -60,24 +60,6 @@ class EarthnetTrainDataset(Dataset):
             return self.transform(data)
         
         return data
-    
-        X = {
-            "highresdynamic": highresdynamic[..., :10], # HWCT C=5 T=10(context)
-            "highresstatic" : highresstatic,            # HWC  C=1
-            "mesodynamic"   : mesodynamic,              # hwCT C=5 T=150
-            "mesostatic"    : mesostatic,               # hwC  C=1
-            }
-        
-        Y = {
-            "highresdynamic": highresdynamic[..., 10::] # HWCT C=5 T=20(target) contains mask
-            }
-        
-        xMesodynamicTarget = None
-                
-        if self.transform:
-            X, Y, xMesodynamicTarget = self.transform((X, Y))
-        
-        return X, Y, tile, cubename,  0    # CTHW, CTHW
 
 
 class EarthnetTestDataset(Dataset):
@@ -146,40 +128,6 @@ class EarthnetTestDataset(Dataset):
         
         return data
 
-        # keep only [blue, green, red, nir, mask] channels
-        contextHighresdynamic = contextCubeFile["highresdynamic"].astype(self.dtype)
-        contextHighresstatic  = contextCubeFile["highresstatic"].astype(self.dtype)
-        contextMesodynamic    = contextCubeFile["mesodynamic"].astype(self.dtype)
-        contextMesostatic     = contextCubeFile["mesostatic"].astype(self.dtype)
-
-        contextHighresdynamic = np.nan_to_num(contextHighresdynamic, copy=False, nan=0.0, posinf=1.0, neginf=0.0)
-        contextHighresdynamic = np.clip(contextHighresdynamic, a_min=0.0, a_max=1.0)
-        contextHighresstatic    = np.nan_to_num(contextHighresstatic, copy=False, nan=0.0)
-        contextMesodynamic  = np.nan_to_num(contextMesodynamic, copy=False, nan=0.0)
-        contextMesostatic     = np.nan_to_num(contextMesostatic, copy=False, nan=0.0)
-
-        # keep only [blue, green, red, nir, mask] channels
-        targetHighresdynamic = targetCubeFile["highresdynamic"].astype(self.dtype)
-        targetHighresdynamic = np.nan_to_num(targetHighresdynamic, copy=False, nan=0.0, posinf=1.0, neginf=0.0)
-        targetHighresdynamic = np.clip(targetHighresdynamic, a_min=0.0, a_max=1.0)
-
-        X = {
-            "highresdynamic": contextHighresdynamic,    # HWCT C=5 T=10(context)
-            "highresstatic" : contextHighresstatic,     # HWC  C=1
-            "mesodynamic"   : contextMesodynamic,       # hwCT C=5 T=150
-            "mesostatic"    : contextMesostatic,        # hwC  C=1
-            }
-        
-        Y = {
-            "highresdynamic": targetHighresdynamic      # HWCT C=5 T=20(target) contains mask
-            }
-        
-        xMesodynamicTarget = None
-        
-        if self.transform:
-            X, Y, xMesodynamicTarget = self.transform((X, Y))
-
-        return X, Y, tile, cubename, xMesodynamicTarget    # CTHW, CTHW
 
 class Preprocessing(object):
 
@@ -221,27 +169,7 @@ class Preprocessing(object):
 
         return data
 
-        X, Y = sample
-        
-        X["highresdynamic"] = torch.permute(torch.from_numpy(X["highresdynamic"]).unsqueeze(0), (0, 3, 4, 1, 2))    # X["highresdynamic"] from HWCT -> BHWCT -> BCTHW
-
-        X["highresstatic"] = torch.unsqueeze(torch.from_numpy(X["highresstatic"]).unsqueeze(0), -1)                 # X["highresstatic"] from HWC -> BHWC -> BHWCT T=1
-        X["highresstatic"] = torch.permute(X["highresstatic"], (0, 3, 4, 1, 2))                                     # BHWCT -> BCTHW (T=1)
-        X["highresstatic"] = F.interpolate(X["highresstatic"], (10, X["highresdynamic"].shape[3], X["highresdynamic"].shape[4])) # BCTHW (T=10)
-
-        X["mesodynamic"] = torch.permute(torch.from_numpy(X["mesodynamic"]).unsqueeze(0), (0, 3, 4, 1, 2))          # X["mesodynamic"] from hwCT -> BhwCT -> BCThw (T=150)
-        X["mesodynamic"] = F.interpolate(X["mesodynamic"], (10, X["highresdynamic"].shape[3], X["highresdynamic"].shape[4])) # BCTHW (T=10)
-
-        X["mesostatic"] = torch.unsqueeze(torch.from_numpy(X["mesostatic"]).unsqueeze(0), -1)                       # X["mesostatic"] from hwC -> BhwC -> BhwCT T=1
-        X["mesostatic"] = torch.permute(X["mesostatic"], (0, 3, 4, 1, 2))                                           # BhwCT -> BCThw (T=1)
-        X["mesostatic"] = F.interpolate(X["mesostatic"], (10, X["highresdynamic"].shape[3], X["highresdynamic"].shape[4])) # BCTHW (T=10)
-
-        x = torch.cat((X["highresdynamic"], X["highresstatic"], X["mesodynamic"], X["mesostatic"]), 1).squeeze(0)   # BCTHW concat by C -> CTHW
-
-        y = torch.permute(torch.from_numpy(Y["highresdynamic"]).unsqueeze(0), ((0, 3, 4, 1, 2))).squeeze(0)         # Y["highresdynamic"] from HWCT -> BHWCT -> BCTHW -> CTHW
-
-        return x, y, None
-
+# Requires update
 class PreprocessingV2(object):
 
     def __init__(self):

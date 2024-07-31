@@ -17,6 +17,16 @@ python checkGPU.py
 # python swinUnet/videoSwinUnetMMAction.py
 
 python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/config.yml
+python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/config.yml
+python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/config.yml
+python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/config.yml
+python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/config.yml
+
+python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/config1.yml
+python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/config1.yml
+python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/config1.yml
+python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/config1.yml
+python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/config1.yml
 # python swinUnet/trainVideoSwinUnetV2.py --config /home/nikoskot/experiments/config.yml
 # python swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/config.yml --resumeTraining --resumeCheckpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnet_18-07-2024_16-57-37/checkpoint.pth
 # python channelUnet/channelUnetReproduction.py --config /home/nikoskot/earthnetThesis/experiments/config.yml

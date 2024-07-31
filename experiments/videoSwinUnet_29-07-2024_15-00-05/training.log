@@ -1,0 +1,100 @@
+2024-07-29 15:00:05,132 - INFO - NOTE: None
+2024-07-29 15:00:05,757 - INFO - No pretrained loading
+2024-07-29 15:00:06,272 - INFO - Starting training from from epoch 0
+2024-07-29 15:00:06,540 - INFO - Epoch 0
+-------------------------------
+2024-07-29 15:00:06,540 - INFO - Learning Rate of group 0: 0.001
+2024-07-29 15:20:13,926 - INFO - Mean training loss maskedL1: 37.23751449584961
+2024-07-29 15:20:13,926 - INFO - Mean training loss SSIM: 389.8542175292969
+2024-07-29 15:20:13,927 - INFO - Mean training loss FFL: 4.2632433178368956e-05
+2024-07-29 15:22:19,887 - INFO - Mean validation loss maskedL1: 7.3582658767700195
+2024-07-29 15:22:19,888 - INFO - Mean validation loss SSIM: 90.4129867553711
+2024-07-29 15:22:19,888 - INFO - Mean validation loss FFL: 1.088428598450264e-05
+2024-07-29 15:22:26,878 - INFO - New best validation Loss 7.3582658767700195, at epoch 0
+2024-07-29 15:22:26,879 - INFO - Epoch 1
+-------------------------------
+2024-07-29 15:22:26,879 - INFO - Learning Rate of group 0: 0.001
+2024-07-29 15:42:30,932 - INFO - Mean training loss maskedL1: 28.0605411529541
+2024-07-29 15:42:30,933 - INFO - Mean training loss SSIM: 358.37408447265625
+2024-07-29 15:42:30,933 - INFO - Mean training loss FFL: 4.2367344576632604e-05
+2024-07-29 15:44:38,091 - INFO - Mean validation loss maskedL1: 6.714867115020752
+2024-07-29 15:44:38,092 - INFO - Mean validation loss SSIM: 88.540283203125
+2024-07-29 15:44:38,092 - INFO - Mean validation loss FFL: 1.1018642908311449e-05
+2024-07-29 15:44:46,426 - INFO - New best validation Loss 6.714867115020752, at epoch 1
+2024-07-29 15:44:46,427 - INFO - Epoch 2
+-------------------------------
+2024-07-29 15:44:46,427 - INFO - Learning Rate of group 0: 0.001
+2024-07-29 16:04:50,960 - INFO - Mean training loss maskedL1: 26.12915802001953
+2024-07-29 16:04:50,961 - INFO - Mean training loss SSIM: 349.4742126464844
+2024-07-29 16:04:50,961 - INFO - Mean training loss FFL: 4.232439459883608e-05
+2024-07-29 16:07:09,510 - INFO - Mean validation loss maskedL1: 6.943740367889404
+2024-07-29 16:07:09,511 - INFO - Mean validation loss SSIM: 85.98965454101562
+2024-07-29 16:07:09,511 - INFO - Mean validation loss FFL: 1.069432073563803e-05
+2024-07-29 16:07:09,511 - INFO - Epoch 3
+-------------------------------
+2024-07-29 16:07:09,511 - INFO - Learning Rate of group 0: 0.001
+2024-07-29 16:27:14,208 - INFO - Mean training loss maskedL1: 24.791025161743164
+2024-07-29 16:27:14,535 - INFO - Mean training loss SSIM: 343.4073181152344
+2024-07-29 16:27:14,535 - INFO - Mean training loss FFL: 4.229276964906603e-05
+2024-07-29 16:29:25,540 - INFO - Mean validation loss maskedL1: 6.703164100646973
+2024-07-29 16:29:25,581 - INFO - Mean validation loss SSIM: 85.00009155273438
+2024-07-29 16:29:25,582 - INFO - Mean validation loss FFL: 1.0739417120930739e-05
+2024-07-29 16:29:35,102 - INFO - New best validation Loss 6.703164100646973, at epoch 3
+2024-07-29 16:29:35,103 - INFO - Epoch 4
+-------------------------------
+2024-07-29 16:29:35,103 - INFO - Learning Rate of group 0: 0.001
+2024-07-29 16:49:40,794 - INFO - Mean training loss maskedL1: 23.811737060546875
+2024-07-29 16:49:40,795 - INFO - Mean training loss SSIM: 337.8518981933594
+2024-07-29 16:49:40,795 - INFO - Mean training loss FFL: 4.227852332405746e-05
+2024-07-29 16:51:47,426 - INFO - Mean validation loss maskedL1: 5.994704246520996
+2024-07-29 16:51:47,426 - INFO - Mean validation loss SSIM: 83.5958023071289
+2024-07-29 16:51:47,426 - INFO - Mean validation loss FFL: 1.084091309166979e-05
+2024-07-29 16:51:55,897 - INFO - New best validation Loss 5.994704246520996, at epoch 4
+2024-07-29 16:51:55,898 - INFO - Epoch 5
+-------------------------------
+2024-07-29 16:51:55,898 - INFO - Learning Rate of group 0: 0.001
+2024-07-29 17:11:59,528 - INFO - Mean training loss maskedL1: 22.790634155273438
+2024-07-29 17:11:59,529 - INFO - Mean training loss SSIM: 332.6127014160156
+2024-07-29 17:11:59,529 - INFO - Mean training loss FFL: 4.225861266604625e-05
+2024-07-29 17:14:17,315 - INFO - Mean validation loss maskedL1: 6.1234049797058105
+2024-07-29 17:14:17,317 - INFO - Mean validation loss SSIM: 82.34931945800781
+2024-07-29 17:14:17,317 - INFO - Mean validation loss FFL: 1.0620689863571897e-05
+2024-07-29 17:14:17,318 - INFO - Epoch 6
+-------------------------------
+2024-07-29 17:14:17,318 - INFO - Learning Rate of group 0: 0.001
+2024-07-29 17:34:22,638 - INFO - Mean training loss maskedL1: 21.991687774658203
+2024-07-29 17:34:23,061 - INFO - Mean training loss SSIM: 328.3096923828125
+2024-07-29 17:34:23,063 - INFO - Mean training loss FFL: 4.224403164698742e-05
+2024-07-29 17:36:42,736 - INFO - Mean validation loss maskedL1: 5.511688709259033
+2024-07-29 17:36:42,737 - INFO - Mean validation loss SSIM: 81.20877838134766
+2024-07-29 17:36:42,737 - INFO - Mean validation loss FFL: 1.0762577403511386e-05
+2024-07-29 17:36:51,576 - INFO - New best validation Loss 5.511688709259033, at epoch 6
+2024-07-29 17:36:51,578 - INFO - Epoch 7
+-------------------------------
+2024-07-29 17:36:51,578 - INFO - Learning Rate of group 0: 0.001
+2024-07-29 17:56:56,020 - INFO - Mean training loss maskedL1: 21.546327590942383
+2024-07-29 17:56:56,021 - INFO - Mean training loss SSIM: 325.3285217285156
+2024-07-29 17:56:56,021 - INFO - Mean training loss FFL: 4.2226827645208687e-05
+2024-07-29 17:59:12,538 - INFO - Mean validation loss maskedL1: 5.571549892425537
+2024-07-29 17:59:12,539 - INFO - Mean validation loss SSIM: 80.69120025634766
+2024-07-29 17:59:12,539 - INFO - Mean validation loss FFL: 1.0748638487712014e-05
+2024-07-29 17:59:12,540 - INFO - Epoch 8
+-------------------------------
+2024-07-29 17:59:12,540 - INFO - Learning Rate of group 0: 0.001
+2024-07-29 18:19:18,368 - INFO - Mean training loss maskedL1: 21.587352752685547
+2024-07-29 18:19:18,826 - INFO - Mean training loss SSIM: 324.61724853515625
+2024-07-29 18:19:18,827 - INFO - Mean training loss FFL: 4.221642666379921e-05
+2024-07-29 18:21:37,979 - INFO - Mean validation loss maskedL1: 5.09876823425293
+2024-07-29 18:21:37,980 - INFO - Mean validation loss SSIM: 80.5705337524414
+2024-07-29 18:21:37,980 - INFO - Mean validation loss FFL: 1.0944655514322221e-05
+2024-07-29 18:21:46,712 - INFO - New best validation Loss 5.09876823425293, at epoch 8
+2024-07-29 18:21:46,714 - INFO - Epoch 9
+-------------------------------
+2024-07-29 18:21:46,714 - INFO - Learning Rate of group 0: 0.001
+2024-07-29 18:41:52,151 - INFO - Mean training loss maskedL1: 22.66536521911621
+2024-07-29 18:41:52,151 - INFO - Mean training loss SSIM: 328.09130859375
+2024-07-29 18:41:52,151 - INFO - Mean training loss FFL: 4.224128497298807e-05
+2024-07-29 18:44:07,641 - INFO - Mean validation loss maskedL1: 5.414084434509277
+2024-07-29 18:44:07,691 - INFO - Mean validation loss SSIM: 80.72794342041016
+2024-07-29 18:44:07,692 - INFO - Mean validation loss FFL: 1.0804820703924634e-05
+2024-07-29 18:44:07,693 - INFO - Training Finished

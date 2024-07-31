@@ -11,8 +11,10 @@ import os
 import argparse
 import yaml
 import logging
-from maskedLoss import BaseLoss
+import losses
 import random
+from piqa import SSIM
+from focal_frequency_loss import FocalFrequencyLoss as FFL
 
 def parseArgs():
     parser = argparse.ArgumentParser()
@@ -28,11 +30,11 @@ def load_config(config_path):
     return config
 
 
-def testing_loop(dataloader, model, lossFunction, predsFolder):
+def testing_loop(dataloader, model, lossFunctions, predsFolder, config):
 
     # Set the model to evaluation mode - important for batch normalization and dropout layers
     model.eval()
-    lossSum = 0
+    lossSums = {l:0 for l in config['trainLossFunctions']}
 
     # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
     # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
@@ -46,10 +48,11 @@ def testing_loop(dataloader, model, lossFunction, predsFolder):
 
             # Compute prediction and loss
             pred = model(x)
-            loss = lossFunction(pred, y, masks)
+            losses = {l:lossFunctions[l](pred, y, masks) for l in config['trainLossFunctions']}
 
             # Add the loss to the total loss of the batch and keep track of the number of samples
-            lossSum += loss.item()
+            for l in config['trainLossFunctions']:
+                lossSums[l] += losses[l]
 
             tiles = data['tile']
             cubenames = data['cubename']
@@ -60,11 +63,7 @@ def testing_loop(dataloader, model, lossFunction, predsFolder):
                 os.makedirs(path, exist_ok=True)
                 np.savez_compressed(os.path.join(path, cubenames[i]), highresdynamic=pred[i].permute(2, 3, 0, 1).detach().cpu().numpy().astype(np.float16))
 
-    # Calculate Earthnet Score and reset the calculator
-    # validationENS = validENSCalculator.compute()
-    # validENSCalculator.reset()
-
-    return lossSum
+    return lossSums
 
 
 def main():
@@ -92,36 +91,28 @@ def main():
     checkpoint = torch.load(os.path.join(args.trainingFolder, 'checkpoint.pth'))
 
     # Intiialize Video Swin Unet model and move to GPU
-    model = VideoSwinUNet(inputChannels=config['modelInputCh'], outputChannels=config['modelOutputCh'], 
-                          inputHW=config['inputHeightWidth'], C=config['C'], num_blocks=config['numBlocks'], 
-                          patch_size=(config['patchSizeT'], config['patchSizeH'], config['patchSizeW']), 
-                          window_size=(config['windowSizeT'], config['windowSizeH'], config['windowSizeW'])).to(torch.device('cuda'))
+    model = VideoSwinUNet(config, logger).to(torch.device('cuda'))
     model.load_state_dict(checkpoint['state_dict'])
 
     # Setup Loss Function
-    if config['trainLossFunction'] == "mse":
-        lossFunction = nn.MSELoss(reduction='mean')
-    elif config['trainLossFunction'] == "maskedL1":
-        lossFunction = BaseLoss({}, device=device)
-    elif config['trainLossFunction'] == "l1":
-        lossFunction = nn.L1Loss(reduction='mean')
-    else:
-        raise NotImplementedError
+    lossFunctions = losses.setupLossFunctions(config, device)
 
     # Set Preprocessing for Earthnet data
     preprocessingStage = Preprocessing()
 
     # Create dataset for testing part of Earthnet dataset
-    testDataset = EarthnetTestDataset(dataDir=os.path.join(config['testDataDir'], args.testSplit), dtype=config['dataDtype'], transform=preprocessingStage)
-    # testDataset = Subset(testDataset, range(450))
-    # testDataset = EarthnetTrainDataset(dataDir=config['trainDataDir'], dtype=config['dataDtype'], transform=preprocessingStage)
-    # testDataset = Subset(testDataset, range(3))
+    if config['overfitTraining']:
+        testDataset = EarthnetTrainDataset(dataDir=config['trainDataDir'], dtype=config['dataDtype'], transform=preprocessingStage)
+        testDataset = Subset(testDataset, range(config['trainDataSubset']))
+    else:
+        testDataset = EarthnetTestDataset(dataDir=os.path.join(config['testDataDir'], args.testSplit), dtype=config['dataDtype'], transform=preprocessingStage)
 
     # Create testing Dataloader
     testDataloader = DataLoader(testDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)  
 
-    testLoss = testing_loop(testDataloader, model, lossFunction, predsFolder)
-    logger.info("Mean Testing loss: {}".format(testLoss))
+    testLosses = testing_loop(testDataloader, model, lossFunctions, predsFolder, config)
+    for l in config['trainLossFunctions']:
+        logger.info("Mean validation loss {}: {}".format(l, testLosses[l]))
 
     logger.info("Testing Finished")
 

@@ -1,0 +1,80 @@
+# Data
+batchSize: 16
+numWorkers: 8    # Number of workers for Dataloaders
+trainDataDir: "/home/nikoskot/earthnetThesis/EarthnetDataset/train"
+testDataDir: "/home/nikoskot/earthnetThesis/EarthnetDataset/"
+dataDtype: "float32"
+trainDataSubset: 500
+trainSplit: 0.8
+validationSplit: 0.2
+experimentsFolder: "/home/nikoskot/earthnetThesis/experiments"
+torchSeed: 58
+numpySeed: 58
+pythonSeed: 58
+
+
+# Model
+modelType: "videoSwinUnet"
+pretrained: "/home/nikoskot/earthnetThesis/swin_tiny_patch4_window7_224_22k.pth"
+pretrained2D: True
+C: 96            # C of Video Swin Transformer (number of channels after patch embedding)
+modelInputCh: 11 # Number of channels of the input data
+extraInputCh: 5
+mainInputTime: 10
+modelOutputCh: 4
+numBlocks: 3
+inputHeightWidth: 128
+windowSizeT: 3
+windowSizeH: 7
+windowSizeW: 7
+patchSizeT: 1
+patchSizeH: 4
+patchSizeW: 4
+patchEmbedding:
+  norm: False
+encoder:
+  layerDepths: [2, 2, 2]
+  layerNumHeads: [3, 6, 12]
+  mlpRatio: 4.
+  qkvBias: False
+  qkScale: null
+  drop: 0.
+  attnDrop: 0.
+  dropPath: 0.
+  norm: True
+  downsample: null
+  useCheckpoint: False
+  patchMerging:
+    norm: True
+bottleneck:
+  depth: 2
+  numHeads: 12
+  norm: False
+decoder:
+  layerDepths: [2, 2, 2]
+  layerNumHeads: [3, 6, 12]
+  mlpRatio: 4.
+  qkvBias: False
+  qkScale: null
+  drop: 0.
+  attnDrop: 0.
+  dropPath: 0.
+  norm: False
+  downsample: null
+  useCheckpoint: False
+  patchExpansion:
+    norm: False
+
+
+# Optimization
+epochs: 15      # Number of epochs to run the training for
+trainLossFunction: "maskedL1"
+trainingOptimizer: "adam"
+lr: 0.0002         # Def 0.0005
+lrScaleFactor: 0.1
+scheduler: "ReduceLROnPlateau"
+schedulerPatience: 10
+gradientClipping: True
+gradientClipValue: 0.5
+
+# First test on the significance of which norm layers are active. 15 epochs with 500 samples and gradient clipping. In this only the encoder norm layer are active. Best val los 0.21

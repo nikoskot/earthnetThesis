@@ -69,8 +69,6 @@ def window_reverse(windows, window_size, B, D, H, W):
     return x
 
 
-
-
 def get_window_size(x_size, window_size, shift_size=None):
     use_window_size = list(window_size)
     if shift_size is not None:
@@ -200,18 +198,21 @@ class SwinTransformerBlock3D(nn.Module):
         self.shift_size = shift_size
         self.mlp_ratio = mlp_ratio
         self.use_checkpoint=use_checkpoint
+        self.norm_layer = norm_layer
 
         assert 0 <= self.shift_size[0] < self.window_size[0], "shift_size must in 0-window_size"
         assert 0 <= self.shift_size[1] < self.window_size[1], "shift_size must in 0-window_size"
         assert 0 <= self.shift_size[2] < self.window_size[2], "shift_size must in 0-window_size"
 
-        self.norm1 = norm_layer(dim)
+        if self.norm_layer is not None:
+            self.norm1 = norm_layer(dim)
         self.attn = WindowAttention3D(
             dim, window_size=self.window_size, num_heads=num_heads,
             qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop)
 
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
-        self.norm2 = norm_layer(dim)
+        if self.norm_layer is not None:
+            self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
 
@@ -219,7 +220,8 @@ class SwinTransformerBlock3D(nn.Module):
         B, D, H, W, C = x.shape
         window_size, shift_size = get_window_size((D, H, W), self.window_size, self.shift_size)
 
-        x = self.norm1(x)
+        if self.norm_layer is not None:
+            x = self.norm1(x)
         # pad feature maps to multiples of window size
         pad_l = pad_t = pad_d0 = 0
         pad_d1 = (window_size[0] - D % window_size[0]) % window_size[0]
@@ -252,7 +254,7 @@ class SwinTransformerBlock3D(nn.Module):
         return x
 
     def forward_part2(self, x):
-        return self.drop_path(self.mlp(self.norm2(x)))
+        return self.drop_path(self.mlp(self.norm2(x))) if self.norm_layer is not None else self.drop_path(self.mlp(x))
 
     def forward(self, x, mask_matrix):
         """ Forward function.
@@ -288,7 +290,7 @@ class PatchMerging(nn.Module):
         super().__init__()
         self.dim = dim
         self.reduction = nn.Linear(4 * dim, 2 * dim, bias=False)
-        self.norm = norm_layer(4 * dim)
+        self.norm = norm_layer(4 * dim) if norm_layer is not None else None
 
     def forward(self, x):
         """ Forward function.
@@ -310,7 +312,8 @@ class PatchMerging(nn.Module):
         x3 = x[:, :, 1::2, 1::2, :]  # B D H/2 W/2 C
         x = torch.cat([x0, x1, x2, x3], -1)  # B D H/2 W/2 4*C
 
-        x = self.norm(x)
+        if self.norm is not None:
+            x = self.norm(x)
         x = self.reduction(x)
 
         x = x.permute(0,4,1,2,3) # B,Ch,T,H,W
@@ -333,7 +336,8 @@ class PatchExpansion(nn.Module):
 
         x = x.reshape(B, T, H*2, W*2, C//4)
 
-        x = self.norm(x)
+        if self.norm is not None:
+            x = self.norm(x)
 
         #x = x.permute(0,4,1,2,3) # B,Ch,T,H,W
         return x
@@ -352,9 +356,10 @@ class PatchExpansionV2(nn.Module):
 
         x = self.conv(x)
 
-        x = x.permute(0, 2, 3, 4, 1) # x -> B T H W C
-        x = self.norm(x)
-        x = x.permute(0, 4, 1, 2, 3) # x -> B C T H W
+        if self.norm is not None:
+            x = x.permute(0, 2, 3, 4, 1) # x -> B T H W C
+            x = self.norm(x)
+            x = x.permute(0, 4, 1, 2, 3) # x -> B C T H W
 
         return x
     
@@ -394,9 +399,10 @@ class FinalPatchExpansionV2(nn.Module):
 
         x = self.conv(x)
 
-        x = x.permute(0, 2, 3, 4, 1) # x -> B T H W C
-        x = self.norm(x)
-        x = x.permute(0, 4, 1, 2, 3) # x -> B C T H W
+        if self.norm is not None:
+            x = x.permute(0, 2, 3, 4, 1) # x -> B T H W C
+            x = self.norm(x)
+            x = x.permute(0, 4, 1, 2, 3) # x -> B C T H W
 
         return x
     
@@ -411,6 +417,7 @@ class RegressionHead(nn.Module):
         self.conv1 = nn.Conv3d(self.in_channels, self.in_channels // 2, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True)
         self.conv2 = nn.Conv3d(self.in_channels // 2, self.out_channels, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True)
         self.act = nn.LeakyReLU(0.2, inplace=True)
+        self.sigm = nn.Sigmoid()
 
     def forward(self, x):
         """
@@ -419,6 +426,7 @@ class RegressionHead(nn.Module):
         x = self.conv1(x)
         x = self.act(x)
         x = self.conv2(x)
+        x = self.sigm(x)
 
         return x
 
@@ -568,16 +576,10 @@ class PatchEmbed3D(nn.Module):
 class Encoder(nn.Module):
     def __init__(self, C, layerDepths, numHeads, windowSize, mlpRatio, qkvBias, qkScale, drop, attnDrop, dropPath, norm, downsample, useCheckpoint, patchMergingNorm):
         super().__init__()
-        self.enc_swin_blocks = nn.ModuleList([
-            BasicLayer(dim=C,   depth=layerDepths[0], num_heads=numHeads[0], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint),
-            BasicLayer(dim=2*C, depth=layerDepths[0], num_heads=numHeads[1], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint),
-            BasicLayer(dim=4*C, depth=layerDepths[0], num_heads=numHeads[2], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint)
-        ])
-        self.enc_patch_merge_blocks = nn.ModuleList([
-            PatchMerging(C,   norm_layer=patchMergingNorm),
-            PatchMerging(2*C, norm_layer=patchMergingNorm),
-            PatchMerging(4*C, norm_layer=patchMergingNorm)
-        ])
+
+        self.enc_swin_blocks = nn.ModuleList([BasicLayer(dim=C*(2**i), depth=layerDepths[i], num_heads=numHeads[i], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint) for i in range(len(layerDepths))])
+      
+        self.enc_patch_merge_blocks = nn.ModuleList([PatchMerging(C*(2**i), norm_layer=patchMergingNorm) for i in range(len(layerDepths))])
 
     def forward(self, x):
         skip_conn_ftrs = []
@@ -590,21 +592,12 @@ class Encoder(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, C, layerDepths, numHeads, windowSize, mlpRatio, qkvBias, qkScale, drop, attnDrop, dropPath, norm, downsample, useCheckpoint, patchExpansionNorm):
         super().__init__()
-        self.dec_swin_blocks = nn.ModuleList([
-            BasicLayer(dim=8*C, depth=layerDepths[0], num_heads=numHeads[0], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint),
-            BasicLayer(dim=4*C, depth=layerDepths[1], num_heads=numHeads[1], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint),
-            BasicLayer(dim=2*C, depth=layerDepths[2], num_heads=numHeads[2], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint)
-        ])
-        self.dec_patch_expand_blocks = nn.ModuleList([
-            PatchExpansionV2(inputChannels=8*C, outputChannels=4*C, spatialScale=2, norm=patchExpansionNorm),
-            PatchExpansionV2(inputChannels=4*C, outputChannels=2*C, spatialScale=2, norm=patchExpansionNorm),
-            PatchExpansionV2(inputChannels=2*C, outputChannels=C,   spatialScale=2, norm=patchExpansionNorm)
-        ])
-        self.skip_conn_concat = nn.ModuleList([
-            nn.Conv3d(in_channels=8*C, out_channels=4*C, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
-            nn.Conv3d(in_channels=4*C, out_channels=2*C, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
-            nn.Conv3d(in_channels=2*C, out_channels=C,   kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
-        ])
+        
+        self.dec_swin_blocks = nn.ModuleList([BasicLayer(dim=C*(2**(len(layerDepths)-i)), depth=layerDepths[i], num_heads=numHeads[i], window_size=windowSize, mlp_ratio=mlpRatio, qkv_bias=qkvBias, qk_scale=qkScale, drop=drop, attn_drop=attnDrop, drop_path=dropPath, norm_layer=norm, downsample=downsample, use_checkpoint=useCheckpoint) for i in range(len(layerDepths))])
+        
+        self.dec_patch_expand_blocks = nn.ModuleList([PatchExpansionV2(inputChannels=C*(2**(len(layerDepths)-i)), outputChannels=C*(2**(len(layerDepths)-i-1)), spatialScale=2, norm=patchExpansionNorm) for i in range(len(layerDepths))])
+        
+        self.skip_conn_concat = nn.ModuleList([nn.Conv3d(in_channels=C*(2**(len(layerDepths)-i)), out_channels=C*(2**(len(layerDepths)-i-1)), kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True) for i in range(len(layerDepths))])
 
     def forward(self, x, encoder_features):
         for patch_expand, swin_block, enc_ftr, conv_conc in zip(self.dec_patch_expand_blocks, self.dec_swin_blocks, encoder_features, self.skip_conn_concat):
@@ -613,8 +606,6 @@ class Decoder(nn.Module):
             enc_ftr = F.interpolate(enc_ftr, size=(enc_ftr.shape[2]*2, enc_ftr.shape[3], enc_ftr.shape[4]), mode='trilinear')
             x = torch.cat([x, enc_ftr], dim=1)
             x = conv_conc(x)
-            # x = x.permute(0,4,1,2,3) # B,Ch,T,H,W
-            # x = swin_block(x)
         return x
 
 class VideoSwinUNet(nn.Module):
@@ -645,7 +636,7 @@ class VideoSwinUNet(nn.Module):
                                      depth=config['bottleneck']['depth'], 
                                      num_heads=config['bottleneck']['numHeads'],
                                      window_size=(config['windowSizeT'], config['windowSizeH'], config['windowSizeW']),
-                                     norm=nn.LayerNorm if config['bottleneck']['norm'] else None,
+                                     norm_layer=nn.LayerNorm if config['bottleneck']['norm'] else None,
                                      downsample=None)
         
         self.decoder = Decoder(C=config['C'],
@@ -663,12 +654,8 @@ class VideoSwinUNet(nn.Module):
                                useCheckpoint=config['decoder']['useCheckpoint'],
                                patchExpansionNorm=config['decoder']['patchExpansion']['norm'])
         
-        # self.timeUpsampling1 = nn.ConvTranspose3d(in_channels=C, out_channels=C, kernel_size=(2, 1, 1), stride=(2,1,1))
-        
         self.final_expansion = FinalPatchExpansionV2(inputChannels=config['C'], outputChannels=config['C'], spatialScale=4, norm=config['decoder']['patchExpansion']['norm'])
-        
-        # self.timeUpsampling2 = nn.ConvTranspose3d(in_channels=C, out_channels=C, kernel_size=(2, 1, 1), stride=(2,1,1))
-        
+                
         self.head = RegressionHead(in_channels=config['C'], out_channels=config['modelOutputCh'])
 
         self.init_weights(logger=logger, config=config)
@@ -824,24 +811,10 @@ class VideoSwinUNet(nn.Module):
         # print("Decoder time {}".format(endTime - startTime))
 
         # startTime = time.time()
-        # for time upsampling from 5 to 10 frames
-        # x = self.timeUpsampling1(x)
-        # print("Tiem upsampling 1 output shape {}".format(x.shape))
-        # endTime = time.time()
-        # print("Time upsampling 1 time {}".format(endTime - startTime))
-
-        # startTime = time.time()
         x = self.final_expansion(x)
         # print("Final expansion output shape {}".format(x.shape))
         # endTime = time.time()
         # print("Final exxpansion time {}".format(endTime - startTime))
-
-        # startTime = time.time()
-        # for time upsampling from 10 to 20 frames
-        # x = self.timeUpsampling2(x)
-        # print("Time upsampling 2 output shape {}".format(x.shape))
-        # endTime = time.time()
-        # print("Time upsampling 2 time {}".format(endTime - startTime))
 
         # startTime = time.time()
         x = self.head(x)
