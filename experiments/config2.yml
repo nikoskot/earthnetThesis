@@ -69,7 +69,7 @@ decoder:
 epochs: 500      # Number of epochs to run the training for
 trainLossFunctions: ["maskedL1"] # First one is the one that is used for checkpoint saving
 trainingOptimizer: "adam"
-lr: 0.0005         # Def 0.0005
+lr: 0.0007         # Def 0.0005
 lrScaleFactor: 0.5
 weightDecay: 0
 scheduler: null

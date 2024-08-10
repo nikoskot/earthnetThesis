@@ -3,18 +3,19 @@ import torch.nn as nn
 import torch.utils.checkpoint as checkpoint
 import numpy as np
 import random
-from earthnetDataloader import EarthnetTestDataset, EarthnetTrainDataset, Preprocessing
+from earthnetDataloader import EarthnetTestDataset, EarthnetTrainDataset, Preprocessing, PreprocessingStack
 from torch.utils.data import DataLoader, random_split, Subset
 from earthnet_scores import EarthNet2021ScoreUpdateWithoutCompute
 import losses
 import tqdm
 import datetime
-from videoSwinUnetMMAction import VideoSwinUNet
+from videoSwinUnetMMActionV1 import VideoSwinUNet
 import argparse
 import yaml
 import os
 import logging
 import shutil
+import rerun as rr
 from torch.utils.tensorboard import SummaryWriter
 from piqa import SSIM
 from focal_frequency_loss import FocalFrequencyLoss as FFL
@@ -26,6 +27,7 @@ def parseArgs():
     parser.add_argument('--resumeTraining', default=False, action='store_true', help='If we want to resume the training from a checkpoint.')
     parser.add_argument('--resumeCheckpoint', help='The path of the checkpoint to resume training from.')
     parser.add_argument('--note', help='Note to write at beginning of log file.')
+    parser.add_argument('--seed', default=88, type=int)
     return parser.parse_args()
 
 
@@ -56,7 +58,8 @@ def train_loop(dataloader, model, lossFunction, optimizer, config, logger):
 
         # Compute prediction and loss
         pred = model(x)
-        loss = lossFunction(pred, y, masks)
+        # loss = lossFunction(pred, y, masks)
+        loss = lossFunction(pred, y)
         # print("Train loss: {}".format(loss))
 
         # Backpropagation
@@ -99,7 +102,8 @@ def validation_loop(dataloader, model, lossFunction, config):
 
             # Compute prediction and loss
             pred = model(x)
-            loss = lossFunction(pred, y, masks)
+            # loss = lossFunction(pred, y, masks)
+            loss = lossFunction(pred, y)
             # print("Val loss: {}".format(loss))
 
             # Add the loss to the total loss
@@ -134,27 +138,27 @@ def main():
     tbWriter = SummaryWriter(outputFolder)
 
     # Setup seeds
-    seed = np.random.randint(0, 100)
-    logger.info("Torch, random, numpy seed: {}".format(seed))
-    torch.manual_seed(seed)
-    random.seed(seed)
-    np.random.seed(seed)
+    logger.info("Torch, random, numpy seed: {}".format(args.seed))
+    torch.manual_seed(args.seed)
+    random.seed(args.seed)
+    np.random.seed(args.seed)
 
     # Intiialize Video Swin Unet model and move to GPU
     model = VideoSwinUNet(config, logger).to(device)
 
     # Setup Loss Function and Optimizer
-    lossFunction = losses.MaskedLoss(lossType='l1', lossFunction=nn.L1Loss(reduction='sum'), maskFlag=True)
+    # lossFunction = losses.MaskedLoss(lossType='l1', lossFunction=nn.L1Loss(reduction='sum'), maskFlag=True)
+    lossFunction = nn.L1Loss(reduce='mean')
 
     if config['trainingOptimizer'] == "adamw":
         optimizer = torch.optim.AdamW(model.parameters(), lr=config['lr'])
     elif config['trainingOptimizer'] == "adam":
-        optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'])
+        optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'], weight_decay=config['weightDecay'])
     else:
         raise NotImplementedError
 
     if config['scheduler'] == 'ReduceLROnPlateau':
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=config['lrScaleFactor'], patience=config['schedulerPatience'])
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=config['lrScaleFactor'], patience=config['schedulerPatience'], min_lr=0.000001)
     else:
         logger.info('No scheduler used')
     
@@ -179,7 +183,7 @@ def main():
     preprocessingStage = Preprocessing()
 
     # Create dataset of training part of Earthnet dataset
-    trainDataset = EarthnetTrainDataset(dataDir=config['trainDataDir'], dtype=config['dataDtype'], transform=preprocessingStage)
+    trainDataset = EarthnetTrainDataset(dataDir=config['trainDataDir'], dtype=config['dataDtype'], transform=preprocessingStage, cropMesodynamic=config['cropMesodynamic'])
     if isinstance(config['trainDataSubset'], int):
         trainDataset = Subset(trainDataset, range(config['trainDataSubset']))
 

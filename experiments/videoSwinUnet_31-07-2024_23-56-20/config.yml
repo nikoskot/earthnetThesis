@@ -13,24 +13,25 @@ overfitTraining: True
 
 
 # Model
-modelType: "videoSwinUnetV1"
+modelType: "videoSwinUnet"
 pretrained: null #"/home/nikoskot/earthnetThesis/swin_tiny_patch4_window7_224_22k.pth"
 pretrained2D: True
 C: 96            # C of Video Swin Transformer (number of channels after patch embedding)
-modelInputCh: 11 # Number of channels of the input data
+modelInputCh: 81 # Number of channels of the input data
 extraInputCh: 5
 mainInputTime: 10
-outputTime: 20
 modelOutputCh: 4
-timeUpsampling: 'encoder' # 'patchEmbedding': do it after patch embedding, 'encoder': do it after encoder
 #numBlocks: 3
 inputHeightWidth: 128
-windowSize: [3 ,7, 7]
-patchSize: [1, 1, 1]
+windowSizeT: 3
+windowSizeH: 7
+windowSizeW: 7
+patchSizeT: 1
+patchSizeH: 4
+patchSizeW: 4
 patchEmbedding:
   norm: False
 encoder:
-  numChannels: [96, 192, 384]
   layerDepths: [2, 2, 2]
   layerNumHeads: [3, 6, 12]
   mlpRatio: 4.
@@ -49,7 +50,6 @@ bottleneck:
   numHeads: 12
   norm: False
 decoder:
-  numChannels: [384, 384, 288]
   layerDepths: [2, 2, 2]
   layerNumHeads: [3, 6, 12]
   mlpRatio: 4.
@@ -71,8 +71,9 @@ trainLossFunctions: ["maskedL1"] # First one is the one that is used for checkpo
 trainingOptimizer: "adam"
 lr: 0.0005         # Def 0.0005
 lrScaleFactor: 0.5
-weightDecay: 0
 scheduler: null
 schedulerPatience: 10
 gradientClipping: False
 gradientClipValue: 0.5
+
+#PreprocessingStack and mesodynamic cropping

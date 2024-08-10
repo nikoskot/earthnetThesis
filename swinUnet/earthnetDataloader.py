@@ -8,7 +8,7 @@ import os
 
 class EarthnetTrainDataset(Dataset):
 
-    def __init__(self, dataDir, dtype=np.float16, transform=None):
+    def __init__(self, dataDir, dtype=np.float16, transform=None, cropMesodynamic=False):
         
         self.dataDir = Path(dataDir)
         assert self.dataDir.exists(), "Directory to data folder does not exist."
@@ -16,6 +16,9 @@ class EarthnetTrainDataset(Dataset):
         self.dtype = dtype
         self.cubesPathList = sorted(list(self.dataDir.glob("**/*.npz")))
         self.transform = transform
+        self.cropMesodynamic = cropMesodynamic
+        if cropMesodynamic:
+            self.upsample = torch.nn.Upsample(size=(128, 128))
 
     def __len__(self):
         return len(self.cubesPathList)
@@ -38,6 +41,11 @@ class EarthnetTrainDataset(Dataset):
         mesodynamic    = np.nan_to_num(mesodynamic, copy=False, nan=0.0)
         highresstatic  = np.nan_to_num(highresstatic, copy=False, nan=0.0)
         mesostatic     = np.nan_to_num(mesostatic, copy=False, nan=0.0)
+
+        if self.cropMesodynamic:
+            mesodynamic = mesodynamic[39:41, 39:41, :, :].transpose(2, 3, 0, 1)
+            mesodynamic = self.upsample(torch.from_numpy(mesodynamic)).numpy().transpose(2, 3, 0, 1)
+
 
         data = {
             "context": {
@@ -64,7 +72,7 @@ class EarthnetTrainDataset(Dataset):
 
 class EarthnetTestDataset(Dataset):
 
-    def __init__(self, dataDir, dtype=np.float16, transform=None):
+    def __init__(self, dataDir, dtype=np.float16, transform=None, cropMesodynamic=False):
         
         self.dataDir = Path(dataDir)
         assert self.dataDir.exists(), "Directory to data folder does not exist."
@@ -77,6 +85,10 @@ class EarthnetTestDataset(Dataset):
     
         self.dtype = dtype
         self.transform = transform
+
+        self.cropMesodynamic = cropMesodynamic
+        if cropMesodynamic:
+            self.upsample = torch.nn.Upsample(size=(128, 128))
 
     def __len__(self):
         return len(self.contextPathList)
@@ -99,6 +111,10 @@ class EarthnetTestDataset(Dataset):
         contextHighresstatic    = np.nan_to_num(contextHighresstatic, copy=False, nan=0.0)
         contextMesodynamic  = np.nan_to_num(contextMesodynamic, copy=False, nan=0.0)
         contextMesostatic     = np.nan_to_num(contextMesostatic, copy=False, nan=0.0)
+
+        if self.cropMesodynamic:
+            contextMesodynamic = contextMesodynamic[39:41, 39:41, :, :].transpose(2, 3, 0, 1)
+            contextMesodynamic = self.upsample(torch.from_numpy(contextMesodynamic)).numpy().transpose(2, 3, 0, 1)
 
         targetHighresdynamic = targetCubeFile["highresdynamic"].astype(self.dtype)[:, :, [0, 1, 2, 3], :] # Keep only [blue, green, red, nir] channels HWCT C=4 T=20
         targetMask           = (1 - targetCubeFile["highresdynamic"].astype(self.dtype)[:, :, 4, :])[:, :, np.newaxis, :] # Isolate mask channel HWCT C=1 T=20
@@ -202,6 +218,47 @@ class PreprocessingV2(object):
         y = torch.permute(torch.from_numpy(Y["highresdynamic"]).unsqueeze(0), ((0, 3, 4, 1, 2))).squeeze(0)         # Y["highresdynamic"] from HWCT -> BHWCT -> BCTHW -> CTHW
 
         return x, y, xMesodynamicTarget
+    
+
+class PreprocessingStack(object):
+
+    def __init__(self):
+        None
+
+    def __call__(self, data):
+
+        contextImages = torch.from_numpy(data['context']['images'])
+        contextWeather = torch.from_numpy(data['context']['weather'])
+        contextMask = torch.from_numpy(data['context']['mask'])
+        targetImages = torch.from_numpy(data['target']['images'])
+        targetWeather = torch.from_numpy(data['target']['weather'])
+        targetMask = torch.from_numpy(data['target']['mask'])
+        demHigh = torch.from_numpy(data['demHigh'])
+        demMeso = torch.from_numpy(data['demMeso'])
+
+        H, W = contextImages.shape[2::]
+
+        allWeather = torch.cat((contextWeather, targetWeather), 1) # Concatenate all weather data across time to get full 150 days
+        allWeather = F.interpolate(allWeather, size=(H, W))         # CThw -> CTHW T=150
+        allWeather = allWeather.reshape(allWeather.shape[0], 10, 15, H, W).permute(0, 2, 1, 3, 4).reshape(allWeather.shape[0]*15, 10, H, W) # CTHW C=5*15 T=10
+        
+        demHigh = demHigh.unsqueeze(1)   # from CHW -> CTHW C=1 T=1
+        demHigh = torch.repeat_interleave(demHigh, repeats=10, dim=1)  # CTHW T=10
+        
+
+        demMeso = demMeso.unsqueeze(1)                  # from Chw -> CThw C=1 T=1
+        demMeso = F.interpolate(demMeso, size=(H, W))   # CTHW C=1 T=1
+        demMeso = torch.repeat_interleave(demMeso, repeats=10, dim=1) # CTHW T=10
+
+        data = {
+            "x": torch.cat((contextImages, allWeather, demHigh, demMeso)), # C=81
+            "y": targetImages,
+            "targetMask": targetMask,
+            "tile"    : data['tile'],
+            "cubename": data['cubename']
+        }
+
+        return data
     
 
 if __name__ == "__main__":
