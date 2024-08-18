@@ -5,6 +5,7 @@ from pathlib import Path
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import os
+import earthnet as en
 
 class EarthnetTrainDataset(Dataset):
 
@@ -264,7 +265,7 @@ class PreprocessingStack(object):
 if __name__ == "__main__":
 
     # Set paremeters
-    BATCH_SIZE           = 2 # Bactch size
+    BATCH_SIZE           = 1 # Bactch size
     NUM_WORKERS          = 2  # Number of workers for Dataloaders
 
     preprocessingStage = Preprocessing()
@@ -320,6 +321,14 @@ if __name__ == "__main__":
         print(data['targetMask'].shape)
         print(data['tile'])
         print(data['cubename'])
+        print(torch.max(data['x']))
+        print(torch.min(data['x']))
+        print(torch.max(data['y']))
+        print(torch.min(data['y']))
+        print(torch.unique(data['targetMask']))
+
+        np.savez_compressed('/home/nikoskot/6', highresdynamic=data['y'][0].permute(1, 2, 3, 0).detach().cpu().numpy().astype(np.float16))
+        en.cube_gallery('/home/nikoskot/6.npz', variable='rgb', save_path='/home/nikoskot/6rgb')
 
         print("Testing dataloader sample")
         print("Length {}".format(len(testDataloader)))
@@ -347,3 +356,6 @@ if __name__ == "__main__":
         print(y.shape)
         print(t)
         print(c)
+
+    # Explore dataset
+

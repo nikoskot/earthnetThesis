@@ -359,8 +359,11 @@ class RegressionHead(nn.Module):
 
         self.conv1 = nn.Conv3d(self.in_channels, self.in_channels // 2, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True)
         self.act = nn.LeakyReLU(0.2, inplace=True)
-        self.conv2 = nn.Conv3d(self.in_channels // 2, self.out_channels, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True)
+        self.conv2 = nn.Conv3d(self.in_channels // 2, self.in_channels // 4, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True)
+        self.act2 = nn.LeakyReLU(0.2, inplace=True)
+        self.conv3 = nn.Conv3d(self.in_channels // 4, self.out_channels, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=True)
         # self.sigm = nn.Sigmoid()
+        # self.relu = nn.ReLU()
 
     def forward(self, x):
         """
@@ -369,8 +372,11 @@ class RegressionHead(nn.Module):
         x = self.conv1(x)
         x = self.act(x)
         x = self.conv2(x)
+        x = self.act2(x)
+        x = self.conv3(x)
         # x = self.sigm(x)
         # x = torch.clamp(x, min=0.0, max=1.0)
+        # x = self.relu(x)
 
         return x
 
@@ -537,7 +543,7 @@ class BasicLayerDecoder(nn.Module):
         
         self.upsample = upsample
         if self.upsample is not None:
-            self.upsample = upsample(dim, dim//2, spatialScale=2, norm=None)
+            self.upsample = upsample(dim, dim//2, spatialScale=2, norm=norm_layer)
 
     def forward(self, x):
         """ Forward function.
@@ -630,7 +636,7 @@ class Encoder(nn.Module):
                                       attn_drop=config['encoder']['attnDrop'], 
                                       drop_path=config['encoder']['dropPath'], 
                                       norm_layer=nn.LayerNorm if config['encoder']['norm'] else None, 
-                                      downsample=None if i == 0 else PatchMerging, 
+                                      downsample=PatchMerging if config['encoder']['downsample'][i] else None, #None if i == 0 else PatchMerging, 
                                       use_checkpoint=config['encoder']['useCheckpoint'])
             self.layers.append(layer)
 
@@ -671,7 +677,7 @@ class Decoder(nn.Module):
                                       attn_drop=config['decoder']['attnDrop'], 
                                       drop_path=config['decoder']['dropPath'], 
                                       norm_layer=nn.LayerNorm if config['decoder']['norm'] else None, 
-                                      upsample=None if i == len(config['decoder']['layerDepths'])-1 else PatchExpansionV2, 
+                                      upsample=PatchExpansionV2 if config['decoder']['upsample'][i] else None, #None if i == len(config['decoder']['layerDepths'])-1 else PatchExpansionV2, 
                                       use_checkpoint=config['decoder']['useCheckpoint'])
             self.layers.append(layer)
         
@@ -855,26 +861,28 @@ class VideoSwinUNet(nn.Module):
 
         self.apply(init_func)
 
-        for m in self.head.children():
+        for i, m in enumerate(self.head.children()):
             if hasattr(m, '_init_weights'):
                 m._init_weights()
             else:
                 if isinstance(m, nn.Linear) or isinstance(m, nn.Conv3d):
                     trunc_normal_(m.weight, std=.02)
+                    if i == 4:
+                        nn.init.constant_(m.bias, 0.263)
 
-        if config['pretrained']:
-            self.pretrained = config['pretrained']
-        if isinstance(config['pretrained'], str):
-            if logger: logger.info(f'load model from: {self.pretrained}')
+        # if config['pretrained']:
+        #     self.pretrained = config['pretrained']
+        # if isinstance(config['pretrained'], str):
+        #     if logger: logger.info(f'load model from: {self.pretrained}')
 
-            if config['pretrained2D']:
-                # Inflate 2D model into 3D model.
-                self.inflate_weights(logger, config)
-            else:
-                # Directly load 3D model.
-                torch.load(self, self.pretrained, strict=False, logger=logger)
-        else:
-            if logger: logger.info("No pretrained loading")
+        #     if config['pretrained2D']:
+        #         # Inflate 2D model into 3D model.
+        #         self.inflate_weights(logger, config)
+        #     else:
+        #         # Directly load 3D model.
+        #         torch.load(self, self.pretrained, strict=False, logger=logger)
+        # else:
+        #     if logger: logger.info("No pretrained loading")
 
     def forward(self, x):
 
@@ -932,7 +940,7 @@ if __name__ == "__main__":
     endTime = time.time()
     print("Dummy data creation time {}".format(endTime - startTime))
 
-    torch.cuda.memory._record_memory_history(max_entries=100000)
+    # torch.cuda.memory._record_memory_history(max_entries=100000)
     
     for i in range(20):
         _ = torch.randn(1).cuda()        
@@ -942,8 +950,8 @@ if __name__ == "__main__":
         print("Pass time {}".format(endTime - startTime))
         optimizer.zero_grad(set_to_none=True)
 
-    torch.cuda.memory._dump_snapshot("videoSwinUnetV1.pickle")
-    torch.cuda.memory._record_memory_history(enabled=None)
+    # torch.cuda.memory._dump_snapshot("videoSwinUnetV1.pickle")
+    # torch.cuda.memory._record_memory_history(enabled=None)
 
     y = model(x)
 

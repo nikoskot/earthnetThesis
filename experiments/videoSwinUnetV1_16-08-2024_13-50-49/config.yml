@@ -10,7 +10,7 @@ validationSplit: 0.2
 cropMesodynamic: True
 experimentsFolder: "/home/nikoskot/earthnetThesis/experiments"
 overfitTraining: False
-visualizationFreq: 10
+visualizationFreq: 5
 
 
 # Model
@@ -29,49 +29,49 @@ inputHeightWidth: 128
 windowSize: [3 ,7, 7]
 patchSize: [1, 4, 4]
 patchEmbedding:
-  norm: True
+  norm: False
 encoder:
   numChannels: [96, 192, 384]
   layerDepths: [2, 2, 2]
   layerNumHeads: [3, 6, 12]
   mlpRatio: 4.
-  qkvBias: True
+  qkvBias: False
   qkScale: null
   drop: 0.
   attnDrop: 0.
   dropPath: 0.
-  norm: True
-  # downsample: null
+  norm: False
+  downsample: null
   useCheckpoint: False
-  # patchMerging:
-  #   norm: False
-# bottleneck:
-#   depth: 2
-#   numHeads: 12
-#   norm: False
+  patchMerging:
+    norm: False
+bottleneck:
+  depth: 2
+  numHeads: 12
+  norm: False
 decoder:
   numChannels: [384, 384, 288]
   layerDepths: [2, 2, 2]
   layerNumHeads: [3, 6, 12]
   mlpRatio: 4.
-  qkvBias: True
+  qkvBias: False
   qkScale: null
   drop: 0.
   attnDrop: 0.
   dropPath: 0.
-  norm: True
-  # downsample: null
+  norm: False
+  downsample: null
   useCheckpoint: False
-  # patchExpansion:
-  #   norm: False
+  patchExpansion:
+    norm: False
 
 
 # Optimization
-epochs: 1      # Number of epochs to run the training for
+epochs: 25      # Number of epochs to run the training for
 # trainLossFunctions: ["maskedL1"] # First one is the one that is used for checkpoint saving
 trainingOptimizer: "adamw"
-lr: 0.0005         # Def 0.0005
-weightDecay: 0.01
+lr: 0.0002         # Def 0.0005
+weightDecay: 0 #0.01
 scheduler: null
 lrScaleFactor: 0.5
 schedulerPatience: 10

@@ -5,3 +5,4 @@ predictions/
 *.out
 experiments/configWindows.yml
 __pycache__/
+*.rrd

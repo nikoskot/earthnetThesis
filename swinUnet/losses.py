@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from kornia.filters import spatial_gradient
-from piqa import SSIM
+from piqa import SSIM, ssim
 from focal_frequency_loss import FocalFrequencyLoss as FFL
 
 def setupLossFunctions(config, device):
@@ -31,21 +31,17 @@ def setupLossFunctions(config, device):
     return lossFunctions
 
 class MaskedLoss(nn.Module):
-    def __init__(self, lossType, lossFunction, maskFlag=True):
+    def __init__(self, lossType, lossFunction):
         super(MaskedLoss, self).__init__()
 
         self.lossFunction = lossFunction
         self.lossType = lossType
-        self.maskFlag = maskFlag
 
     def forward(self, preds, targets, mask):
 
         assert(preds.shape == targets.shape)
 
         mask = torch.repeat_interleave(mask, repeats=4, dim=1)
-
-        if not self.maskFlag:
-            mask = torch.ones_like(mask)
 
         preds = preds * mask
         targets = targets * mask
@@ -54,15 +50,13 @@ class MaskedLoss(nn.Module):
             l = 0
             for t in range(preds.shape[2]):
                 l += self.lossFunction(preds[:, :, t, :, :], targets[:, :, t, :, :])
-            return l / ((mask > 0).sum() + 1)
+            return l / ((mask > 0).sum() + 1e-7)
 
         if self.lossType == 'ssim':
-            l = 0
-            for t in range(preds.shape[2]):
-                l += 1 - self.lossFunction(preds[:, :, t, :, :], targets[:, :, t, :, :])
-            return l / t
+            B, _, _, _, _ = preds.shape
+            return ((B - self.lossFunction(preds, targets)) / B) ** 10.31885115
 
-        return self.lossFunction(preds, targets)/ ((mask > 0).sum() + 1)
+        return self.lossFunction(preds, targets) / ((mask > 0).sum() + 1e-7)
         
 class GradientLoss(nn.Module):
     def __init__(self):
@@ -83,28 +77,45 @@ if __name__ == "__main__":
     
     img1 = torch.rand(8, 4, 20, 128, 128).to(torch.device('cuda')) # B, C, T, H, W
     img2 = torch.rand(8, 4, 20, 128, 128).to(torch.device('cuda')) # B, C, T, H, W
-    masks = torch.ones(8, 1, 20, 128, 128).to(torch.device('cuda'))
+    masksOnes = torch.ones(8, 1, 20, 128, 128).to(torch.device('cuda'))
+    masksZeros = torch.zeros(8, 1, 20, 128, 128).to(torch.device('cuda'))
     ones = torch.ones(8, 4, 20, 128, 128).to(torch.device('cuda'))
     zeros = torch.zeros(8, 4, 20, 128, 128).to(torch.device('cuda'))
 
-    config = {'trainLossFunctions': ["mse", "maskedL1", "l1", "maskedSSIM", "SSIM", "maskedFFL", "FFL", "maskedGradient", "gradient"],
-              'modelOutputCh': 4
-              }
-    config = {'trainLossFunctions': ["SSIM"],
-              'modelOutputCh': 4
-              }
     device = torch.device('cuda')
 
-    lossFunctions = setupLossFunctions(config, device)
+    mseLoss = MaskedLoss(lossType='mse', lossFunction=nn.MSELoss(reduction='sum'))
+    print("Mean masked MSE loss between different images with mask equal to one: {}".format(mseLoss(img1, img2, masksOnes)))
+    print("Mean masked MSE loss between same images with mask equal to one: {}".format(mseLoss(img1, img1, masksOnes)))
+    print("Mean masked MSE loss between ones and zeros with mask equal to one: {}".format(mseLoss(ones, zeros, masksOnes)))
+    print("Mean masked MSE loss between different images with mask equal to zeros: {}".format(mseLoss(img1, img2, masksZeros)))
 
-    lossesSame = {l:lossFunctions[l](img1, img1, masks) for l in config['trainLossFunctions']}
-    lossesSameZeroMask = {l:lossFunctions[l](img1, img1, 1-masks) for l in config['trainLossFunctions']}
-    lossesDifferent = {l:lossFunctions[l](img1, img2, masks) for l in config['trainLossFunctions']}
-    lossesOnesZeros = {l:lossFunctions[l](ones, zeros, masks) for l in config['trainLossFunctions']}
+    mseLossOriginal = nn.MSELoss(reduction='mean')
+    print("Mean original MSE loss between different images: {}".format(mseLossOriginal(img1, img2)))
+    print("Mean original MSE loss between same images: {}".format(mseLossOriginal(img1, img1)))
+    print("Mean original MSE loss between ones and zeros: {}".format(mseLossOriginal(ones, zeros)))
+    print('\n')
 
-    for l in config['trainLossFunctions']:
-        print("Mean loss {} between same images : {}".format(l, lossesSame[l]))
-        print("Mean loss {} between same images with zero mask: {}".format(l, lossesSameZeroMask[l]))
-        print("Mean loss {} between different images: {}".format(l, lossesDifferent[l]))
-        print("Mean loss {} between ones and zeros: {}".format(l, lossesOnesZeros[l]))
+    l1Loss = MaskedLoss(lossType='l1', lossFunction=nn.L1Loss(reduction='sum'))
+    print("Mean masked L1 loss between different images with mask equal to one: {}".format(l1Loss(img1, img2, masksOnes)))
+    print("Mean masked L1 loss between same images with mask equal to one: {}".format(l1Loss(img1, img1, masksOnes)))
+    print("Mean masked L1 loss between ones and zeros with mask equal to one: {}".format(l1Loss(ones, zeros, masksOnes)))
+    print("Mean masked L1 loss between different images with mask equal to zeros: {}".format(l1Loss(img1, img2, masksZeros)))
 
+    l1LossOriginal = nn.L1Loss(reduction='mean')
+    print("Mean original L1 loss between different images: {}".format(l1LossOriginal(img1, img2)))
+    print("Mean original L1 loss between same images: {}".format(l1LossOriginal(img1, img1)))
+    print("Mean original L1 loss between ones and zeros: {}".format(l1LossOriginal(ones, zeros)))
+    print('\n')
+
+    ssimLoss = MaskedLoss(lossType='ssim', lossFunction=SSIM(n_channels=4, reduction='sum').to(torch.device('cuda')))
+    print("Mean masked SSIM loss between different images with mask equal to one: {}".format(ssimLoss(img1, img2, masksOnes)))
+    print("Mean masked SSIM loss between same images with mask equal to one: {}".format(ssimLoss(img1, img1, masksOnes)))
+    print("Mean masked SSIM loss between ones and zeros with mask equal to one: {}".format(ssimLoss(ones, zeros, masksOnes)))
+    print("Mean masked SSIM loss between different images with mask equal to zeros: {}".format(ssimLoss(img1, img2, masksZeros)))
+
+    ssimLossOriginal = SSIM(n_channels=4, reduction='mean').to(torch.device('cuda'))
+    print("Mean original SSIM loss between different images: {}".format(1-ssimLossOriginal(img1, img2)))
+    print("Mean original SSIM loss between same images: {}".format(1-ssimLossOriginal(img1, img1)))
+    print("Mean original SSIM loss between ones and zeros: {}".format(1-ssimLossOriginal(ones, zeros)))
+    print('\n')

@@ -1,15 +1,16 @@
 # Data
-batchSize: 1
+batchSize: 8
 numWorkers: 8    # Number of workers for Dataloaders
 trainDataDir: "/home/nikoskot/earthnetThesis/EarthnetDataset/train"
 testDataDir: "/home/nikoskot/earthnetThesis/EarthnetDataset/"
 dataDtype: "float32"
-trainDataSubset: 1
+trainDataSubset: 1000
 trainSplit: 0.8
 validationSplit: 0.2
 cropMesodynamic: True
 experimentsFolder: "/home/nikoskot/earthnetThesis/experiments"
-overfitTraining: True
+overfitTraining: False
+visualizationFreq: 10
 
 
 # Model
@@ -26,53 +27,53 @@ timeUpsampling: 'encoder' # 'patchEmbedding': do it after patch embedding, 'enco
 #numBlocks: 3
 inputHeightWidth: 128
 windowSize: [3 ,7, 7]
-patchSize: [1, 1, 1]
+patchSize: [1, 4, 4]
 patchEmbedding:
-  norm: False
+  norm: True
 encoder:
   numChannels: [96, 192, 384]
   layerDepths: [2, 2, 2]
   layerNumHeads: [3, 6, 12]
   mlpRatio: 4.
-  qkvBias: False
+  qkvBias: True
   qkScale: null
   drop: 0.
   attnDrop: 0.
   dropPath: 0.
-  norm: False
-  downsample: null
+  norm: True
+  # downsample: null
   useCheckpoint: False
-  patchMerging:
-    norm: False
-bottleneck:
-  depth: 2
-  numHeads: 12
-  norm: False
+  # patchMerging:
+  #   norm: False
+# bottleneck:
+#   depth: 2
+#   numHeads: 12
+#   norm: False
 decoder:
   numChannels: [384, 384, 288]
   layerDepths: [2, 2, 2]
   layerNumHeads: [3, 6, 12]
   mlpRatio: 4.
-  qkvBias: False
+  qkvBias: True
   qkScale: null
   drop: 0.
   attnDrop: 0.
   dropPath: 0.
-  norm: False
-  downsample: null
+  norm: True
+  # downsample: null
   useCheckpoint: False
-  patchExpansion:
-    norm: False
+  # patchExpansion:
+  #   norm: False
 
 
 # Optimization
-epochs: 500      # Number of epochs to run the training for
-trainLossFunctions: ["maskedL1"] # First one is the one that is used for checkpoint saving
-trainingOptimizer: "adam"
+epochs: 50      # Number of epochs to run the training for
+# trainLossFunctions: ["maskedL1"] # First one is the one that is used for checkpoint saving
+trainingOptimizer: "adamw"
 lr: 0.0007         # Def 0.0005
-lrScaleFactor: 0.5
-weightDecay: 0
+weightDecay: 0.01
 scheduler: null
+lrScaleFactor: 0.5
 schedulerPatience: 10
 gradientClipping: False
 gradientClipValue: 0.5
