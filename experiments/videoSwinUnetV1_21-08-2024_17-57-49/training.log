@@ -1,0 +1,15 @@
+2024-08-21 17:57:49,281 - INFO - NOTE: None
+2024-08-21 17:57:49,283 - INFO - Torch, random, numpy seed: 88
+2024-08-21 17:57:49,897 - INFO - Starting training from from epoch 0
+2024-08-21 17:57:58,287 - INFO - Epoch 1
+-------------------------------
+2024-08-21 17:57:58,287 - INFO - Learning Rate of group 0: 0.0
+2024-08-21 17:58:46,673 - INFO - Maximum gradient before clipping: 3.1314234733581543
+2024-08-21 17:58:46,674 - INFO - Minimum gradient before clipping: -1.239591121673584
+2024-08-21 17:58:46,676 - INFO - Mean training L1 loss: 0.2050127238035202
+2024-08-21 17:58:46,676 - INFO - Mean training SSIM loss: 0.008474134252173826
+2024-08-21 17:58:46,676 - INFO - Mean training MSE loss: 0.05276725694537163
+2024-08-21 17:58:54,698 - INFO - Mean validation L1 loss: 0.2107105404138565
+2024-08-21 17:58:54,698 - INFO - Mean validation SSIM loss: 0.010156519673764706
+2024-08-21 17:58:54,698 - INFO - Mean validation MSE loss: 0.05545169398188591
+2024-08-21 17:58:55,173 - INFO - New best validation Loss 0.2107105404138565, at epoch 1

@@ -1,0 +1,6 @@
+2024-08-21 15:10:26,943 - INFO - NOTE: None
+2024-08-21 15:10:26,945 - INFO - Torch, random, numpy seed: 88
+2024-08-21 15:10:27,977 - INFO - Starting training from from epoch 0
+2024-08-21 15:10:36,301 - INFO - Epoch 1
+-------------------------------
+2024-08-21 15:10:36,307 - INFO - Learning Rate of group 0: 0.0

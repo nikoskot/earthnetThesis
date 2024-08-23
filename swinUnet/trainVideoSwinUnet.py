@@ -23,6 +23,8 @@ import copy
 import rerun as rr
 import rerun.blueprint as rrb
 from earthnet.plot_cube import gallery
+import yaml
+from ray import train, tune
 
 
 def parseArgs():
@@ -30,6 +32,7 @@ def parseArgs():
     parser.add_argument('--config', default='/home/nikoskot/earthnetThesis/experiments/config.yml', help='The path to the configuration file.')
     parser.add_argument('--resumeTraining', default=False, action='store_true', help='If we want to resume the training from a checkpoint.')
     parser.add_argument('--resumeCheckpoint', help='The path of the checkpoint to resume training from.')
+    parser.add_argument('--optimizeHyperparams', default=False, action='store_true', help='If this is a hyperparameter optimization run.')
     parser.add_argument('--note', help='Note to write at beginning of log file.')
     parser.add_argument('--seed', default=88, type=int)
     return parser.parse_args()
@@ -80,10 +83,11 @@ def train_loop(dataloader,
 
         l1LossValue = l1Loss(pred, y, masks)
         mseLossValue = mseLoss(pred, y, masks)
-        # ssimLossValue = ssimLoss(pred, y, masks)
+        ssimLossValue = ssimLoss(torch.clamp(pred, min=0.0, max=1.0), y, masks)
 
         # Backpropagation
-        l1LossValue.backward()
+        totalLoss = config['l1Weight'] * l1LossValue + config['mseWeight'] * mseLossValue + config['ssimWeight'] * ssimLossValue
+        totalLoss.backward()
 
         for param in model.parameters():
             maxGradPre = torch.maximum(maxGradPre, torch.max(param.grad.view(-1)))
@@ -96,7 +100,7 @@ def train_loop(dataloader,
 
         # Add the loss to the total loss 
         l1LossSum += l1LossValue.item()
-        # SSIMLossSum += ssimLossValue.item()
+        SSIMLossSum += ssimLossValue.item()
         mseLossSum += mseLossValue.item()
 
         # Log visualizations if available
@@ -165,11 +169,11 @@ def validation_loop(dataloader,
 
             l1LossValue = l1Loss(pred, y, masks)
             mseLossValue = mseLoss(pred, y, masks)
-            # ssimLossValue = ssimLoss(pred, y, masks)
+            ssimLossValue = ssimLoss(torch.clamp(pred, min=0.0, max=1.0), y, masks)
 
             # Add the loss to the total loss
             l1LossSum += l1LossValue.item()
-            # SSIMLossSum += ssimLossValue.item()
+            SSIMLossSum += ssimLossValue.item()
             mseLossSum += mseLossValue.item()
 
             # Log visualizations if available
@@ -218,6 +222,9 @@ def trainVideoSwinUnet(config, args):
 
     # Make a copy of the configuration file on the output folder
     shutil.copy(args.config, outputFolder)
+
+    with open(os.path.join(outputFolder, 'savedConfig.yml'), 'w') as file:
+        yaml.dump(config, file, default_flow_style=None, sort_keys=False)
 
     # Initialize logging
     logger = logging.getLogger(__name__)
@@ -282,7 +289,7 @@ def trainVideoSwinUnet(config, args):
     # Create dataset of training part of Earthnet dataset
     trainDataset = EarthnetTrainDataset(dataDir=config['trainDataDir'], dtype=config['dataDtype'], transform=preprocessingStage, cropMesodynamic=config['cropMesodynamic'])
     if isinstance(config['trainDataSubset'], int):
-        trainDataset = Subset(trainDataset, range(config['trainDataSubset']))
+        trainDataset = Subset(trainDataset, np.random.randint(0, len(trainDataset), size=config['trainDataSubset']))
 
     # Create training and validation Dataloaders
     if config['overfitTraining']:
@@ -404,6 +411,15 @@ def trainVideoSwinUnet(config, args):
                 scheduler.step(valL1Loss)
         else:
             scheduler.step()
+
+        if args.optimizeHyperparams:
+            train.report({'valL1Loss': valL1Loss,
+                          'valSSIMLoss': valSSIMLoss,
+                          'valMSELoss' : valMSELoss,
+                          'trainL1Loss': trainL1Loss,
+                          'trainSSIMLoss': trainSSIMLoss,
+                          'trainMSELoss' : trainMSELoss,
+                          })
         
         tbWriter.add_scalar('Loss/Train', trainL1Loss, i)
         tbWriter.add_scalar('Loss/Val', valL1Loss, i)

@@ -4,13 +4,13 @@ numWorkers: 8    # Number of workers for Dataloaders
 trainDataDir: "/home/nikoskot/earthnetThesis/EarthnetDataset/train"
 testDataDir: "/home/nikoskot/earthnetThesis/EarthnetDataset/"
 dataDtype: "float32"
-trainDataSubset: 1000
+trainDataSubset: 10
 trainSplit: 0.8
 validationSplit: 0.2
 cropMesodynamic: True
 experimentsFolder: "/home/nikoskot/earthnetThesis/experiments"
 overfitTraining: False
-visualizationFreq: 10
+visualizationFreq: 30
 
 
 # Model
@@ -26,13 +26,13 @@ modelOutputCh: 4
 timeUpsampling: 'encoder' # 'patchEmbedding': do it after patch embedding, 'encoder': do it after encoder
 #numBlocks: 3
 inputHeightWidth: 128
-windowSize: [3 ,7, 7]
+windowSize: [3, 7, 7]
 patchSize: [1, 4, 4]
 patchEmbedding:
   norm: True
 encoder:
-  numChannels: [96, 192, 384]
-  layerDepths: [2, 2, 2]
+  numChannels: [96, 192]
+  layerDepths: [2, 2]
   layerNumHeads: [3, 6, 12]
   mlpRatio: 4.
   qkvBias: True
@@ -41,7 +41,7 @@ encoder:
   attnDrop: 0.
   dropPath: 0.
   norm: True
-  # downsample: null
+  downsample: [False, True]
   useCheckpoint: False
   # patchMerging:
   #   norm: False
@@ -50,8 +50,8 @@ encoder:
 #   numHeads: 12
 #   norm: False
 decoder:
-  numChannels: [384, 384, 288]
-  layerDepths: [2, 2, 2]
+  numChannels: [192, 192]
+  layerDepths: [2, 2]
   layerNumHeads: [3, 6, 12]
   mlpRatio: 4.
   qkvBias: True
@@ -60,19 +60,23 @@ decoder:
   attnDrop: 0.
   dropPath: 0.
   norm: True
-  # downsample: null
+  upsample: [True, False]
   useCheckpoint: False
   # patchExpansion:
   #   norm: False
 
 
 # Optimization
-epochs: 1      # Number of epochs to run the training for
+epochs: 2      # Number of epochs to run the training for
 # trainLossFunctions: ["maskedL1"] # First one is the one that is used for checkpoint saving
+l1Weight: 1
+mseWeight: 1
+ssimWeight: 1
 trainingOptimizer: "adamw"
-lr: 0.0005         # Def 0.0005
+lr: 0.0002         # Def 0.0005
 weightDecay: 0.01
-scheduler: null
+scheduler: "ReduceLROnPlateau"
+warmupEpochs: 10
 lrScaleFactor: 0.5
 schedulerPatience: 10
 gradientClipping: False

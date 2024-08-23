@@ -1,0 +1,65 @@
+batchSize: 8
+numWorkers: 8
+trainDataDir: /home/nikoskot/earthnetThesis/EarthnetDataset/train
+testDataDir: /home/nikoskot/earthnetThesis/EarthnetDataset/
+dataDtype: float32
+trainDataSubset: 1000
+trainSplit: 0.8
+validationSplit: 0.2
+cropMesodynamic: true
+experimentsFolder: /home/nikoskot/earthnetThesis/experiments
+overfitTraining: false
+visualizationFreq: 30
+modelType: videoSwinUnetV1
+pretrained: null
+pretrained2D: true
+C: 96
+modelInputCh: 11
+extraInputCh: 5
+mainInputTime: 10
+outputTime: 20
+modelOutputCh: 4
+timeUpsampling: encoder
+inputHeightWidth: 128
+windowSize: [16, 3, 3]
+patchSize: [4, 4, 4]
+patchEmbedding: {norm: true}
+encoder:
+  numChannels: [96, 192]
+  layerDepths: [2, 2]
+  layerNumHeads: [3, 6, 12]
+  mlpRatio: 4.0
+  qkvBias: true
+  qkScale: null
+  drop: 0.0
+  attnDrop: 0.0
+  dropPath: 0.3
+  norm: false
+  downsample: [false, true]
+  useCheckpoint: false
+decoder:
+  numChannels: [192, 192]
+  layerDepths: [2, 2]
+  layerNumHeads: [3, 6, 12]
+  mlpRatio: 4.0
+  qkvBias: true
+  qkScale: null
+  drop: 0.0
+  attnDrop: 0.0
+  dropPath: 0.1
+  norm: true
+  upsample: [true, false]
+  useCheckpoint: false
+epochs: 25
+l1Weight: 5.9
+mseWeight: 4.1000000000000005
+ssimWeight: 4.4
+trainingOptimizer: adamw
+lr: 0.004859085576802198
+weightDecay: 0.025
+scheduler: ReduceLROnPlateau
+warmupEpochs: 5
+lrScaleFactor: 0.5
+schedulerPatience: 10
+gradientClipping: false
+gradientClipValue: 0.5
