@@ -1,0 +1,58 @@
+2024-09-11 01:02:31,024 - INFO - NOTE: None
+2024-09-11 01:02:31,041 - INFO - Torch, random, numpy seed: 88
+2024-09-11 01:02:32,851 - INFO - Starting training from from epoch 1
+2024-09-11 01:02:41,292 - INFO - Epoch 1
+-------------------------------
+2024-09-11 01:02:41,292 - INFO - Learning Rate of group 0: 0.0
+2024-09-11 01:04:46,433 - INFO - Maximum gradient before clipping: 5.146117210388184
+2024-09-11 01:04:46,483 - INFO - Minimum gradient before clipping: -1.8974107503890991
+2024-09-11 01:04:46,484 - INFO - Mean training L1 loss: 0.1592533740401268
+2024-09-11 01:04:46,485 - INFO - Mean training SSIM loss: 0.999802742600441
+2024-09-11 01:04:46,485 - INFO - Mean training MSE loss: 0.0
+2024-09-11 01:04:46,485 - INFO - Mean training VGG loss: 4.747593638896942
+2024-09-11 01:05:05,371 - INFO - Mean validation L1 loss: 0.1599093747138977
+2024-09-11 01:05:05,371 - INFO - Mean validation SSIM loss: 0.9998631072044373
+2024-09-11 01:05:05,371 - INFO - Mean validation MSE loss: 0.0
+2024-09-11 01:05:05,371 - INFO - Mean validation VGG loss: 4.58038028717041
+2024-09-11 01:05:07,363 - INFO - New best validation Loss 0.1599093747138977, at epoch 1
+2024-09-11 01:05:07,556 - INFO - Epoch 2
+-------------------------------
+2024-09-11 01:05:07,556 - INFO - Learning Rate of group 0: 4e-05
+2024-09-11 01:07:11,607 - INFO - Maximum gradient before clipping: 2.6949098110198975
+2024-09-11 01:07:11,608 - INFO - Minimum gradient before clipping: -2.126436233520508
+2024-09-11 01:07:11,609 - INFO - Mean training L1 loss: 0.12635677821934224
+2024-09-11 01:07:11,609 - INFO - Mean training SSIM loss: 0.9993682825565338
+2024-09-11 01:07:11,609 - INFO - Mean training MSE loss: 0.0
+2024-09-11 01:07:11,609 - INFO - Mean training VGG loss: 4.378893580436706
+2024-09-11 01:07:25,537 - INFO - Mean validation L1 loss: 0.13578108698129654
+2024-09-11 01:07:25,537 - INFO - Mean validation SSIM loss: 0.99962482213974
+2024-09-11 01:07:25,537 - INFO - Mean validation MSE loss: 0.0
+2024-09-11 01:07:25,537 - INFO - Mean validation VGG loss: 4.116376256942749
+2024-09-11 01:07:26,472 - INFO - New best validation Loss 0.13578108698129654, at epoch 2
+2024-09-11 01:07:26,476 - INFO - Epoch 3
+-------------------------------
+2024-09-11 01:07:26,476 - INFO - Learning Rate of group 0: 8e-05
+2024-09-11 01:09:30,148 - INFO - Maximum gradient before clipping: 4.146842002868652
+2024-09-11 01:09:30,148 - INFO - Minimum gradient before clipping: -2.9385993480682373
+2024-09-11 01:09:30,149 - INFO - Mean training L1 loss: 0.12595249257981778
+2024-09-11 01:09:30,149 - INFO - Mean training SSIM loss: 0.9991032630205154
+2024-09-11 01:09:30,149 - INFO - Mean training MSE loss: 0.0
+2024-09-11 01:09:30,150 - INFO - Mean training VGG loss: 4.112842619419098
+2024-09-11 01:09:44,131 - INFO - Mean validation L1 loss: 0.13161858648061753
+2024-09-11 01:09:44,131 - INFO - Mean validation SSIM loss: 0.9993127942085266
+2024-09-11 01:09:44,131 - INFO - Mean validation MSE loss: 0.0
+2024-09-11 01:09:44,131 - INFO - Mean validation VGG loss: 3.8880934619903567
+2024-09-11 01:09:45,084 - INFO - New best validation Loss 0.13161858648061753, at epoch 3
+2024-09-11 01:09:45,087 - INFO - Epoch 4
+-------------------------------
+2024-09-11 01:09:45,087 - INFO - Learning Rate of group 0: 0.00012
+2024-09-11 01:11:47,841 - INFO - Maximum gradient before clipping: 2.836249589920044
+2024-09-11 01:11:47,842 - INFO - Minimum gradient before clipping: -3.592651605606079
+2024-09-11 01:11:47,842 - INFO - Mean training L1 loss: 0.12725154615938664
+2024-09-11 01:11:47,843 - INFO - Mean training SSIM loss: 0.9989238131046295
+2024-09-11 01:11:47,843 - INFO - Mean training MSE loss: 0.0
+2024-09-11 01:11:47,843 - INFO - Mean training VGG loss: 3.9630336380004882
+2024-09-11 01:12:01,965 - INFO - Mean validation L1 loss: 0.1340013736486435
+2024-09-11 01:12:01,966 - INFO - Mean validation SSIM loss: 0.9993640303611755
+2024-09-11 01:12:01,966 - INFO - Mean validation MSE loss: 0.0
+2024-09-11 01:12:01,966 - INFO - Mean validation VGG loss: 3.7867249870300292

@@ -192,33 +192,69 @@ class PreprocessingV2(object):
     def __init__(self):
         None
 
-    def __call__(self, sample):
+    def __call__(self, data):
 
-        X, Y = sample
+        contextImages = torch.from_numpy(data['context']['images'])
+        contextWeather = torch.from_numpy(data['context']['weather'])
+        contextMask = torch.from_numpy(data['context']['mask'])
+        targetImages = torch.from_numpy(data['target']['images'])
+        targetWeather = torch.from_numpy(data['target']['weather'])
+        targetMask = torch.from_numpy(data['target']['mask'])
+        demHigh = torch.from_numpy(data['demHigh'])
+        demMeso = torch.from_numpy(data['demMeso'])
+
+        H, W = contextImages.shape[2::]
+
+        contextWeather = F.interpolate(contextWeather, size=(H, W))         # CThw -> CTHW T=50
+        contextWeather = contextWeather.reshape(contextWeather.shape[0], 10, 5, H, W).mean(2).reshape(contextWeather.shape[0], 10, H, W) # CTHW T=50 -> CTHW T=10
+
+        demHigh = demHigh.unsqueeze(1)   # from CHW -> CTHW C=1 T=1
+        demHigh = torch.repeat_interleave(demHigh, repeats=10, dim=1)  # CTHW T=10
         
-        X["highresdynamic"] = torch.permute(torch.from_numpy(X["highresdynamic"]).unsqueeze(0), (0, 3, 4, 1, 2))    # X["highresdynamic"] from HWCT -> BHWCT -> BCTHW
 
-        X["highresstatic"] = torch.unsqueeze(torch.from_numpy(X["highresstatic"]).unsqueeze(0), -1)                 # X["highresstatic"] from HWC -> BHWC -> BHWCT T=1
-        X["highresstatic"] = torch.permute(X["highresstatic"], (0, 3, 4, 1, 2))                                     # BHWCT -> BCTHW (T=1)
-        X["highresstatic"] = F.interpolate(X["highresstatic"], (10, X["highresdynamic"].shape[3], X["highresdynamic"].shape[4])) # BCTHW (T=10)
+        demMeso = demMeso.unsqueeze(1)                  # from Chw -> CThw C=1 T=1
+        demMeso = F.interpolate(demMeso, size=(H, W))   # CTHW C=1 T=1
+        demMeso = torch.repeat_interleave(demMeso, repeats=10, dim=1) # CTHW T=10
 
-        X["mesodynamic"] = torch.permute(torch.from_numpy(X["mesodynamic"]).unsqueeze(0), (0, 3, 4, 1, 2))          # X["mesodynamic"] from hwCT -> BhwCT -> BCThw (T=150)
-        xMesodynamicContext = X["mesodynamic"][:, :, :50, :, :]
-        xMesodynamicTarget = X["mesodynamic"][:, :, 50::, :, :]
-        xMesodynamicContext = F.interpolate(xMesodynamicContext, (10, X["highresdynamic"].shape[3], X["highresdynamic"].shape[4])) # BCTHW (from T=50 to T=10)
-        xMesodynamicTarget = F.interpolate(xMesodynamicTarget, (20, X["highresdynamic"].shape[3], X["highresdynamic"].shape[4])) # BCTHW (from T=100 to T=20)
-        xMesodynamicTarget = xMesodynamicTarget.squeeze(0)                                                                       #BCTHW -> CTHW
-        # X["mesodynamic"] = F.interpolate(X["mesodynamic"], (10, X["highresdynamic"].shape[3], X["highresdynamic"].shape[4])) # BCTHW (T=10)
+        targetWeather = F.interpolate(targetWeather, size=(H, W))         # CThw -> CTHW T=100
+        targetWeather = targetWeather.reshape(targetWeather.shape[0], 20, 5, H, W).mean(2).reshape(targetWeather.shape[0], 20, H, W) # CTHW T=100 -> CTHW T=20
 
-        X["mesostatic"] = torch.unsqueeze(torch.from_numpy(X["mesostatic"]).unsqueeze(0), -1)                       # X["mesostatic"] from hwC -> BhwC -> BhwCT T=1
-        X["mesostatic"] = torch.permute(X["mesostatic"], (0, 3, 4, 1, 2))                                           # BhwCT -> BCThw (T=1)
-        X["mesostatic"] = F.interpolate(X["mesostatic"], (10, X["highresdynamic"].shape[3], X["highresdynamic"].shape[4])) # BCTHW (T=10)
 
-        x = torch.cat((X["highresdynamic"], X["highresstatic"], xMesodynamicContext, X["mesostatic"]), 1).squeeze(0)   # BCTHW concat by C -> CTHW
 
-        y = torch.permute(torch.from_numpy(Y["highresdynamic"]).unsqueeze(0), ((0, 3, 4, 1, 2))).squeeze(0)         # Y["highresdynamic"] from HWCT -> BHWCT -> BCTHW -> CTHW
+        # X, Y = sample
+        
+        # X["highresdynamic"] = torch.permute(torch.from_numpy(X["highresdynamic"]).unsqueeze(0), (0, 3, 4, 1, 2))    # X["highresdynamic"] from HWCT -> BHWCT -> BCTHW
 
-        return x, y, xMesodynamicTarget
+        # X["highresstatic"] = torch.unsqueeze(torch.from_numpy(X["highresstatic"]).unsqueeze(0), -1)                 # X["highresstatic"] from HWC -> BHWC -> BHWCT T=1
+        # X["highresstatic"] = torch.permute(X["highresstatic"], (0, 3, 4, 1, 2))                                     # BHWCT -> BCTHW (T=1)
+        # X["highresstatic"] = F.interpolate(X["highresstatic"], (10, X["highresdynamic"].shape[3], X["highresdynamic"].shape[4])) # BCTHW (T=10)
+
+        # X["mesodynamic"] = torch.permute(torch.from_numpy(X["mesodynamic"]).unsqueeze(0), (0, 3, 4, 1, 2))          # X["mesodynamic"] from hwCT -> BhwCT -> BCThw (T=150)
+        # xMesodynamicContext = X["mesodynamic"][:, :, :50, :, :]
+        # xMesodynamicTarget = X["mesodynamic"][:, :, 50::, :, :]
+        # xMesodynamicContext = F.interpolate(xMesodynamicContext, (10, X["highresdynamic"].shape[3], X["highresdynamic"].shape[4])) # BCTHW (from T=50 to T=10)
+        # xMesodynamicTarget = F.interpolate(xMesodynamicTarget, (20, X["highresdynamic"].shape[3], X["highresdynamic"].shape[4])) # BCTHW (from T=100 to T=20)
+        # xMesodynamicTarget = xMesodynamicTarget.squeeze(0)                                                                       #BCTHW -> CTHW
+        # # X["mesodynamic"] = F.interpolate(X["mesodynamic"], (10, X["highresdynamic"].shape[3], X["highresdynamic"].shape[4])) # BCTHW (T=10)
+
+        # X["mesostatic"] = torch.unsqueeze(torch.from_numpy(X["mesostatic"]).unsqueeze(0), -1)                       # X["mesostatic"] from hwC -> BhwC -> BhwCT T=1
+        # X["mesostatic"] = torch.permute(X["mesostatic"], (0, 3, 4, 1, 2))                                           # BhwCT -> BCThw (T=1)
+        # X["mesostatic"] = F.interpolate(X["mesostatic"], (10, X["highresdynamic"].shape[3], X["highresdynamic"].shape[4])) # BCTHW (T=10)
+
+        # x = torch.cat((X["highresdynamic"], X["highresstatic"], xMesodynamicContext, X["mesostatic"]), 1).squeeze(0)   # BCTHW concat by C -> CTHW
+
+        # y = torch.permute(torch.from_numpy(Y["highresdynamic"]).unsqueeze(0), ((0, 3, 4, 1, 2))).squeeze(0)         # Y["highresdynamic"] from HWCT -> BHWCT -> BCTHW -> CTHW
+
+        data = {
+            "xContext": torch.cat((contextImages, contextWeather, demHigh, demMeso)),
+            "xTarget" : targetWeather,
+            "y": targetImages,
+            "targetMask": targetMask,
+            "tile"    : data['tile'],
+            "cubename": data['cubename'],
+        }
+
+        return data
     
 
 class PreprocessingStack(object):
@@ -268,9 +304,14 @@ if __name__ == "__main__":
     BATCH_SIZE           = 1 # Bactch size
     NUM_WORKERS          = 2  # Number of workers for Dataloaders
 
-    preprocessingStage = Preprocessing()
-    v = '1'
-    # preprocessingStage = None
+    v = '2'
+
+    if v == '1':
+        preprocessingStage = Preprocessing()
+    elif v == '2':
+        preprocessingStage = PreprocessingV2()
+    else:
+        preprocessingStage = None
 
     # Create dataset of training part of Earthnet dataset
     trainDataset = EarthnetTrainDataset(dataDir='/home/nikoskot/earthnetThesis/EarthnetDataset/train', dtype=np.float32, transform=preprocessingStage)
@@ -341,21 +382,33 @@ if __name__ == "__main__":
     elif v == '2':
         print("Training dataloader:")
         print("Length {}".format(len(trainDataloader)))
-        x, y, t, c, xMesodynamic = next(iter(trainDataloader))
-        print(x.shape)
-        print(xMesodynamic.shape)
-        print(y.shape)
-        print(t)
-        print(c)
+        data = next(iter(trainDataloader))
+        print(data['xContext'].shape)
+        print(data['xTarget'].shape)
+        print(data['y'].shape)
+        print(data['targetMask'].shape)
+        print(data['tile'])
+        print(data['cubename'])
+        print(torch.max(data['xContext']))
+        print(torch.min(data['xContext']))
+        print(torch.max(data['xTarget']))
+        print(torch.min(data['xTarget']))
+        print(torch.max(data['y']))
+        print(torch.min(data['y']))
+        print(torch.unique(data['targetMask']))
+
+        np.savez_compressed('/home/nikoskot/7', highresdynamic=data['y'][0].permute(1, 2, 3, 0).detach().cpu().numpy().astype(np.float16))
+        en.cube_gallery('/home/nikoskot/7.npz', variable='rgb', save_path='/home/nikoskot/7rgb')
 
         print("Testing dataloader sample")
         print("Length {}".format(len(testDataloader)))
-        x, y, t, c, xMesodynamic = next(iter(testDataloader))
-        print(x.shape)
-        print(xMesodynamic.shape)
-        print(y.shape)
-        print(t)
-        print(c)
+        data = next(iter(testDataloader))
+        print(data['xContext'].shape)
+        print(data['xTarget'].shape)
+        print(data['y'].shape)
+        print(data['targetMask'].shape)
+        print(data['tile'])
+        print(data['cubename'])
 
     # Explore dataset
 

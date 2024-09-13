@@ -7,7 +7,7 @@ from timm.models.layers import DropPath, trunc_normal_
 from functools import reduce, lru_cache
 from operator import mul
 from einops import rearrange
-from earthnetDataloader import EarthnetTestDataset, EarthnetTrainDataset, Preprocessing
+# from earthnetDataloader import EarthnetTestDataset, EarthnetTrainDataset, Preprocessing
 from torch.utils.data import DataLoader, random_split, Subset
 import torchmetrics
 import tqdm
@@ -358,9 +358,9 @@ class RegressionHead(nn.Module):
         self.out_channels = out_channels
 
         self.conv1 = nn.Conv3d(self.in_channels, self.in_channels // 2, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True)
-        self.act = nn.LeakyReLU(0.2, inplace=True)
+        self.act = nn.Hardtanh(min_val=0, max_val=1)
         self.conv2 = nn.Conv3d(self.in_channels // 2, self.in_channels // 4, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True)
-        self.act2 = nn.LeakyReLU(0.2, inplace=True)
+        self.act2 = nn.Hardtanh(min_val=0, max_val=1)
         self.conv3 = nn.Conv3d(self.in_channels // 4, self.out_channels, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=True)
         # self.sigm = nn.Sigmoid()
         # self.relu = nn.ReLU()
@@ -726,6 +726,10 @@ class VideoSwinUNet(nn.Module):
                                         embed_dim=config['C'], 
                                         norm_layer=nn.LayerNorm if config['patchEmbedding']['norm'] else None)
         
+        if self.config['ape']:
+            self.absolute_pos_embed = nn.Parameter(torch.zeros(1, self.config['C'], self.config['mainInputTime'] // config['patchSize'][0], config['inputHeightWidth'] // config['patchSize'][1], config['inputHeightWidth'] // config['patchSize'][2]))
+            trunc_normal_(self.absolute_pos_embed, std=.02)
+        
         self.encoder = Encoder(config=config)
         # self.block0 = BasicLayerEncoder(dim=96, depth=2, num_heads=3, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, downsample=None, use_checkpoint=False)
         # self.block1 = BasicLayerEncoder(dim=192, depth=2, num_heads=6, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, downsample=PatchMerging, use_checkpoint=False)
@@ -889,6 +893,9 @@ class VideoSwinUNet(nn.Module):
         # Input shape B,C,T,H,W
         x = self.patch_embed(x)
         # print("Patch embedding output shape {}".format(x.shape))
+
+        if self.config['ape']:
+            x = x + self.absolute_pos_embed
 
         if self.config['timeUpsampling'] == 'patchEmbedding':
             x = timeUpsample(x, self.timeUpsamplingFactor)

@@ -1,0 +1,6 @@
+2024-09-13 10:46:30,553 - INFO - NOTE: None
+2024-09-13 10:46:30,555 - INFO - Torch, random, numpy seed: 88
+2024-09-13 10:46:33,656 - INFO - Resuming training from checkpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV2/videoSwinUnetV2_12-09-2024_18-45-33/checkpoint.pth from epoch 5
+2024-09-13 10:46:41,000 - INFO - Epoch 5
+-------------------------------
+2024-09-13 10:46:41,001 - INFO - Learning Rate of group 0: 0.0

@@ -1,0 +1,31 @@
+2024-08-27 20:10:38,440 - INFO - NOTE: None
+2024-08-27 20:10:38,444 - INFO - Torch, random, numpy seed: 88
+2024-08-27 20:10:39,351 - INFO - Starting training from from epoch 0
+2024-08-27 20:10:48,943 - INFO - Epoch 1
+-------------------------------
+2024-08-27 20:10:48,943 - INFO - Learning Rate of group 0: 0.0
+2024-08-27 20:11:11,854 - INFO - Maximum gradient before clipping: 1.9934114217758179
+2024-08-27 20:11:11,855 - INFO - Minimum gradient before clipping: -1.7564117908477783
+2024-08-27 20:11:11,856 - INFO - Mean training L1 loss: 0.19573023319244384
+2024-08-27 20:11:11,857 - INFO - Mean training SSIM loss: 0.9999970853328705
+2024-08-27 20:11:11,857 - INFO - Mean training MSE loss: 0.05725645646452904
+2024-08-27 20:11:43,752 - INFO - Validation split Earthnet Score on epoch 1
+2024-08-27 20:11:43,758 - INFO - {'MAD': 0.138631209731102, 'OLS': 0.2128235548734665, 'EMD': 0.07394915819168091, 'SSIM': 3.75173544853169e-06, 'EarthNetScore': 1.5005509892243907e-05}
+2024-08-27 20:11:43,758 - INFO - Mean validation L1 loss: 0.18480167289574942
+2024-08-27 20:11:43,758 - INFO - Mean validation SSIM loss: 0.9999958475430807
+2024-08-27 20:11:43,758 - INFO - Mean validation MSE loss: 0.04932688300808271
+2024-08-27 20:11:44,123 - INFO - New best validation Loss 0.18480167289574942, at epoch 1
+2024-08-27 20:11:44,124 - INFO - Epoch 2
+-------------------------------
+2024-08-27 20:11:44,125 - INFO - Learning Rate of group 0: 4e-05
+2024-08-27 20:12:05,368 - INFO - Maximum gradient before clipping: 6.349888801574707
+2024-08-27 20:12:05,369 - INFO - Minimum gradient before clipping: -5.643551826477051
+2024-08-27 20:12:05,371 - INFO - Mean training L1 loss: 0.4691971495747566
+2024-08-27 20:12:05,371 - INFO - Mean training SSIM loss: 0.9999978125095368
+2024-08-27 20:12:05,371 - INFO - Mean training MSE loss: 0.39464045874774456
+2024-08-27 20:12:35,737 - INFO - Validation split Earthnet Score on epoch 2
+2024-08-27 20:12:35,739 - INFO - {'MAD': 0.10577082633972168, 'OLS': 0.2405531108379364, 'EMD': 0.0062291426584124565, 'SSIM': 1.3043315902905306e-06, 'EarthNetScore': 5.216141536902679e-06}
+2024-08-27 20:12:35,740 - INFO - Mean validation L1 loss: 0.3638554811477661
+2024-08-27 20:12:35,740 - INFO - Mean validation SSIM loss: 0.9999993443489075
+2024-08-27 20:12:35,740 - INFO - Mean validation MSE loss: 0.22679255406061807
+2024-08-27 20:12:35,740 - INFO - Training Finished

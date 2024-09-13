@@ -1,0 +1,10 @@
+2024-09-06 11:13:38,606 - INFO - NOTE: None
+2024-09-06 11:13:38,607 - INFO - Torch, random, numpy seed: 88
+2024-09-06 11:16:11,024 - INFO - NOTE: None
+2024-09-06 11:16:11,024 - INFO - Torch, random, numpy seed: 88
+2024-09-06 11:17:42,635 - INFO - NOTE: None
+2024-09-06 11:17:42,635 - INFO - Torch, random, numpy seed: 88
+2024-09-06 11:34:05,708 - INFO - Mean testing L1 loss: 0.017394467392781127
+2024-09-06 11:34:05,708 - INFO - Mean testing SSIM loss: 0.612310212557063
+2024-09-06 11:34:05,708 - INFO - Mean testing MSE loss: 0.0008824632700866046
+2024-09-06 11:34:05,708 - INFO - Testing Finished

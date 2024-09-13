@@ -1,0 +1,29 @@
+2024-08-29 23:40:54,944 - INFO - NOTE: None
+2024-08-29 23:40:54,947 - INFO - Torch, random, numpy seed: 88
+2024-08-29 23:40:55,511 - INFO - Starting training from from epoch 0
+2024-08-29 23:41:03,820 - INFO - Epoch 1
+-------------------------------
+2024-08-29 23:41:03,820 - INFO - Learning Rate of group 0: 0.0
+2024-08-29 23:42:05,896 - INFO - Maximum gradient before clipping: 0.4376262128353119
+2024-08-29 23:42:05,896 - INFO - Minimum gradient before clipping: -0.03198704496026039
+2024-08-29 23:42:05,897 - INFO - Mean training L1 loss: 0.15622348755598067
+2024-08-29 23:42:05,897 - INFO - Mean training SSIM loss: 0.9997886174917221
+2024-08-29 23:42:05,897 - INFO - Mean training MSE loss: 0.02955156156793237
+2024-08-29 23:42:13,968 - INFO - Mean validation L1 loss: 0.1574389433860779
+2024-08-29 23:42:13,968 - INFO - Mean validation SSIM loss: 0.9998209714889527
+2024-08-29 23:42:13,968 - INFO - Mean validation MSE loss: 0.030099876672029496
+2024-08-29 23:42:14,564 - INFO - New best validation Loss 0.1574389433860779, at epoch 1
+2024-08-29 23:42:14,571 - INFO - Epoch 2
+-------------------------------
+2024-08-29 23:42:14,571 - INFO - Learning Rate of group 0: 1.6255653186007336e-05
+2024-08-29 23:43:14,717 - INFO - Maximum gradient before clipping: 3.491098642349243
+2024-08-29 23:43:14,717 - INFO - Minimum gradient before clipping: -2.7357735633850098
+2024-08-29 23:43:14,718 - INFO - Mean training L1 loss: 0.05463478565216064
+2024-08-29 23:43:14,718 - INFO - Mean training SSIM loss: 0.9807742720842362
+2024-08-29 23:43:14,718 - INFO - Mean training MSE loss: 0.005662484890781343
+2024-08-29 23:50:10,354 - INFO - Validation split Earthnet Score on epoch 2
+2024-08-29 23:50:10,357 - INFO - {'MAD': 0.2089000791311264, 'OLS': 0.3172995150089264, 'EMD': 0.16456621885299683, 'SSIM': 0.022557273507118225, 'EarthNetScore': 0.06855565599603977}
+2024-08-29 23:50:10,359 - INFO - Mean validation L1 loss: 0.04401600554585457
+2024-08-29 23:50:10,359 - INFO - Mean validation SSIM loss: 0.9764810013771057
+2024-08-29 23:50:10,359 - INFO - Mean validation MSE loss: 0.004070321787148714
+2024-08-29 23:50:11,005 - INFO - New best validation Loss 0.04401600554585457, at epoch 2

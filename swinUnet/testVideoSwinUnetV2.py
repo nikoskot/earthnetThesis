@@ -6,7 +6,7 @@ from earthnetDataloader import EarthnetTestDataset, EarthnetTrainDataset, Prepro
 from torch.utils.data import DataLoader, random_split, Subset
 from earthnet_scores import EarthNet2021ScoreUpdateWithoutCompute
 import tqdm
-from videoSwinUnetMMActionV2 import VideoSwinUNetV2
+from earthnetThesis.swinUnet.videoSwinUnetMMActionV2 import VideoSwinUNet
 import os
 import argparse
 import yaml
@@ -90,7 +90,7 @@ def main():
     checkpoint = torch.load(os.path.join(args.trainingFolder, 'checkpoint.pth'), map_location=device)
 
     # Intiialize Video Swin Unet model and move to GPU
-    model = VideoSwinUNetV2(mainInputChannels=config['modelInputCh'], 
+    model = VideoSwinUNet(mainInputChannels=config['modelInputCh'], 
                             extraInputChannels=config['extraInputCh'], 
                             mainInputTimeDimension=config['mainInputTime'], 
                             inputHW=config['inputHeightWidth'], 

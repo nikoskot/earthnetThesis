@@ -6,7 +6,7 @@ import random
 from earthnetDataloader import EarthnetTestDataset, EarthnetTrainDataset, Preprocessing, PreprocessingStack
 from torch.utils.data import DataLoader, random_split, Subset
 from earthnet_scores import EarthNet2021ScoreUpdateWithoutCompute
-from losses import MaskedLoss
+from losses import MaskedLoss, maskedSSIMLoss, MaskedVGGLoss
 import tqdm
 import datetime
 from videoSwinUnetMMActionV1 import VideoSwinUNet
@@ -25,6 +25,7 @@ import rerun.blueprint as rrb
 from earthnet.plot_cube import gallery
 import yaml
 from ray import train, tune
+from ray.tune import Trainable
 
 
 def parseArgs():
@@ -49,7 +50,8 @@ def train_loop(dataloader,
                model, 
                l1Loss, 
                ssimLoss, 
-               mseLoss, 
+               mseLoss,
+               vggLoss,
                optimizer, 
                config, 
                logger, 
@@ -59,8 +61,9 @@ def train_loop(dataloader,
     # Set the model to training mode - important for batch normalization and dropout layers
     model.train()
     l1LossSum = 0
-    SSIMLossSum = 0
     mseLossSum = 0
+    SSIMLossSum = 0
+    vggLossSum = 0
 
     batchNumber = 0
 
@@ -82,11 +85,22 @@ def train_loop(dataloader,
         # pred = torch.clamp(pred, min=0.0, max=1.0)
 
         l1LossValue = l1Loss(pred, y, masks)
-        mseLossValue = mseLoss(pred, y, masks)
-        ssimLossValue = ssimLoss(torch.clamp(pred, min=0.0, max=1.0), y, masks)
+        if config['useMSE']:
+            mseLossValue = mseLoss(pred, y, masks)
+        if config['useSSIM']:
+            ssimLossValue = ssimLoss(torch.clamp(pred, min=0, max=1), y, masks)
+        if config['useVGG']:
+            vggLossValue = vggLoss(torch.clamp(pred.clone(), min=0, max=1), y.clone(), masks)
 
         # Backpropagation
-        totalLoss = config['l1Weight'] * l1LossValue + config['mseWeight'] * mseLossValue + config['ssimWeight'] * ssimLossValue
+        totalLoss = config['l1Weight'] * l1LossValue
+        if config['useMSE']:
+            totalLoss = totalLoss + (config['mseWeight'] * mseLossValue)
+        if config['useSSIM']:
+            totalLoss = totalLoss + (config['ssimWeight'] * ssimLossValue)
+        if config['useVGG']:
+            totalLoss = totalLoss + (config['vggWeight'] * vggLossValue)
+
         totalLoss.backward()
 
         for param in model.parameters():
@@ -100,11 +114,15 @@ def train_loop(dataloader,
 
         # Add the loss to the total loss 
         l1LossSum += l1LossValue.item()
-        SSIMLossSum += ssimLossValue.item()
-        mseLossSum += mseLossValue.item()
+        if config['useSSIM']:
+            SSIMLossSum += ssimLossValue.item()
+        if config['useMSE']:
+            mseLossSum += mseLossValue.item()
+        if config['useVGG']:
+            vggLossSum += vggLossValue.item()
 
         # Log visualizations if available
-        if epoch % config['visualizationFreq'] == 0 or epoch == 1:
+        if epoch % config['visualizationFreq'] == 0 or epoch == 1 or epoch == config['epochs']:
             rr.set_time_sequence('epoch', epoch)
             for i in range(len(data['cubename'])):
                 if data['cubename'][i] in trainVisualizationCubenames:
@@ -132,23 +150,28 @@ def train_loop(dataloader,
     logger.info("Maximum gradient before clipping: {}".format(maxGradPre))
     logger.info("Minimum gradient before clipping: {}".format(minGradPre))
 
-    return l1LossSum / batchNumber, SSIMLossSum / batchNumber, mseLossSum / batchNumber
+    return l1LossSum / batchNumber, SSIMLossSum / batchNumber, mseLossSum / batchNumber, vggLossSum / batchNumber
         
 
 def validation_loop(dataloader, 
                     model, 
                     l1Loss, 
                     ssimLoss, 
-                    mseLoss, 
+                    mseLoss,
+                    vggLoss,
                     config, 
                     validationVisualizationCubenames,
-                    epoch):
+                    epoch,
+                    ensCalculator,
+                    logger):
 
     # Set the model to evaluation mode - important for batch normalization and dropout layers
     model.eval()
     l1LossSum = 0
     SSIMLossSum = 0
     mseLossSum = 0
+    vggLossSum = 0
+    earthnetScore = 0
 
     batchNumber = 0
 
@@ -168,16 +191,24 @@ def validation_loop(dataloader,
             # pred = torch.clamp(pred, min=0.0, max=1.0)
 
             l1LossValue = l1Loss(pred, y, masks)
-            mseLossValue = mseLoss(pred, y, masks)
-            ssimLossValue = ssimLoss(torch.clamp(pred, min=0.0, max=1.0), y, masks)
+            if config['useMSE']:
+                mseLossValue = mseLoss(pred, y, masks)
+            if config['useSSIM']:
+                ssimLossValue = ssimLoss(torch.clamp(pred, min=0, max=1), y, masks)
+            if config['useVGG']:
+                vggLossValue = vggLoss(torch.clamp(pred.clone(), min=0, max=1), y.clone(), masks)
 
             # Add the loss to the total loss
             l1LossSum += l1LossValue.item()
-            SSIMLossSum += ssimLossValue.item()
-            mseLossSum += mseLossValue.item()
+            if config['useSSIM']:
+                SSIMLossSum += ssimLossValue.item()
+            if config['useMSE']:
+                mseLossSum += mseLossValue.item()
+            if config['useVGG']:
+                vggLossSum += vggLossValue.item()
 
             # Log visualizations if available
-            if epoch % config['visualizationFreq'] == 0 or epoch == 1:
+            if epoch % config['visualizationFreq'] == 0 or epoch == 1 or epoch == config['epochs']:
                 rr.set_time_sequence('epoch', epoch)
                 for i in range(len(data['cubename'])):
                     if data['cubename'][i] in validationVisualizationCubenames:
@@ -201,8 +232,18 @@ def validation_loop(dataloader,
                         targ[np.isnan(targ)] = 0
                         grid = gallery(targ)
                         rr.log('/validation/prediction/{}'.format(data['cubename'][i]), rr.Image(grid))
+            
+            if epoch % config['calculateENSonValidationFreq'] == 0 or epoch == config['epochs']:
+                ensCalculator(pred.permute(0, 2, 3, 4, 1), y.permute(0, 2, 3, 4, 1), 1-masks.permute(0, 2, 3, 4, 1))
 
-    return l1LossSum / batchNumber, SSIMLossSum / batchNumber, mseLossSum / batchNumber
+        if epoch % config['calculateENSonValidationFreq'] == 0 or epoch == config['epochs']:
+            logger.info("Validation split Earthnet Score on epoch {}".format(epoch))
+            ens = ensCalculator.compute()
+            logger.info(ens)
+            earthnetScore = ens['EarthNetScore']
+            ensCalculator.reset()
+
+    return l1LossSum / batchNumber, SSIMLossSum / batchNumber, mseLossSum / batchNumber, vggLossSum / batchNumber, earthnetScore
 
 def trainVideoSwinUnet(config, args):
 
@@ -219,6 +260,7 @@ def trainVideoSwinUnet(config, args):
     # Setup the output folder structure
     outputFolder = os.path.join(config['experimentsFolder'], config['modelType'] + '_' + runDateTime) # .../experiments/modelType_trainDatetime/
     os.makedirs(outputFolder, exist_ok=True)
+    config['runFolder'] = config['modelType'] + '_' + runDateTime
 
     # Make a copy of the configuration file on the output folder
     shutil.copy(args.config, outputFolder)
@@ -244,7 +286,8 @@ def trainVideoSwinUnet(config, args):
     # Setup Loss Function and Optimizer
     l1Loss = MaskedLoss(lossType='l1', lossFunction=nn.L1Loss(reduction='sum'))
     mseLoss = MaskedLoss(lossType='mse', lossFunction=nn.MSELoss(reduction='sum'))
-    ssimLoss = MaskedLoss(lossType='ssim', lossFunction=SSIM(n_channels=config['modelOutputCh'], reduction='sum').to(torch.device('cuda')))
+    ssimLoss = maskedSSIMLoss
+    vggLoss = MaskedVGGLoss()
 
     if config['trainingOptimizer'] == "adamw":
         optimizer = torch.optim.AdamW(model.parameters(), lr=config['lr'], weight_decay=config['weightDecay'])
@@ -262,6 +305,12 @@ def trainVideoSwinUnet(config, args):
     if config['scheduler'] == 'ReduceLROnPlateau':
         warmupScheduler = torch.optim.lr_scheduler.LambdaLR(optimizer=optimizer, lr_lambda=lr_lambda)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=config['lrScaleFactor'], patience=config['schedulerPatience'], min_lr=0.000001)
+    elif config['scheduler'] == 'CosineAnnealing':
+        warmupScheduler = torch.optim.lr_scheduler.LambdaLR(optimizer=optimizer, lr_lambda=lr_lambda)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=config['epochs'], eta_min=0.000001)
+    elif config['scheduler'] == 'CosineAnnealingWarmRestarts':
+        warmupScheduler = torch.optim.lr_scheduler.LambdaLR(optimizer=optimizer, lr_lambda=lr_lambda)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer=optimizer, T_0=config['cosineAnnealingRestartsInterval'], eta_min=0.000001)
     else:
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer=optimizer, lr_lambda=lr_lambda)
         logger.info('Scheduler: Warmup + constant LR')
@@ -272,19 +321,26 @@ def trainVideoSwinUnet(config, args):
         model.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         for param_group in optimizer.param_groups:
-            param_group['lr'] = config['lr']
+            param_group['lr'] = checkpoint['lr']
         if config['scheduler'] is not None:
             scheduler.load_state_dict(checkpoint['scheduler'])
+        if checkpoint['warmupScheduler'] is not None:
+            warmupScheduler.load_state_dict(checkpoint['warmupScheduler'])
         startEpoch = checkpoint['epoch'] + 1
-        bestValLoss = checkpoint['valLoss']
+        bestValLoss = checkpoint['valL1Loss']
+        bestEns = checkpoint['ens']
         logger.info("Resuming training from checkpoint {} from epoch {}".format(args.resumeCheckpoint, startEpoch))
     else:
         startEpoch = 1
         bestValLoss = np.inf
-        logger.info("Starting training from from epoch 0")
+        bestEns = 0
+        logger.info("Starting training from from epoch {}".format(startEpoch))
 
     # Set Preprocessing for Earthnet data
-    preprocessingStage = Preprocessing()
+    if config['modelInputCh'] == 11:
+        preprocessingStage = Preprocessing()
+    elif config['modelInputCh'] == 81:
+        preprocessingStage = PreprocessingStack()
 
     # Create dataset of training part of Earthnet dataset
     trainDataset = EarthnetTrainDataset(dataDir=config['trainDataDir'], dtype=config['dataDtype'], transform=preprocessingStage, cropMesodynamic=config['cropMesodynamic'])
@@ -354,6 +410,8 @@ def trainVideoSwinUnet(config, args):
         grid = gallery(targ)
         rr.log('/validation/groundTruth/{}'.format(valDataset.__getitem__(id)['cubename']), rr.Image(grid))
 
+    # Initialize Earthnet Score calculator based on Earthformer implementation
+    ensCalculator = EarthNet2021ScoreUpdateWithoutCompute(layout='NTHWC', eps=1E-4)
 
     for i in range(startEpoch, config['epochs'] + 1):
 
@@ -361,31 +419,39 @@ def trainVideoSwinUnet(config, args):
         for j, param_group in enumerate(optimizer.param_groups):
             logger.info("Learning Rate of group {}: {}".format(j, param_group['lr']))
 
-        trainL1Loss, trainSSIMLoss, trainMSELoss = train_loop(trainDataloader, 
+        trainL1Loss, trainSSIMLoss, trainMSELoss, trainVGGLoss = train_loop(trainDataloader, 
                                                             model, 
                                                             l1Loss, 
                                                             ssimLoss, 
-                                                            mseLoss, 
+                                                            mseLoss,
+                                                            vggLoss, 
                                                             optimizer, 
                                                             config, 
                                                             logger, 
                                                             trainVisualizationCubenames, 
                                                             epoch=i)
+        
         logger.info("Mean training L1 loss: {}".format(trainL1Loss))
         logger.info("Mean training SSIM loss: {}".format(trainSSIMLoss))
         logger.info("Mean training MSE loss: {}".format(trainMSELoss))
+        logger.info("Mean training VGG loss: {}".format(trainVGGLoss))
 
-        valL1Loss, valSSIMLoss, valMSELoss = validation_loop(valDataloader, 
+        valL1Loss, valSSIMLoss, valMSELoss, valVGGLoss, ens = validation_loop(valDataloader, 
                                                            model, 
                                                            l1Loss, 
                                                            ssimLoss, 
-                                                           mseLoss, 
+                                                           mseLoss,
+                                                           vggLoss, 
                                                            config, 
                                                            validationVisualizationCubenames, 
-                                                           epoch=i)
+                                                           epoch=i,
+                                                           ensCalculator=ensCalculator,
+                                                           logger=logger)
+        
         logger.info("Mean validation L1 loss: {}".format(valL1Loss))
         logger.info("Mean validation SSIM loss: {}".format(valSSIMLoss))
         logger.info("Mean validation MSE loss: {}".format(valMSELoss))
+        logger.info("Mean validation VGG loss: {}".format(valVGGLoss))
 
         # Save checkpoint based on validation loss
         if valL1Loss < bestValLoss:
@@ -397,18 +463,46 @@ def trainVideoSwinUnet(config, args):
                            'valL1Loss'  : valL1Loss,
                            'valSSIMLoss': valSSIMLoss,
                            'valMSELoss' : valMSELoss,
+                           'valVGGLoss' : valVGGLoss,
                            'optimizer'  : optimizer.state_dict(),
-                           'scheduler'  : scheduler.state_dict() if config['scheduler'] is not None else None
+                           'scheduler'  : scheduler.state_dict() if config['scheduler'] is not None else None,
+                           'warmupScheduler': warmupScheduler.state_dict() if warmupScheduler is not None else None,
+                           'lr'         : scheduler.get_last_lr()[0],
+                           'ens': bestEns,
                            }
             
             torch.save(checkpoint, os.path.join(outputFolder, 'checkpoint.pth'))
             logger.info("New best validation Loss {}, at epoch {}".format(bestValLoss, i))
+        
+        if i % config['calculateENSonValidationFreq'] == 0 or i == config['epochs']:
+            if ens > bestEns:
+                bestEns = ens
+                checkpointENS  = {'state_dict' : model.state_dict(),
+                                  'modelType'  : config['modelType'],
+                                  'epoch'      : i,
+                                  'valL1Loss'  : valL1Loss,
+                                  'valSSIMLoss': valSSIMLoss,
+                                  'valMSELoss' : valMSELoss,
+                                  'valVGGLoss' : valVGGLoss,
+                                  'optimizer'  : optimizer.state_dict(),
+                                  'scheduler'  : scheduler.state_dict() if config['scheduler'] is not None else None,
+                                  'warmupScheduler': warmupScheduler.state_dict() if warmupScheduler is not None else None,
+                                  'lr'         : scheduler.get_last_lr()[0],
+                                  'ens': bestEns,
+                                  }
+                torch.save(checkpointENS, os.path.join(outputFolder, 'checkpointENS.pth'))
+                logger.info("New best Earthnet Score {}, at epoch {}".format(bestEns, i))
 
         if config['scheduler'] == 'ReduceLROnPlateau':
             if i <= config['warmupEpochs']:
                 warmupScheduler.step()
             else:
                 scheduler.step(valL1Loss)
+        elif config['scheduler'] == 'CosineAnnealing' or config['scheduler'] == 'CosineAnnealingWarmRestarts':
+            if i <= config['warmupEpochs']:
+                warmupScheduler.step()
+            else:
+                scheduler.step()
         else:
             scheduler.step()
 
@@ -416,9 +510,12 @@ def trainVideoSwinUnet(config, args):
             train.report({'valL1Loss': valL1Loss,
                           'valSSIMLoss': valSSIMLoss,
                           'valMSELoss' : valMSELoss,
+                          'valVGGLoss' : valVGGLoss,
                           'trainL1Loss': trainL1Loss,
                           'trainSSIMLoss': trainSSIMLoss,
                           'trainMSELoss' : trainMSELoss,
+                          'trainVGGLoss' : trainVGGLoss,
+                          'bestValLoss' : bestValLoss,
                           })
         
         tbWriter.add_scalar('Loss/Train', trainL1Loss, i)
@@ -427,6 +524,8 @@ def trainVideoSwinUnet(config, args):
         tbWriter.add_scalar('SSIM/Val', valSSIMLoss, i)
         tbWriter.add_scalar('MSE/Train', trainMSELoss, i)
         tbWriter.add_scalar('MSE/Val', valMSELoss, i)
+        tbWriter.add_scalar('VGG/Train', trainVGGLoss, i)
+        tbWriter.add_scalar('VGG/Val', valVGGLoss, i)
 
     logger.info("Training Finished")
     tbWriter.flush()

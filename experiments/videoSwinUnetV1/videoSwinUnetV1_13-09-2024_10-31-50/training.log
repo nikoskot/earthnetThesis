@@ -1,0 +1,12 @@
+2024-09-13 10:31:50,132 - INFO - NOTE: None
+2024-09-13 10:31:50,134 - INFO - Torch, random, numpy seed: 88
+2024-09-13 10:31:52,491 - INFO - Resuming training from checkpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_12-09-2024_18-13-06/checkpoint.pth from epoch 9
+2024-09-13 10:32:00,134 - INFO - Epoch 9
+-------------------------------
+2024-09-13 10:32:00,134 - INFO - Learning Rate of group 0: 0.00019975762300085252
+2024-09-13 11:20:08,061 - INFO - Maximum gradient before clipping: 6.548649311065674
+2024-09-13 11:20:08,062 - INFO - Minimum gradient before clipping: -8.210216522216797
+2024-09-13 11:20:08,063 - INFO - Mean training L1 loss: 0.027220781560674066
+2024-09-13 11:20:08,063 - INFO - Mean training SSIM loss: 0.8297435543568051
+2024-09-13 11:20:08,063 - INFO - Mean training MSE loss: 0.0017962930441872205
+2024-09-13 11:20:08,063 - INFO - Mean training VGG loss: 2.875992767634326
