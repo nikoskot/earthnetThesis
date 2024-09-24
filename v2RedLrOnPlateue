@@ -1,0 +1,16 @@
+#!/bin/bash
+#SBATCH --partition=A100medium
+#SBATCH --time=24:00:00
+#SBATCH --gpus=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
+#SBATCH --dependency=afterany:121702
+
+
+python checkGPU.py
+
+# python /home/nikoskot/earthnetThesis/swinUnet/trainVideoSwinUnetV2.py --config /home/nikoskot/earthnetThesis/experiments/configV2RedLR.yml --resumeTraining --resumeCheckpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV2/videoSwinUnetV2_13-09-2024_10-46-30/checkpointLast.pth
+
+python /home/nikoskot/earthnetThesis/swinUnet/testVideoSwinUnetV2.py --trainingFolder /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV2/videoSwinUnetV2_13-09-2024_10-46-30 --testSplit iid_test_split --checkpoint checkpoint_22-09-2024_11-08-53.pth
+
+# python /home/nikoskot/earthnetThesis/swinUnet/ensScoreCalculation.py --predictionsFolder /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV2/videoSwinUnetV2_13-09-2024_10-46-30/predictions/checkpoint_22-09-2024_11-08-53.pth/iid_test_split --targetsFolder /home/nikoskot/earthnetThesis/EarthnetDataset/iid_test_split/target --dataOutputFilePath /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV2/videoSwinUnetV2_13-09-2024_10-46-30/checkpoint_22-09-2024_11-08-53data_output.json --scoreOutputFilePath /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV2/videoSwinUnetV2_13-09-2024_10-46-30/checkpoint_22-09-2024_11-08-53score_output.json

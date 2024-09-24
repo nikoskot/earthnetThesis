@@ -1,0 +1,12 @@
+#!/bin/bash
+#SBATCH --partition=A100short
+#SBATCH --time=0:02:00
+#SBATCH --gpus=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
+
+# python checkGPU.py
+
+python /home/nikoskot/earthnetThesis/swinUnet/trainVideoSwinUnet.py --config /home/nikoskot/earthnetThesis/experiments/dummy.yml --resumeTraining --resumeCheckpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_13-09-2024_12-44-02
+
+

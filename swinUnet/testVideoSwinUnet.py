@@ -11,15 +11,15 @@ import os
 import argparse
 import yaml
 import logging
-from losses import MaskedLoss, maskedSSIMLoss
+from losses import MaskedLoss, maskedSSIMLoss, MaskedVGGLoss
 import random
 from piqa import SSIM
-from focal_frequency_loss import FocalFrequencyLoss as FFL
 
 def parseArgs():
     parser = argparse.ArgumentParser()
     parser.add_argument('--trainingFolder', help='The path to the folder of the training run whose testing we want to execute.')
     parser.add_argument('--testSplit', default='iid_test_split', choices=['iid_test_split', 'ood_test_split', 'seasonal_test_split', 'extreme_test_split'], help='The split of the testing dataset to use.')
+    parser.add_argument('--checkpoint', type=str, help='The checkpoint to use.')
     parser.add_argument('--note', help='Note to write at beginning of log file.')
     parser.add_argument('--seed', default=88, type=int)
     return parser.parse_args()
@@ -36,13 +36,16 @@ def testing_loop(dataloader,
                 l1Loss, 
                 ssimLoss, 
                 mseLoss,
-                predsFolder):
+                vggLoss,
+                predsFolder,
+                config):
 
     # Set the model to evaluation mode - important for batch normalization and dropout layers
     model.eval()
     l1LossSum = 0
     SSIMLossSum = 0
     mseLossSum = 0
+    vggLossSum = 0
 
     batchNumber = 0
 
@@ -63,13 +66,21 @@ def testing_loop(dataloader,
             # pred = torch.clamp(pred, min=0.0, max=1.0)
 
             l1LossValue = l1Loss(pred, y, masks)
-            mseLossValue = mseLoss(pred, y, masks)
-            ssimLossValue = ssimLoss(torch.clamp(pred, min=0, max=1), y, masks)
+            if config['useMSE']:
+                mseLossValue = mseLoss(pred, y, masks)
+            if config['useSSIM']:
+                ssimLossValue = ssimLoss(torch.clamp(pred, min=0, max=1), y, masks)
+            if config['useVGG']:
+                vggLossValue = vggLoss(torch.clamp(pred.clone(), min=0, max=1), y.clone(), masks)
 
             # Add the loss to the total loss
             l1LossSum += l1LossValue.item()
-            SSIMLossSum += ssimLossValue.item()
-            mseLossSum += mseLossValue.item()
+            if config['useSSIM']:
+                SSIMLossSum += ssimLossValue.item()
+            if config['useMSE']:
+                mseLossSum += mseLossValue.item()
+            if config['useVGG']:
+                vggLossSum += vggLossValue.item()
 
             tiles = data['tile']
             cubenames = data['cubename']
@@ -80,7 +91,7 @@ def testing_loop(dataloader,
                 os.makedirs(path, exist_ok=True)
                 np.savez_compressed(os.path.join(path, cubenames[i]), highresdynamic=pred[i].permute(2, 3, 0, 1).detach().cpu().numpy().astype(np.float16))
 
-    return l1LossSum / batchNumber, SSIMLossSum / batchNumber, mseLossSum / batchNumber
+    return l1LossSum / batchNumber, SSIMLossSum / batchNumber, mseLossSum / batchNumber, vggLossSum / batchNumber
 
 
 def main():
@@ -91,12 +102,12 @@ def main():
     device = torch.device('cuda')
 
     # Setup the predictions output folder
-    predsFolder = os.path.join(args.trainingFolder, 'predictions', args.testSplit) # .../experiments/modelType_trainDatetime/predictions/split/
+    predsFolder = os.path.join(args.trainingFolder, 'predictions', args.checkpoint, args.testSplit) # .../experiments/modelType_trainDatetime/predictions/split/
     os.makedirs(predsFolder, exist_ok=True)
 
     # Initialize logging
     logger = logging.getLogger(__name__)
-    logging.basicConfig(filename=os.path.join(args.trainingFolder, 'testing_{}.log'.format(args.testSplit)), encoding='utf-8', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+    logging.basicConfig(filename=os.path.join(args.trainingFolder, 'testing_{}.log'.format(args.checkpoint + '_' + args.testSplit)), encoding='utf-8', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
     logger.info("NOTE: {}".format(args.note))
 
     # Setup seeds
@@ -106,7 +117,7 @@ def main():
     np.random.seed(args.seed)
     
     # Load training checkpoint
-    checkpoint = torch.load(os.path.join(args.trainingFolder, 'checkpoint.pth'))
+    checkpoint = torch.load(os.path.join(args.trainingFolder, args.checkpoint))
 
     # Intiialize Video Swin Unet model and move to GPU
     model = VideoSwinUNet(config, logger).to(torch.device('cuda'))
@@ -116,6 +127,7 @@ def main():
     l1Loss = MaskedLoss(lossType='l1', lossFunction=nn.L1Loss(reduction='sum'))
     mseLoss = MaskedLoss(lossType='mse', lossFunction=nn.MSELoss(reduction='sum'))
     ssimLoss = maskedSSIMLoss
+    vggLoss = MaskedVGGLoss()
 
     # Set Preprocessing for Earthnet data
     if config['modelInputCh'] == 11:
@@ -133,16 +145,19 @@ def main():
     # Create testing Dataloader
     testDataloader = DataLoader(testDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)  
 
-    testL1Loss, testSSIMLoss, testMSELoss = testing_loop(testDataloader,
+    testL1Loss, testSSIMLoss, testMSELoss, testVGGLoss = testing_loop(testDataloader,
                                                          model,
                                                          l1Loss,
                                                          ssimLoss,
                                                          mseLoss,
-                                                         predsFolder)
+                                                         vggLoss,
+                                                         predsFolder,
+                                                         config)
 
     logger.info("Mean testing L1 loss: {}".format(testL1Loss))
     logger.info("Mean testing SSIM loss: {}".format(testSSIMLoss))
     logger.info("Mean testing MSE loss: {}".format(testMSELoss))
+    logger.info("Mean testing VGG loss: {}".format(testVGGLoss))
 
     logger.info("Testing Finished")
 

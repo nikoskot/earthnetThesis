@@ -19,7 +19,7 @@ class EarthnetTrainDataset(Dataset):
         self.transform = transform
         self.cropMesodynamic = cropMesodynamic
         if cropMesodynamic:
-            self.upsample = torch.nn.Upsample(size=(128, 128))
+            self.upsample = torch.nn.Upsample(size=(80, 80))
 
     def __len__(self):
         return len(self.cubesPathList)
@@ -89,7 +89,7 @@ class EarthnetTestDataset(Dataset):
 
         self.cropMesodynamic = cropMesodynamic
         if cropMesodynamic:
-            self.upsample = torch.nn.Upsample(size=(128, 128))
+            self.upsample = torch.nn.Upsample(size=(80, 80))
 
     def __len__(self):
         return len(self.contextPathList)
@@ -297,7 +297,54 @@ class PreprocessingStack(object):
 
         return data
     
+class PreprocessingSeparate(object):
 
+    def __init__(self):
+        None
+
+    def __call__(self, data):
+
+        contextImages = torch.from_numpy(data['context']['images'])
+        contextWeather = torch.from_numpy(data['context']['weather'])
+        contextMask = torch.from_numpy(data['context']['mask'])
+        targetImages = torch.from_numpy(data['target']['images'])
+        targetWeather = torch.from_numpy(data['target']['weather'])
+        targetMask = torch.from_numpy(data['target']['mask'])
+        demHigh = torch.from_numpy(data['demHigh'])
+        demMeso = torch.from_numpy(data['demMeso'])
+
+        H, W = contextImages.shape[2::]
+
+        h, w = contextWeather.shape[2::]
+
+        # contextWeather = F.interpolate(contextWeather, size=(H, W))         # CThw -> CTHW T=50
+        contextWeather = contextWeather.reshape(contextWeather.shape[0], 10, 5, h, w).mean(2).reshape(contextWeather.shape[0], 10, h, w) # CTHW T=50 -> CTHW T=10
+
+        # demHigh = demHigh.unsqueeze(1)   # from CHW -> CTHW C=1 T=1
+        # demHigh = torch.repeat_interleave(demHigh, repeats=10, dim=1)  # CTHW T=10
+        
+
+        # demMeso = demMeso.unsqueeze(1)                  # from Chw -> CThw C=1 T=1
+        # demMeso = F.interpolate(demMeso, size=(H, W))   # CTHW C=1 T=1
+        # demMeso = torch.repeat_interleave(demMeso, repeats=10, dim=1) # CTHW T=10
+
+        # targetWeather = F.interpolate(targetWeather, size=(H, W))         # CThw -> CTHW T=100
+        targetWeather = targetWeather.reshape(targetWeather.shape[0], 20, 5, h, w).mean(2).reshape(targetWeather.shape[0], 20, h, w) # CTHW T=100 -> CTHW T=20
+
+        data = {
+            "contextImg": contextImages,
+            "contextWeather": contextWeather,
+            "targetWeather": targetWeather,
+            "staticData": demHigh,
+            "y": targetImages,
+            "targetMask": targetMask,
+            "tile"    : data['tile'],
+            "cubename": data['cubename'],
+        }
+
+        return data
+    
+    
 if __name__ == "__main__":
 
     # Set paremeters

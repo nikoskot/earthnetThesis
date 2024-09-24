@@ -18,14 +18,12 @@ import shutil
 import rerun as rr
 from torch.utils.tensorboard import SummaryWriter
 from piqa import SSIM
-from focal_frequency_loss import FocalFrequencyLoss as FFL
 import copy
 import rerun as rr
 import rerun.blueprint as rrb
 from earthnet.plot_cube import gallery
 import yaml
-from ray import train, tune
-from ray.tune import Trainable
+
 
 
 def parseArgs():
@@ -258,8 +256,24 @@ def trainVideoSwinUnet(config, args):
     # config = load_config(args)
 
     # Setup the output folder structure
-    outputFolder = os.path.join(config['experimentsFolder'], config['modelType'] + '_' + runDateTime) # .../experiments/modelType_trainDatetime/
-    os.makedirs(outputFolder, exist_ok=True)
+    if args.resumeTraining:
+        outputFolder = os.path.dirname(args.resumeCheckpoint) if args.resumeCheckpoint.endswith('.pth') else args.resumeCheckpoint # .../experiments/modelType_trainDatetime/
+        resumePostfix = '_' + runDateTime
+        if not args.resumeCheckpoint.endswith('.pth'):
+            checkpointsList = [f for f in os.listdir(outputFolder) if (os.path.isfile(os.path.join(outputFolder, f)) and f.startswith(('checkpoint.', 'checkpoint_')))]
+            print(checkpointsList)
+            if (len(checkpointsList) == 1 and 'checkpoint.pth' in checkpointsList):
+                lastCheckpointName = 'checkpoint.pth'
+            else:
+                checkpointsList.remove('checkpoint.pth')
+                print(checkpointsList)
+                checkpointsList.sort(key=lambda name: datetime.datetime.strptime(name.removeprefix('checkpoint_').removesuffix('.pth'), "%d-%m-%Y_%H-%M-%S"))
+                lastCheckpointName = checkpointsList[-1]
+            print(lastCheckpointName)
+    else:
+        outputFolder = os.path.join(config['experimentsFolder'], config['modelType'] + '_' + runDateTime) # .../experiments/modelType_trainDatetime/
+        os.makedirs(outputFolder, exist_ok=True)
+        resumePostfix = ''
     config['runFolder'] = config['modelType'] + '_' + runDateTime
 
     # Make a copy of the configuration file on the output folder
@@ -317,7 +331,7 @@ def trainVideoSwinUnet(config, args):
     
     # Load model in case we want to resume training
     if args.resumeTraining:
-        checkpoint = torch.load(args.resumeCheckpoint)
+        checkpoint = torch.load(args.resumeCheckpoint) if args.resumeCheckpoint.endswith('.pth') else torch.load(os.path.join(args.resumeCheckpoint, lastCheckpointName))
         model.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         for param_group in optimizer.param_groups:
@@ -327,7 +341,7 @@ def trainVideoSwinUnet(config, args):
         if checkpoint['warmupScheduler'] is not None:
             warmupScheduler.load_state_dict(checkpoint['warmupScheduler'])
         startEpoch = checkpoint['epoch'] + 1
-        bestValLoss = checkpoint['valL1Loss']
+        bestValLoss = checkpoint['bestValLoss']
         bestEns = checkpoint['ens']
         logger.info("Resuming training from checkpoint {} from epoch {}".format(args.resumeCheckpoint, startEpoch))
     else:
@@ -464,6 +478,7 @@ def trainVideoSwinUnet(config, args):
                            'valSSIMLoss': valSSIMLoss,
                            'valMSELoss' : valMSELoss,
                            'valVGGLoss' : valVGGLoss,
+                           'bestValLoss': bestValLoss,
                            'optimizer'  : optimizer.state_dict(),
                            'scheduler'  : scheduler.state_dict() if config['scheduler'] is not None else None,
                            'warmupScheduler': warmupScheduler.state_dict() if warmupScheduler is not None else None,
@@ -471,7 +486,7 @@ def trainVideoSwinUnet(config, args):
                            'ens': bestEns,
                            }
             
-            torch.save(checkpoint, os.path.join(outputFolder, 'checkpoint.pth'))
+            torch.save(checkpoint, os.path.join(outputFolder, 'checkpoint{}.pth'.format(resumePostfix)))
             logger.info("New best validation Loss {}, at epoch {}".format(bestValLoss, i))
         
         if i % config['calculateENSonValidationFreq'] == 0 or i == config['epochs']:
@@ -484,14 +499,31 @@ def trainVideoSwinUnet(config, args):
                                   'valSSIMLoss': valSSIMLoss,
                                   'valMSELoss' : valMSELoss,
                                   'valVGGLoss' : valVGGLoss,
+                                  'bestValLoss': bestValLoss,
                                   'optimizer'  : optimizer.state_dict(),
                                   'scheduler'  : scheduler.state_dict() if config['scheduler'] is not None else None,
                                   'warmupScheduler': warmupScheduler.state_dict() if warmupScheduler is not None else None,
                                   'lr'         : scheduler.get_last_lr()[0],
                                   'ens': bestEns,
                                   }
-                torch.save(checkpointENS, os.path.join(outputFolder, 'checkpointENS.pth'))
+                torch.save(checkpointENS, os.path.join(outputFolder, 'checkpointENS{}.pth'.format(resumePostfix)))
                 logger.info("New best Earthnet Score {}, at epoch {}".format(bestEns, i))
+
+        checkpoint  = {'state_dict' : model.state_dict(),
+                       'modelType'  : config['modelType'],
+                       'epoch'      : i,
+                       'valL1Loss'  : valL1Loss,
+                       'valSSIMLoss': valSSIMLoss,
+                       'valMSELoss' : valMSELoss,
+                       'valVGGLoss' : valVGGLoss,
+                       'bestValLoss': bestValLoss,
+                       'optimizer'  : optimizer.state_dict(),
+                       'scheduler'  : scheduler.state_dict() if config['scheduler'] is not None else None,
+                       'warmupScheduler': warmupScheduler.state_dict() if warmupScheduler is not None else None,
+                       'lr'         : scheduler.get_last_lr()[0],
+                       'ens': bestEns,
+                        }
+        torch.save(checkpoint, os.path.join(outputFolder, 'checkpointLast.pth'))
 
         if config['scheduler'] == 'ReduceLROnPlateau':
             if i <= config['warmupEpochs']:

@@ -6,16 +6,22 @@ from earthnetDataloader import EarthnetTestDataset, EarthnetTrainDataset, Prepro
 from torch.utils.data import DataLoader, random_split, Subset
 from earthnet_scores import EarthNet2021ScoreUpdateWithoutCompute
 import tqdm
-from earthnetThesis.swinUnet.videoSwinUnetMMActionV2 import VideoSwinUNet
+from videoSwinUnetMMActionV2 import VideoSwinUNet
 import os
 import argparse
 import yaml
 import logging
+from losses import MaskedLoss, maskedSSIMLoss, MaskedVGGLoss
+import random
+from piqa import SSIM
 
 def parseArgs():
     parser = argparse.ArgumentParser()
     parser.add_argument('--trainingFolder', help='The path to the folder of the training run whose testing we want to execute.')
     parser.add_argument('--testSplit', default='iid_test_split', choices=['iid_test_split', 'ood_test_split', 'seasonal_test_split', 'extreme_test_split'], help='The split of the testing dataset to use.')
+    parser.add_argument('--checkpoint', type=str, help='The checkpoint to use.')
+    parser.add_argument('--note', help='Note to write at beginning of log file.')
+    parser.add_argument('--seed', default=88, type=int)
     return parser.parse_args()
 
 
@@ -25,99 +31,131 @@ def load_config(config_path):
     return config
 
 
-def testing_loop(dataloader, model, lossFunction, predsFolder, device):
+def testing_loop(dataloader, 
+                model, 
+                l1Loss, 
+                ssimLoss, 
+                mseLoss,
+                vggLoss,
+                predsFolder,
+                config):
 
     # Set the model to evaluation mode - important for batch normalization and dropout layers
     model.eval()
-    lossSum = 0
-    numberOfSamples = 0
+    l1LossSum = 0
+    SSIMLossSum = 0
+    mseLossSum = 0
+    vggLossSum = 0
+
+    batchNumber = 0
 
     # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
     # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
     with torch.no_grad():
-        for X, y, tiles, cubenames, xMesodynamic in tqdm.tqdm(dataloader):
+        for data in tqdm.tqdm(dataloader):
+            
+            batchNumber += 1
             
             # Move data to GPU
-            X            = X.to(device)
-            y            = y.to(device)
-            xMesodynamic = xMesodynamic.to(device)
+            xContext = data['xContext'].to(torch.device('cuda'))
+            xTarget = data['xTarget'].to(torch.device('cuda'))
+            y = data['y'].to(torch.device('cuda'))
+            masks = data['targetMask'].to(torch.device('cuda'))
 
             # Compute prediction and loss
-            pred = model(X, xMesodynamic)
-            loss = lossFunction(pred, y)
+            pred = model(xContext, xTarget)
+            # pred = torch.clamp(pred, min=0.0, max=1.0)
 
-            # Add the loss to the total loss of the batch and keep track of the number of samples
-            lossSum         += loss.item()
-            # numberOfSamples += len(X)
-            numberOfSamples += torch.numel(X)
+            l1LossValue = l1Loss(pred, y, masks)
+            if config['useMSE']:
+                mseLossValue = mseLoss(pred, y, masks)
+            if config['useSSIM']:
+                ssimLossValue = ssimLoss(torch.clamp(pred, min=0, max=1), y, masks)
+            if config['useVGG']:
+                vggLossValue = vggLoss(torch.clamp(pred.clone(), min=0, max=1), y.clone(), masks)
 
-            # Isolate the mask from the ground truth and update the Earthnet Score Calculator
-            # mask = y[:, 4, :, :, :].unsqueeze(1).permute(0, 3, 4, 1, 2)
-            # validENSCalculator.update(pred.permute(0, 3, 4, 1, 2)[:, :, :, :4, :], y.permute(0, 3, 4, 1, 2)[:, :, :, :4, :], mask=mask)
+            # Add the loss to the total loss
+            l1LossSum += l1LossValue.item()
+            if config['useSSIM']:
+                SSIMLossSum += ssimLossValue.item()
+            if config['useMSE']:
+                mseLossSum += mseLossValue.item()
+            if config['useVGG']:
+                vggLossSum += vggLossValue.item()
+
+            tiles = data['tile']
+            cubenames = data['cubename']
 
             # Save predictions
             for i in range(len(tiles)):
                 path = os.path.join(predsFolder, tiles[i])
                 os.makedirs(path, exist_ok=True)
-                np.savez_compressed(os.path.join(path, cubenames[i]), highresdynamic=pred[0].permute(2, 3, 0, 1).detach().cpu().numpy().astype(np.float16))
+                np.savez_compressed(os.path.join(path, cubenames[i]), highresdynamic=pred[i].permute(2, 3, 0, 1).detach().cpu().numpy().astype(np.float16))
 
-    # Calculate Earthnet Score and reset the calculator
-    # validationENS = validENSCalculator.compute()
-    # validENSCalculator.reset()
-
-    return lossSum / numberOfSamples#, validationENS
+    return l1LossSum / batchNumber, SSIMLossSum / batchNumber, mseLossSum / batchNumber, vggLossSum / batchNumber
 
 
 def main():
     # Parse the input arguments and load the corresponding configuration file
     args   = parseArgs()
-    config = load_config(os.path.join(args.trainingFolder, 'config.yml'))
+    config = load_config(os.path.join(args.trainingFolder, 'savedConfig.yml'))
 
-    # Setup device
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda')
 
     # Setup the predictions output folder
-    predsFolder = os.path.join(args.trainingFolder, 'predictions', args.testSplit) # .../experiments/modelType_trainDatetime/predictions/split/
+    predsFolder = os.path.join(args.trainingFolder, 'predictions', args.checkpoint, args.testSplit) # .../experiments/modelType_trainDatetime/predictions/split/
     os.makedirs(predsFolder, exist_ok=True)
 
     # Initialize logging
     logger = logging.getLogger(__name__)
-    logging.basicConfig(filename=os.path.join(args.trainingFolder, 'testing_{}.log'.format(args.testSplit)), encoding='utf-8', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+    logging.basicConfig(filename=os.path.join(args.trainingFolder, 'testing_{}.log'.format(args.checkpoint + '_' + args.testSplit)), encoding='utf-8', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+    logger.info("NOTE: {}".format(args.note))
 
-    logger.info("Testing on {}.".format(device.type))
-
+    # Setup seeds
+    logger.info("Torch, random, numpy seed: {}".format(args.seed))
+    torch.manual_seed(args.seed)
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    
     # Load training checkpoint
-    checkpoint = torch.load(os.path.join(args.trainingFolder, 'checkpoint.pth'), map_location=device)
+    checkpoint = torch.load(os.path.join(args.trainingFolder, args.checkpoint))
 
     # Intiialize Video Swin Unet model and move to GPU
-    model = VideoSwinUNet(mainInputChannels=config['modelInputCh'], 
-                            extraInputChannels=config['extraInputCh'], 
-                            mainInputTimeDimension=config['mainInputTime'], 
-                            inputHW=config['inputHeightWidth'], 
-                            C=config['C'], 
-                            window_size=(config['windowSizeT'], config['windowSizeH'], config['windowSizeW'])).to(device)
+    model = VideoSwinUNet(config, logger).to(torch.device('cuda'))
     model.load_state_dict(checkpoint['state_dict'])
 
     # Setup Loss Function
-    if config['trainLossFunction'] == "mse":
-        lossFunction = nn.MSELoss(reduction='sum')
-    else:
-        raise NotImplementedError
+    l1Loss = MaskedLoss(lossType='l1', lossFunction=nn.L1Loss(reduction='sum'))
+    mseLoss = MaskedLoss(lossType='mse', lossFunction=nn.MSELoss(reduction='sum'))
+    ssimLoss = maskedSSIMLoss
+    vggLoss = MaskedVGGLoss()
 
     # Set Preprocessing for Earthnet data
     preprocessingStage = PreprocessingV2()
 
     # Create dataset for testing part of Earthnet dataset
-    # testDataset = EarthnetTestDataset(dataDir=os.path.join(config['testDataDir'], args.testSplit), dtype=config['dataDtype'], transform=preprocessingStage)
-    # testDataset = Subset(testDataset, range(450))
-    testDataset = EarthnetTrainDataset(dataDir=config['trainDataDir'], dtype=config['dataDtype'], transform=preprocessingStage)
-    testDataset = Subset(testDataset, range(320))
+    if config['overfitTraining']:
+        testDataset = EarthnetTrainDataset(dataDir=config['trainDataDir'], dtype=config['dataDtype'], transform=preprocessingStage)
+        testDataset = Subset(testDataset, np.random.randint(0, len(testDataset), size=config['trainDataSubset']))
+    else:
+        testDataset = EarthnetTestDataset(dataDir=os.path.join(config['testDataDir'], args.testSplit), dtype=config['dataDtype'], transform=preprocessingStage)
 
     # Create testing Dataloader
     testDataloader = DataLoader(testDataset, batch_size=config['batchSize'], shuffle=False, num_workers=config['numWorkers'], pin_memory=True)  
 
-    testLoss = testing_loop(testDataloader, model, lossFunction, predsFolder, device)
-    logger.info("Mean Testing loss: {}".format(testLoss))
+    testL1Loss, testSSIMLoss, testMSELoss, testVGGLoss = testing_loop(testDataloader,
+                                                         model,
+                                                         l1Loss,
+                                                         ssimLoss,
+                                                         mseLoss,
+                                                         vggLoss,
+                                                         predsFolder,
+                                                         config)
+
+    logger.info("Mean testing L1 loss: {}".format(testL1Loss))
+    logger.info("Mean testing SSIM loss: {}".format(testSSIMLoss))
+    logger.info("Mean testing MSE loss: {}".format(testMSELoss))
+    logger.info("Mean testing VGG loss: {}".format(testVGGLoss))
 
     logger.info("Testing Finished")
 
