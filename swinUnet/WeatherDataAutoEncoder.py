@@ -221,27 +221,27 @@ def train_loop(dataloader,
 
                     # Log prediction
                     # variable rr
-                    targ = pred[i, ...].detach().cpu().numpy()[0, :, :, :].transpose(1, 2 ,3 ,0)
+                    targ = pred[i, ...].detach().cpu().numpy()[0, :, :, :]#.transpose(1, 2 ,3 ,0)
                     targ = colorize(targ, colormap="Blues", mask_red=np.isnan(targ))
                     grid = gallery(targ)
                     rr.log('/train/prediction/precipitaion/{}'.format(data['cubename'][i]), rr.Image(grid))
                     # variable pp
-                    targ = pred[i, ...].detach().cpu().numpy()[1, :, :, :].transpose(1, 2 ,3 ,0)
+                    targ = pred[i, ...].detach().cpu().numpy()[1, :, :, :]#.transpose(1, 2 ,3 ,0)
                     targ = colorize(targ, colormap="rainbow", mask_red=np.isnan(targ))
                     grid = gallery(targ)
                     rr.log('/train/prediction/pressure/{}'.format(data['cubename'][i]), rr.Image(grid))
                     # variable tg
-                    targ = pred[i, ...].detach().cpu().numpy()[2, :, :, :].transpose(1, 2 ,3 ,0)
+                    targ = pred[i, ...].detach().cpu().numpy()[2, :, :, :]#.transpose(1, 2 ,3 ,0)
                     targ = colorize(targ, colormap="coolwarm", mask_red=np.isnan(targ))
                     grid = gallery(targ)
                     rr.log('/train/prediction/meanTmp/{}'.format(data['cubename'][i]), rr.Image(grid))
                     # variable tn
-                    targ = pred[i, ...].detach().cpu().numpy()[3, :, :, :].transpose(1, 2 ,3 ,0)
+                    targ = pred[i, ...].detach().cpu().numpy()[3, :, :, :]#.transpose(1, 2 ,3 ,0)
                     targ = colorize(targ, colormap="coolwarm", mask_red=np.isnan(targ))
                     grid = gallery(targ)
                     rr.log('/train/prediction/minimumTmp/{}'.format(data['cubename'][i]), rr.Image(grid))
                     # variable tx
-                    targ = pred[i, ...].detach().cpu().numpy()[4, :, :, :].transpose(1, 2 ,3 ,0)
+                    targ = pred[i, ...].detach().cpu().numpy()[4, :, :, :]#.transpose(1, 2 ,3 ,0)
                     targ = colorize(targ, colormap="coolwarm", mask_red=np.isnan(targ))
                     grid = gallery(targ)
                     rr.log('/train/prediction/maximumTmp/{}'.format(data['cubename'][i]), rr.Image(grid))
@@ -262,7 +262,6 @@ def validation_loop(dataloader,
                     epoch,
                     ensCalculator,
                     logger):
-    print("v6 val")
     # Set the model to evaluation mode - important for batch normalization and dropout layers
     model.eval()
     l1LossSum = 0
@@ -323,27 +322,27 @@ def validation_loop(dataloader,
 
                         # Log prediction
                         # variable rr
-                        targ = pred[i, ...].detach().cpu().numpy()[0, :, :, :].transpose(1, 2 ,3 ,0)
+                        targ = pred[i, ...].detach().cpu().numpy()[0, :, :, :]#.transpose(1, 2 ,3 ,0)
                         targ = colorize(targ, colormap="Blues", mask_red=np.isnan(targ))
                         grid = gallery(targ)
                         rr.log('/validation/prediction/precipitaion/{}'.format(data['cubename'][i]), rr.Image(grid))
                         # variable pp
-                        targ = pred[i, ...].detach().cpu().numpy()[1, :, :, :].transpose(1, 2 ,3 ,0)
+                        targ = pred[i, ...].detach().cpu().numpy()[1, :, :, :]#.transpose(1, 2 ,3 ,0)
                         targ = colorize(targ, colormap="rainbow", mask_red=np.isnan(targ))
                         grid = gallery(targ)
                         rr.log('/validation/prediction/pressure/{}'.format(data['cubename'][i]), rr.Image(grid))
                         # variable tg
-                        targ = pred[i, ...].detach().cpu().numpy()[2, :, :, :].transpose(1, 2 ,3 ,0)
+                        targ = pred[i, ...].detach().cpu().numpy()[2, :, :, :]#.transpose(1, 2 ,3 ,0)
                         targ = colorize(targ, colormap="coolwarm", mask_red=np.isnan(targ))
                         grid = gallery(targ)
                         rr.log('/validation/prediction/meanTmp/{}'.format(data['cubename'][i]), rr.Image(grid))
                         # variable tn
-                        targ = pred[i, ...].detach().cpu().numpy()[3, :, :, :].transpose(1, 2 ,3 ,0)
+                        targ = pred[i, ...].detach().cpu().numpy()[3, :, :, :]#.transpose(1, 2 ,3 ,0)
                         targ = colorize(targ, colormap="coolwarm", mask_red=np.isnan(targ))
                         grid = gallery(targ)
                         rr.log('/validation/prediction/minimumTmp/{}'.format(data['cubename'][i]), rr.Image(grid))
                         # variable tx
-                        targ = pred[i, ...].detach().cpu().numpy()[4, :, :, :].transpose(1, 2 ,3 ,0)
+                        targ = pred[i, ...].detach().cpu().numpy()[4, :, :, :]#.transpose(1, 2 ,3 ,0)
                         targ = colorize(targ, colormap="coolwarm", mask_red=np.isnan(targ))
                         grid = gallery(targ)
                         rr.log('/validation/prediction/maximumTmp/{}'.format(data['cubename'][i]), rr.Image(grid))

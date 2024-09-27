@@ -72,7 +72,7 @@ decoder:
 
 
 # Optimization
-epochs: 90      # Number of epochs to run the training for
+epochs: 180      # Number of epochs to run the training for
 l1Weight: 1
 mseWeight: 1
 ssimWeight: 1
@@ -91,3 +91,5 @@ gradientClipValue: 0.5
 useMSE: False
 useSSIM: False
 useVGG: False
+
+weatherAEImagesPart: "context" # "context" or "target"
