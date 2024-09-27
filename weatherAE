@@ -1,14 +1,14 @@
 #!/bin/bash
-#SBATCH --partition=A100medium
-#SBATCH --time=24:00:00
+#SBATCH --partition=A100short
+#SBATCH --time=8:00:00
 #SBATCH --gpus=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
-#SBATCH --dependency=afterany:121721
+#SBATCH --dependency=afterany:122250
 
 python checkGPU.py
 
-python /home/nikoskot/earthnetThesis/swinUnet/trainVideoSwinUnetAll.py --config /home/nikoskot/earthnetThesis/experiments/configV1CosAnL2.yml --resumeTraining --resumeCheckpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_26-09-2024_04-53-02/checkpoint.pth
+python /home/nikoskot/earthnetThesis/swinUnet/trainVideoSwinUnetWeatherAE.py --config /home/nikoskot/earthnetThesis/experiments/configWeatherDataAE.yml --resumeTraining --resumeCheckpoint /home/nikoskot/earthnetThesis/experiments/weatherDataAE/weatherDataAE_26-09-2024_04-51-29/checkpointLast.pth
 
 # python /home/nikoskot/earthnetThesis/swinUnet/testVideoSwinUnet.py --trainingFolder /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_20-09-2024_18-43-53 --testSplit iid_test_split --checkpoint checkpoint_22-09-2024_02-53-50.pth
 

@@ -1157,6 +1157,7 @@ def validation_loop(dataloader,
                         rr.log('/validation/prediction/{}'.format(data['cubename'][i]), rr.Image(grid))
             
             if epoch % config['calculateENSonValidationFreq'] == 0 or epoch == config['epochs']:
+                pred = torch.clamp(pred.clone(), min=0, max=1)
                 ensCalculator(pred.permute(0, 2, 3, 4, 1), y.permute(0, 2, 3, 4, 1), 1-masks.permute(0, 2, 3, 4, 1))
 
         if epoch % config['calculateENSonValidationFreq'] == 0 or epoch == config['epochs']:

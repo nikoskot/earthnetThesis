@@ -53,7 +53,7 @@ decoder:
   upsample: [true, false]
   useCheckpoint: false
 epochs: 90
-l1Weight: 1
+l1Weight: 10
 mseWeight: 1
 ssimWeight: 1
 vggWeight: 1
@@ -69,5 +69,5 @@ gradientClipping: false
 gradientClipValue: 0.5
 useMSE: false
 useSSIM: false
-useVGG: true
-runFolder: videoSwinUnetV1_27-09-2024_01-18-30
+useVGG: false
+runFolder: videoSwinUnetV1_27-09-2024_09-18-34

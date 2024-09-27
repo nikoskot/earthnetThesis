@@ -289,3 +289,137 @@
 2024-09-24 18:03:25,222 - INFO - Epoch 21
 -------------------------------
 2024-09-24 18:03:25,222 - INFO - Learning Rate of group 0: 0.0001866695276765517
+2024-09-25 08:24:12,943 - INFO - NOTE: None
+2024-09-25 08:24:12,945 - INFO - Torch, random, numpy seed: 88
+2024-09-25 08:24:16,458 - INFO - Resuming training from checkpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_23-09-2024_23-26-09/checkpointLast.pth from epoch 21
+2024-09-25 08:24:24,223 - INFO - Epoch 21
+-------------------------------
+2024-09-25 08:24:24,224 - INFO - Learning Rate of group 0: 0.00018835328548946325
+2024-09-25 09:05:36,562 - INFO - Maximum gradient before clipping: 0.2808978259563446
+2024-09-25 09:05:36,563 - INFO - Minimum gradient before clipping: -0.2098405510187149
+2024-09-25 09:05:36,563 - INFO - Mean training L1 loss: 0.001608906285756469
+2024-09-25 09:05:36,563 - INFO - Mean training SSIM loss: 0.0
+2024-09-25 09:05:36,563 - INFO - Mean training MSE loss: 0.0
+2024-09-25 09:05:36,563 - INFO - Mean training VGG loss: 0.0
+2024-09-25 09:09:04,120 - INFO - Mean validation L1 loss: 0.0014679033941329212
+2024-09-25 09:09:04,121 - INFO - Mean validation SSIM loss: 0.0
+2024-09-25 09:09:04,121 - INFO - Mean validation MSE loss: 0.0
+2024-09-25 09:09:04,121 - INFO - Mean validation VGG loss: 0.0
+2024-09-25 09:09:05,057 - INFO - Epoch 22
+-------------------------------
+2024-09-25 09:09:05,057 - INFO - Learning Rate of group 0: 0.0001866695276765517
+2024-09-25 09:50:17,559 - INFO - Maximum gradient before clipping: 0.19768546521663666
+2024-09-25 09:50:17,560 - INFO - Minimum gradient before clipping: -0.1749304085969925
+2024-09-25 09:50:17,560 - INFO - Mean training L1 loss: 0.001504575678336094
+2024-09-25 09:50:17,560 - INFO - Mean training SSIM loss: 0.0
+2024-09-25 09:50:17,560 - INFO - Mean training MSE loss: 0.0
+2024-09-25 09:50:17,560 - INFO - Mean training VGG loss: 0.0
+2024-09-25 09:53:45,848 - INFO - Mean validation L1 loss: 0.0014320164163562665
+2024-09-25 09:53:45,848 - INFO - Mean validation SSIM loss: 0.0
+2024-09-25 09:53:45,849 - INFO - Mean validation MSE loss: 0.0
+2024-09-25 09:53:45,849 - INFO - Mean validation VGG loss: 0.0
+2024-09-25 09:53:46,781 - INFO - New best validation Loss 0.0014320164163562665, at epoch 22
+2024-09-25 09:53:47,727 - INFO - Epoch 23
+-------------------------------
+2024-09-25 09:53:47,727 - INFO - Learning Rate of group 0: 0.0001848807855675644
+2024-09-25 10:34:59,943 - INFO - Maximum gradient before clipping: 0.19210577011108398
+2024-09-25 10:34:59,944 - INFO - Minimum gradient before clipping: -0.17826874554157257
+2024-09-25 10:34:59,944 - INFO - Mean training L1 loss: 0.001484030714487974
+2024-09-25 10:34:59,945 - INFO - Mean training SSIM loss: 0.0
+2024-09-25 10:34:59,945 - INFO - Mean training MSE loss: 0.0
+2024-09-25 10:34:59,945 - INFO - Mean training VGG loss: 0.0
+2024-09-25 10:38:27,655 - INFO - Mean validation L1 loss: 0.0014109197531143097
+2024-09-25 10:38:27,655 - INFO - Mean validation SSIM loss: 0.0
+2024-09-25 10:38:27,655 - INFO - Mean validation MSE loss: 0.0
+2024-09-25 10:38:27,655 - INFO - Mean validation VGG loss: 0.0
+2024-09-25 10:38:28,594 - INFO - New best validation Loss 0.0014109197531143097, at epoch 23
+2024-09-25 10:38:29,521 - INFO - Epoch 24
+-------------------------------
+2024-09-25 10:38:29,522 - INFO - Learning Rate of group 0: 0.00018298923846922667
+2024-09-25 11:19:42,617 - INFO - Maximum gradient before clipping: 0.16834574937820435
+2024-09-25 11:19:42,617 - INFO - Minimum gradient before clipping: -0.1536640077829361
+2024-09-25 11:19:42,618 - INFO - Mean training L1 loss: 0.0014626360375429096
+2024-09-25 11:19:42,618 - INFO - Mean training SSIM loss: 0.0
+2024-09-25 11:19:42,618 - INFO - Mean training MSE loss: 0.0
+2024-09-25 11:19:42,618 - INFO - Mean training VGG loss: 0.0
+2024-09-25 11:23:10,548 - INFO - Mean validation L1 loss: 0.0013822863505488219
+2024-09-25 11:23:10,599 - INFO - Mean validation SSIM loss: 0.0
+2024-09-25 11:23:10,599 - INFO - Mean validation MSE loss: 0.0
+2024-09-25 11:23:10,599 - INFO - Mean validation VGG loss: 0.0
+2024-09-25 11:23:12,750 - INFO - New best validation Loss 0.0013822863505488219, at epoch 24
+2024-09-25 11:23:14,687 - INFO - Epoch 25
+-------------------------------
+2024-09-25 11:23:14,688 - INFO - Learning Rate of group 0: 0.0001809971909403073
+2024-09-25 12:04:57,440 - INFO - Maximum gradient before clipping: 0.2497943639755249
+2024-09-25 12:04:57,441 - INFO - Minimum gradient before clipping: -0.16399666666984558
+2024-09-25 12:04:57,441 - INFO - Mean training L1 loss: 0.0014569539879760321
+2024-09-25 12:04:57,441 - INFO - Mean training SSIM loss: 0.0
+2024-09-25 12:04:57,441 - INFO - Mean training MSE loss: 0.0
+2024-09-25 12:04:57,441 - INFO - Mean training VGG loss: 0.0
+2024-09-25 12:08:25,919 - INFO - Mean validation L1 loss: 0.0014807557555563424
+2024-09-25 12:08:25,920 - INFO - Mean validation SSIM loss: 0.0
+2024-09-25 12:08:25,920 - INFO - Mean validation MSE loss: 0.0
+2024-09-25 12:08:25,920 - INFO - Mean validation VGG loss: 0.0
+2024-09-25 12:08:26,850 - INFO - Epoch 26
+-------------------------------
+2024-09-25 12:08:26,850 - INFO - Learning Rate of group 0: 0.0001789070699838689
+2024-09-25 12:49:42,231 - INFO - Maximum gradient before clipping: 0.16468292474746704
+2024-09-25 12:49:42,232 - INFO - Minimum gradient before clipping: -0.20704704523086548
+2024-09-25 12:49:42,232 - INFO - Mean training L1 loss: 0.0014484805478897477
+2024-09-25 12:49:42,233 - INFO - Mean training SSIM loss: 0.0
+2024-09-25 12:49:42,233 - INFO - Mean training MSE loss: 0.0
+2024-09-25 12:49:42,233 - INFO - Mean training VGG loss: 0.0
+2024-09-25 12:53:09,897 - INFO - Mean validation L1 loss: 0.0013773186517961908
+2024-09-25 12:53:09,898 - INFO - Mean validation SSIM loss: 0.0
+2024-09-25 12:53:09,898 - INFO - Mean validation MSE loss: 0.0
+2024-09-25 12:53:09,898 - INFO - Mean validation VGG loss: 0.0
+2024-09-25 12:53:10,834 - INFO - New best validation Loss 0.0013773186517961908, at epoch 26
+2024-09-25 12:53:11,767 - INFO - Epoch 27
+-------------------------------
+2024-09-25 12:53:11,767 - INFO - Learning Rate of group 0: 0.00017672142209033834
+2024-09-25 13:34:50,234 - INFO - Maximum gradient before clipping: 0.24148446321487427
+2024-09-25 13:34:50,235 - INFO - Minimum gradient before clipping: -0.2759333550930023
+2024-09-25 13:34:50,235 - INFO - Mean training L1 loss: 0.0014366356464412915
+2024-09-25 13:34:50,236 - INFO - Mean training SSIM loss: 0.0
+2024-09-25 13:34:50,236 - INFO - Mean training MSE loss: 0.0
+2024-09-25 13:34:50,236 - INFO - Mean training VGG loss: 0.0
+2024-09-25 13:38:17,896 - INFO - Mean validation L1 loss: 0.001446800731608401
+2024-09-25 13:38:17,896 - INFO - Mean validation SSIM loss: 0.0
+2024-09-25 13:38:17,896 - INFO - Mean validation MSE loss: 0.0
+2024-09-25 13:38:17,896 - INFO - Mean validation VGG loss: 0.0
+2024-09-25 13:38:18,825 - INFO - Epoch 28
+-------------------------------
+2024-09-25 13:38:18,826 - INFO - Learning Rate of group 0: 0.00017444291013500075
+2024-09-25 14:19:32,406 - INFO - Maximum gradient before clipping: 0.19407740235328674
+2024-09-25 14:19:32,407 - INFO - Minimum gradient before clipping: -0.18111178278923035
+2024-09-25 14:19:32,407 - INFO - Mean training L1 loss: 0.0014199471144351933
+2024-09-25 14:19:32,407 - INFO - Mean training SSIM loss: 0.0
+2024-09-25 14:19:32,407 - INFO - Mean training MSE loss: 0.0
+2024-09-25 14:19:32,407 - INFO - Mean training VGG loss: 0.0
+2024-09-25 14:23:12,875 - INFO - Mean validation L1 loss: 0.0013397967842536788
+2024-09-25 14:23:12,876 - INFO - Mean validation SSIM loss: 0.0
+2024-09-25 14:23:12,876 - INFO - Mean validation MSE loss: 0.0
+2024-09-25 14:23:12,876 - INFO - Mean validation VGG loss: 0.0
+2024-09-25 14:23:13,836 - INFO - New best validation Loss 0.0013397967842536788, at epoch 28
+2024-09-25 14:23:14,775 - INFO - Epoch 29
+-------------------------------
+2024-09-25 14:23:14,775 - INFO - Learning Rate of group 0: 0.0001720743101336958
+2024-09-25 15:04:28,512 - INFO - Maximum gradient before clipping: 0.1468534767627716
+2024-09-25 15:04:28,513 - INFO - Minimum gradient before clipping: -0.16778698563575745
+2024-09-25 15:04:28,513 - INFO - Mean training L1 loss: 0.0014179803417936755
+2024-09-25 15:04:28,513 - INFO - Mean training SSIM loss: 0.0
+2024-09-25 15:04:28,513 - INFO - Mean training MSE loss: 0.0
+2024-09-25 15:04:28,513 - INFO - Mean training VGG loss: 0.0
+2024-09-25 15:07:56,690 - INFO - Mean validation L1 loss: 0.0013789679723897681
+2024-09-25 15:07:56,691 - INFO - Mean validation SSIM loss: 0.0
+2024-09-25 15:07:56,691 - INFO - Mean validation MSE loss: 0.0
+2024-09-25 15:07:56,691 - INFO - Mean validation VGG loss: 0.0
+2024-09-25 15:07:57,680 - INFO - Epoch 30
+-------------------------------
+2024-09-25 15:07:57,680 - INFO - Learning Rate of group 0: 0.00016961850786067025
+2024-09-25 15:49:11,298 - INFO - Maximum gradient before clipping: 0.1612752228975296
+2024-09-25 15:49:11,298 - INFO - Minimum gradient before clipping: -0.13876986503601074
+2024-09-25 15:49:11,299 - INFO - Mean training L1 loss: 0.0013958462721398253
+2024-09-25 15:49:11,299 - INFO - Mean training SSIM loss: 0.0
+2024-09-25 15:49:11,299 - INFO - Mean training MSE loss: 0.0
+2024-09-25 15:49:11,299 - INFO - Mean training VGG loss: 0.0

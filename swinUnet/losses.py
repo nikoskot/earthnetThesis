@@ -2,11 +2,9 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from kornia.filters import spatial_gradient
-from piqa import SSIM, ssim
-from focal_frequency_loss import FocalFrequencyLoss as FFL
+from piqa import SSIM
+# from focal_frequency_loss import FocalFrequencyLoss as FFL
 import numpy as np
-from skimage import metrics
-from typing import Tuple
 import torchvision
 
 def setupLossFunctions(config, device):
@@ -24,9 +22,11 @@ def setupLossFunctions(config, device):
     if 'SSIM' in config['trainLossFunctions']:
         lossFunctions['SSIM'] = MaskedLoss(lossType='ssim', lossFunction=SSIM(n_channels=config['modelOutputCh'], reduction='mean').to(device), maskFlag=False)
     if 'maskedFFL' in config['trainLossFunctions']:
-        lossFunctions['maskedFFL'] = MaskedLoss(lossType='ffl', lossFunction=FFL(loss_weight=1.0, alpha=1.0).to(device), maskFlag=True)
+        # lossFunctions['maskedFFL'] = MaskedLoss(lossType='ffl', lossFunction=FFL(loss_weight=1.0, alpha=1.0).to(device), maskFlag=True)
+        pass
     if 'FFL' in config['trainLossFunctions']:
-        lossFunctions['FFL'] = MaskedLoss(lossType='ffl', lossFunction=FFL(loss_weight=1.0, alpha=1.0).to(device), maskFlag=False)
+        # lossFunctions['FFL'] = MaskedLoss(lossType='ffl', lossFunction=FFL(loss_weight=1.0, alpha=1.0).to(device), maskFlag=False)
+        pass
     if 'maskedGradient' in config['trainLossFunctions']:
         lossFunctions['maskedGradient'] = MaskedLoss(lossType='gradient', lossFunction=GradientLoss(), maskFlag=True)
     if 'gradient' in config['trainLossFunctions']:
@@ -45,7 +45,7 @@ class MaskedLoss(nn.Module):
 
         assert(preds.shape == targets.shape)
 
-        mask = torch.repeat_interleave(mask, repeats=4, dim=1)
+        mask = torch.repeat_interleave(mask, repeats=preds.shape[1], dim=1)
 
         preds = preds * mask
         targets = targets * mask
@@ -122,58 +122,58 @@ def maskedSSIMLoss(preds, targets, mask):
 
         return 1 - ssim
 
-def SSIMEarthnetToolkit(preds: np.ndarray, targs: np.ndarray, masks: np.ndarray) -> Tuple[float, dict]:
-        """Structural similarity index score
+# def SSIMEarthnetToolkit(preds: np.ndarray, targs: np.ndarray, masks: np.ndarray) -> Tuple[float, dict]:
+#         """Structural similarity index score
 
-        Structural similarity between predicted and target cube computed for all channels and frames individually if the given target is less than 30% masked. Scaled by a scaling factor such that a mean SSIM of 0.8 is scaled to a ssim-score of 0.1. The ssim-score is mean(ssim), it is scaled from 0 (worst) to 1 (best).
+#         Structural similarity between predicted and target cube computed for all channels and frames individually if the given target is less than 30% masked. Scaled by a scaling factor such that a mean SSIM of 0.8 is scaled to a ssim-score of 0.1. The ssim-score is mean(ssim), it is scaled from 0 (worst) to 1 (best).
 
-        Args:
-            preds (np.ndarray): Predictions, shape h,w,c,t
-            targs (np.ndarray): Targets, shape h,w,c,t
-            masks (np.ndarray): Masks, shape h,w,c,t, 1 if non-masked, else 0
+#         Args:
+#             preds (np.ndarray): Predictions, shape h,w,c,t
+#             targs (np.ndarray): Targets, shape h,w,c,t
+#             masks (np.ndarray): Masks, shape h,w,c,t, 1 if non-masked, else 0
 
-        Returns:
-            Tuple[float, dict]: ssim-score, debugging information
-        """        
+#         Returns:
+#             Tuple[float, dict]: ssim-score, debugging information
+#         """        
 
-        ssim_targs = np.where(masks, targs, preds)
-        new_shape = (-1, preds.shape[0], preds.shape[1])
-        ssim_targs = np.transpose(np.reshape(np.transpose(ssim_targs, (3,2,0,1)), new_shape),(1,2,0))
-        ssim_preds = np.transpose(np.reshape(np.transpose(preds, (3,2,0,1)), new_shape),(1,2,0))
-        ssim_masks = np.transpose(np.reshape(np.transpose(masks, (3,2,0,1)), new_shape),(1,2,0))
-        running_ssim = 0
-        counts = 0
-        ssim_frames = []
-        for i in range(ssim_targs.shape[-1]):
-            if ssim_masks[:,:,i].sum() > 0.7*ssim_masks[:,:,i].size:
-                curr_ssim = metrics.structural_similarity(ssim_targs[:,:,i], ssim_preds[:,:,i], data_range=1.0)
-                running_ssim += curr_ssim
-                counts += 1
-            else:
-                curr_ssim = 1000
-            ssim_frames.append(curr_ssim)
+#         ssim_targs = np.where(masks, targs, preds)
+#         new_shape = (-1, preds.shape[0], preds.shape[1])
+#         ssim_targs = np.transpose(np.reshape(np.transpose(ssim_targs, (3,2,0,1)), new_shape),(1,2,0))
+#         ssim_preds = np.transpose(np.reshape(np.transpose(preds, (3,2,0,1)), new_shape),(1,2,0))
+#         ssim_masks = np.transpose(np.reshape(np.transpose(masks, (3,2,0,1)), new_shape),(1,2,0))
+#         running_ssim = 0
+#         counts = 0
+#         ssim_frames = []
+#         for i in range(ssim_targs.shape[-1]):
+#             if ssim_masks[:,:,i].sum() > 0.7*ssim_masks[:,:,i].size:
+#                 curr_ssim = metrics.structural_similarity(ssim_targs[:,:,i], ssim_preds[:,:,i], data_range=1.0)
+#                 running_ssim += curr_ssim
+#                 counts += 1
+#             else:
+#                 curr_ssim = 1000
+#             ssim_frames.append(curr_ssim)
         
-        if counts == 0:
-            ssim = None
-        else:
-            ssim = max(0,(running_ssim/max(counts,1)))
+#         if counts == 0:
+#             ssim = None
+#         else:
+#             ssim = max(0,(running_ssim/max(counts,1)))
 
-            scaling_factor = 10.31885115 # Scales SSIM=0.8 down to 0.1
+#             scaling_factor = 10.31885115 # Scales SSIM=0.8 down to 0.1
 
-            ssim = float(ssim ** scaling_factor)
+#             ssim = float(ssim ** scaling_factor)
         
-        debug_info = {
-                        #"framewise SSIM, 1000 if frame was too much masked": ssim_frames, 
-                        "Min SSIM": str(np.ma.filled(np.ma.masked_equal(np.array(ssim_frames), 1000.0).min(), np.nan)),
-                        "Max SSIM": str(np.ma.filled(np.ma.masked_equal(np.array(ssim_frames), 1000.0).max(), np.nan)),
-                        "Mean SSIM": str(np.ma.filled(np.ma.masked_equal(np.array(ssim_frames), 1000.0).mean(), np.nan)),
-                        "Standard deviation SSIM": str(np.ma.filled(np.ma.masked_equal(np.array(ssim_frames), 1000.0).std(), np.nan)),
-                        "Valid SSIM frames": counts,
-                        "SSIM score": ssim,
-                        "frames": ssim_frames
-                    }
+#         debug_info = {
+#                         #"framewise SSIM, 1000 if frame was too much masked": ssim_frames, 
+#                         "Min SSIM": str(np.ma.filled(np.ma.masked_equal(np.array(ssim_frames), 1000.0).min(), np.nan)),
+#                         "Max SSIM": str(np.ma.filled(np.ma.masked_equal(np.array(ssim_frames), 1000.0).max(), np.nan)),
+#                         "Mean SSIM": str(np.ma.filled(np.ma.masked_equal(np.array(ssim_frames), 1000.0).mean(), np.nan)),
+#                         "Standard deviation SSIM": str(np.ma.filled(np.ma.masked_equal(np.array(ssim_frames), 1000.0).std(), np.nan)),
+#                         "Valid SSIM frames": counts,
+#                         "SSIM score": ssim,
+#                         "frames": ssim_frames
+#                     }
 
-        return ssim, debug_info
+#         return ssim, debug_info
 
 class VGG19(torch.nn.Module):
     def __init__(self, requires_grad=False):
