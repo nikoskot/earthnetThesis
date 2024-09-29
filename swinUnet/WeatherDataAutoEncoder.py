@@ -246,8 +246,8 @@ def train_loop(dataloader,
                     grid = gallery(targ)
                     rr.log('/train/prediction/maximumTmp/{}'.format(data['cubename'][i]), rr.Image(grid))
     
-        logger.info("Maximum gradient before clipping: {}".format(maxGradPre))
-        logger.info("Minimum gradient before clipping: {}".format(minGradPre))
+    logger.info("Maximum gradient before clipping: {}".format(maxGradPre))
+    logger.info("Minimum gradient before clipping: {}".format(minGradPre))
 
     return l1LossSum / batchNumber, SSIMLossSum / batchNumber, mseLossSum / batchNumber, vggLossSum / batchNumber
 

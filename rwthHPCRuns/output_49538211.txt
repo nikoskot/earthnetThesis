@@ -1,0 +1,13 @@
+3.11.10
+True
+0
+NVIDIA H100
+tensor([[0.0081, 0.0379, 0.4524],
+        [0.9049, 0.6060, 0.7088],
+        [0.5590, 0.1076, 0.2751]], device='cuda:0')
+Traceback (most recent call last):
+  File "/hpcwork/nq011071/earthnetThesis/swinUnet/trainVideoSwinUnetWeatherAE.py", line 9, in <module>
+    from losses import MaskedLoss, maskedSSIMLoss, MaskedVGGLoss
+  File "/rwthfs/rz/cluster/hpcwork/nq011071/earthnetThesis/swinUnet/losses.py", line 4, in <module>
+    from kornia.filters import spatial_gradient
+ModuleNotFoundError: No module named 'kornia'
