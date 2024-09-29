@@ -79,7 +79,7 @@ ssimWeight: 1
 vggWeight: 1
 trainingOptimizer: "adamw"
 lr: 0.001         # Def 0.0005
-weightDecay: 0.05
+weightDecay: 0.01
 scheduler: "ReduceLROnPlateau"
 warmupEpochs: 0
 lrScaleFactor: 0.5
