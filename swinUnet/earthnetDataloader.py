@@ -346,8 +346,8 @@ class PreprocessingSeparate(object):
     
 class PreprocessingWeather(object):
 
-    def __init__(self):
-        None
+    def __init__(self, reduceTime):
+        self.reduceTime = reduceTime
 
     def __call__(self, data):
 
@@ -356,8 +356,9 @@ class PreprocessingWeather(object):
 
         h, w = contextWeather.shape[2::]
 
-        # contextWeather = F.interpolate(contextWeather, size=(H, W))         # CThw -> CTHW T=50
-        # contextWeather = contextWeather.reshape(contextWeather.shape[0], 10, 5, h, w).mean(2).reshape(contextWeather.shape[0], 10, h, w) # CTHW T=50 -> CTHW T=10
+        if self.reduceTime:
+            # contextWeather = F.interpolate(contextWeather, size=(H, W))         # CThw -> CTHW T=50
+            contextWeather = contextWeather.reshape(contextWeather.shape[0], 10, 5, h, w).mean(2).reshape(contextWeather.shape[0], 10, h, w) # CThw T=50 -> CThw T=10
 
         # demHigh = demHigh.unsqueeze(1)   # from CHW -> CTHW C=1 T=1
         # demHigh = torch.repeat_interleave(demHigh, repeats=10, dim=1)  # CTHW T=10
@@ -367,8 +368,8 @@ class PreprocessingWeather(object):
         # demMeso = F.interpolate(demMeso, size=(H, W))   # CTHW C=1 T=1
         # demMeso = torch.repeat_interleave(demMeso, repeats=10, dim=1) # CTHW T=10
 
-        # targetWeather = F.interpolate(targetWeather, size=(H, W))         # CThw -> CTHW T=100
-        # targetWeather = targetWeather.reshape(targetWeather.shape[0], 20, 5, h, w).mean(2).reshape(targetWeather.shape[0], 20, h, w) # CTHW T=100 -> CTHW T=20
+            # targetWeather = F.interpolate(targetWeather, size=(H, W))         # CThw -> CTHW T=100
+            targetWeather = targetWeather.reshape(targetWeather.shape[0], 20, 5, h, w).mean(2).reshape(targetWeather.shape[0], 20, h, w) # CThw T=100 -> CThw T=20
 
         data = {
             "contextWeather": contextWeather,

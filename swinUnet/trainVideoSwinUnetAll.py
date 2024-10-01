@@ -308,8 +308,8 @@ def trainVideoSwinUnet(config, args):
     model = VideoSwinUNet(config, logger).to(device)
 
     # Setup Loss Function and Optimizer
-    # l1Loss = MaskedLoss(lossType='l1', lossFunction=nn.L1Loss(reduction='sum'))
-    l1Loss = MaskedLoss(lossType='mse', lossFunction=nn.MSELoss(reduction='sum'))
+    l1Loss = MaskedLoss(lossType='l1', lossFunction=nn.L1Loss(reduction='sum'))
+    # l1Loss = MaskedLoss(lossType='mse', lossFunction=nn.MSELoss(reduction='sum'))
     mseLoss = MaskedLoss(lossType='mse', lossFunction=nn.MSELoss(reduction='sum'))
     ssimLoss = maskedSSIMLoss
     vggLoss = MaskedVGGLoss()

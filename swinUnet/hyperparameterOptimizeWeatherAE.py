@@ -1,6 +1,6 @@
 from typing import List
 from ray.tune.experiment import Trial
-from trainVideoSwinUnetV2TestLossCombination import trainVideoSwinUnet, parseArgs, load_config
+from trainVideoSwinUnetWeatherAE import trainWeatherDataAutoEncoder, parseArgs, load_config
 import argparse
 import yaml
 from ray import train, tune
@@ -138,9 +138,9 @@ def main():
     # config['mseWeight'] = tune.quniform(1, 10, 0.2)
     # config['ssimWeight'] = tune.quniform(1, 10, 0.2)
     # config['vggWeight'] = tune.quniform(1, 10, 0.2)
-    config['useMSE'] = tune.grid_search([True, False])
-    config['useSSIM'] = tune.grid_search([True, False])
-    config['useVGG'] = tune.grid_search([True, False])
+    config['autoencoderNumLayers'] = tune.grid_search([2, 3, 4])
+    config['autoencoderReduceTime'] = tune.grid_search([True, False])
+    config['lr'] = tune.grid_search([0.0007])
     # config['scheduler'] = tune.choice(['ReduceLROnPlateau', 'CosineAnnealing'])
     # config['ape'] = tune.choice([True, False])
 
@@ -150,7 +150,7 @@ def main():
                               stop_last_trials=False)
     
     tuner = tune.Tuner(
-        tune.with_resources(tune.with_parameters(trainVideoSwinUnet, args=args), 
+        tune.with_resources(tune.with_parameters(trainWeatherDataAutoEncoder, args=args), 
                             resources={"cpu": 16, "gpu": 1}
                             ),
         tune_config=tune.TuneConfig(scheduler=scheduler,
@@ -158,7 +158,7 @@ def main():
                                     time_budget_s=8*50*60,  #22*60*60 # hours * minutes * seconds
                                     max_concurrent_trials=2
                                     ),
-        run_config=train.RunConfig(callbacks=[DeleteWorseTrialExperimentFolder(metric='bestValLoss')]),
+        # run_config=train.RunConfig(callbacks=[DeleteWorseTrialExperimentFolder(metric='bestValLoss')]),
         param_space=config,
         )
     

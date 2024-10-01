@@ -319,7 +319,7 @@ def trainWeatherDataAutoEncoder(config, args):
 
     if config['scheduler'] == 'ReduceLROnPlateau':
         warmupScheduler = torch.optim.lr_scheduler.LambdaLR(optimizer=optimizer, lr_lambda=lr_lambda)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=config['lrScaleFactor'], patience=config['schedulerPatience'], min_lr=0.000001)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=config['lrScaleFactor'], patience=config['schedulerPatience'], min_lr=0.00001)
     elif config['scheduler'] == 'CosineAnnealing':
         warmupScheduler = torch.optim.lr_scheduler.LambdaLR(optimizer=optimizer, lr_lambda=lr_lambda)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=config['epochs'], eta_min=0.000001)
@@ -352,7 +352,7 @@ def trainWeatherDataAutoEncoder(config, args):
         logger.info("Starting training from from epoch {}".format(startEpoch))
 
     # Set Preprocessing for Earthnet data
-    preprocessingStage = PreprocessingWeather()
+    preprocessingStage = PreprocessingWeather(reduceTime=not config['autoencoderReduceTime'])
 
     # Create dataset of training part of Earthnet dataset
     trainDataset = EarthnetTrainDataset(dataDir=config['trainDataDir'], dtype=config['dataDtype'], transform=preprocessingStage, cropMesodynamic=config['cropMesodynamic'])

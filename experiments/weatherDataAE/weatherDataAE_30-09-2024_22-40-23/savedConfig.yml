@@ -1,0 +1,80 @@
+batchSize: 32
+numWorkers: 8
+trainDataDir: /home/nikoskot/earthnetThesis/EarthnetDataset/train
+testDataDir: /home/nikoskot/earthnetThesis/EarthnetDataset/
+dataDtype: float32
+trainDataSubset: null
+trainSplit: 0.8
+validationSplit: 0.2
+cropMesodynamic: true
+experimentsFolder: /home/nikoskot/earthnetThesis/experiments/weatherDataAE/
+overfitTraining: false
+visualizationFreq: 30
+calculateENSonValidationFreq: 10
+modelType: weatherDataAE
+pretrained: null
+pretrained2D: true
+C: 96
+modelInputCh: 4
+extraInputCh: 5
+contextWeatherInputCh: 5
+targetWeatherInputCh: 5
+staticInputCh: 1
+mainInputTime: 10
+outputTime: 20
+modelOutputCh: 4
+timeUpsampling: encoder
+inputHeightWidth: 128
+weatherHeightWidth: 80
+windowSize: [2, 7, 7]
+patchSize: [1, 2, 2]
+ape: true
+patchEmbedding: {norm: true}
+encoder:
+  numChannels: [96, 192]
+  layerDepths: [2, 2]
+  layerNumHeads: [3, 6, 12]
+  mlpRatio: 4.0
+  qkvBias: true
+  qkScale: null
+  drop: 0.0
+  attnDrop: 0.0
+  dropPath: 0.2
+  norm: true
+  downsample: [false, true]
+  useCheckpoint: false
+decoder:
+  numChannels: [192, 192]
+  layerDepths: [2, 2]
+  layerNumHeads: [3, 6, 12]
+  mlpRatio: 4.0
+  qkvBias: true
+  qkScale: null
+  drop: 0.0
+  attnDrop: 0.0
+  dropPath: 0.2
+  norm: true
+  upsample: [true, false]
+  useCheckpoint: false
+epochs: 30
+l1Weight: 1
+mseWeight: 1
+ssimWeight: 1
+vggWeight: 1
+trainingOptimizer: adamw
+lr: 0.0005
+weightDecay: 0.05
+scheduler: ReduceLROnPlateau
+warmupEpochs: 0
+lrScaleFactor: 0.5
+schedulerPatience: 5
+cosineAnnealingRestartsInterval: 0
+gradientClipping: false
+gradientClipValue: 0.5
+useMSE: false
+useSSIM: false
+useVGG: false
+weatherAEImagesPart: context
+autoencoderNumLayers: 4
+autoencoderReduceTime: true
+runFolder: weatherDataAE_30-09-2024_22-40-23

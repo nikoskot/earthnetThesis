@@ -18,13 +18,82 @@ import yaml
 import rerun as rr
 from earthnet.plot_cube import gallery, colorize
 
-def timeUpsample(x, factor):
-    """ 
-    Args:
-        x: (B, C, T, H, W)
-    """
-    _, _, T, H, W = x.shape
-    return F.interpolate(input=x, size=(T*factor, H, W), mode='trilinear')
+class Encoder(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
+
+        avgPoolingTime = 5 if self.config['autoencoderReduceTime'] else 1
+
+        if self.config['autoencoderNumLayers'] == 2:
+            self.layers = nn.Sequential(
+                # nn.Conv3d(in_channels=5, out_channels=48, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.Conv3d(in_channels=5, out_channels=96, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.AvgPool3d(kernel_size=(avgPoolingTime, 2, 2), stride=(avgPoolingTime, 2, 2), padding=(0, 0, 0)),
+                nn.Conv3d(in_channels=96, out_channels=192, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.AvgPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2), padding=(0, 0, 0))
+            )
+
+        elif self.config['autoencoderNumLayers'] == 3:
+            self.layers = nn.Sequential(
+                nn.Conv3d(in_channels=5, out_channels=48, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.Conv3d(in_channels=48, out_channels=96, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.AvgPool3d(kernel_size=(avgPoolingTime, 2, 2), stride=(avgPoolingTime, 2, 2), padding=(0, 0, 0)),
+                nn.Conv3d(in_channels=96, out_channels=192, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.AvgPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2), padding=(0, 0, 0))
+            )
+        
+        elif self.config['autoencoderNumLayers'] == 4:
+            self.layers = nn.Sequential(
+                nn.Conv3d(in_channels=5, out_channels=24, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.Conv3d(in_channels=24, out_channels=48, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.Conv3d(in_channels=48, out_channels=96, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.AvgPool3d(kernel_size=(avgPoolingTime, 2, 2), stride=(avgPoolingTime, 2, 2), padding=(0, 0, 0)),
+                nn.Conv3d(in_channels=96, out_channels=192, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.AvgPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2), padding=(0, 0, 0))
+            )
+
+    def forward(self, x):
+        return self.layers(x)
+
+  
+class Decoder(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
+
+        avgPoolingTime = 5 if self.config['autoencoderReduceTime'] else 1
+
+        if self.config['autoencoderNumLayers'] == 2:
+            self.layers = nn.Sequential(
+                nn.Upsample(scale_factor=(1, 2, 2), mode='nearest'),
+                nn.Conv3d(in_channels=192, out_channels=96, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
+                nn.Upsample(scale_factor=(avgPoolingTime, 2, 2), mode='nearest'),
+                nn.Conv3d(in_channels=96, out_channels=5, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
+                # nn.Conv3d(in_channels=48, out_channels=5, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
+            )
+
+        elif self.config['autoencoderNumLayers'] == 3:
+            self.layers = nn.Sequential(
+                nn.Upsample(scale_factor=(1, 2, 2), mode='nearest'),
+                nn.Conv3d(in_channels=192, out_channels=96, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
+                nn.Upsample(scale_factor=(avgPoolingTime, 2, 2), mode='nearest'),
+                nn.Conv3d(in_channels=96, out_channels=48, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
+                nn.Conv3d(in_channels=48, out_channels=5, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
+            )
+
+        elif self.config['autoencoderNumLayers'] == 4:
+            self.layers = nn.Sequential(
+                nn.Upsample(scale_factor=(1, 2, 2), mode='nearest'),
+                nn.Conv3d(in_channels=192, out_channels=96, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
+                nn.Upsample(scale_factor=(avgPoolingTime, 2, 2), mode='nearest'),
+                nn.Conv3d(in_channels=96, out_channels=48, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
+                nn.Conv3d(in_channels=48, out_channels=24, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
+                nn.Conv3d(in_channels=24, out_channels=5, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
+            )
+
+    def forward(self, x):
+        return self.layers(x)
 
 
 class WeatherDataAutoEncoder(nn.Module):
@@ -32,51 +101,57 @@ class WeatherDataAutoEncoder(nn.Module):
         super().__init__()
         self.config = config
 
-        self.enConv1 = nn.Conv3d(in_channels=5, out_channels=48, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True)
-        self.enConv2 = nn.Conv3d(in_channels=48, out_channels=96, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True)
-        self.avgpool1 = nn.AvgPool3d(kernel_size=(5, 2, 2), stride=(5, 2, 2), padding=(0, 0, 0))
-        self.enConv3 = nn.Conv3d(in_channels=96, out_channels=192, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True)
-        self.avgpool2 = nn.AvgPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2), padding=(0, 0, 0))
+        # self.enConv1 = nn.Conv3d(in_channels=5, out_channels=48, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True)
+        # self.enConv2 = nn.Conv3d(in_channels=48, out_channels=96, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True)
+        # self.avgpool1 = nn.AvgPool3d(kernel_size=(5, 2, 2), stride=(5, 2, 2), padding=(0, 0, 0))
+        # self.enConv3 = nn.Conv3d(in_channels=96, out_channels=192, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True)
+        # self.avgpool2 = nn.AvgPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2), padding=(0, 0, 0))
         
-        self.upsampe1 = nn.Upsample(scale_factor=(1, 2, 2), mode='nearest')
-        self.deConv1 = nn.Conv3d(in_channels=192, out_channels=96, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
-        self.upsampe2 = nn.Upsample(scale_factor=(5, 2, 2), mode='nearest')
-        self.deConv2 = nn.Conv3d(in_channels=96, out_channels=48, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
-        self.deConv3 = nn.Conv3d(in_channels=48, out_channels=5, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
+        # self.upsampe1 = nn.Upsample(scale_factor=(1, 2, 2), mode='nearest')
+        # self.deConv1 = nn.Conv3d(in_channels=192, out_channels=96, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
+        # self.upsampe2 = nn.Upsample(scale_factor=(5, 2, 2), mode='nearest')
+        # self.deConv2 = nn.Conv3d(in_channels=96, out_channels=48, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
+        # self.deConv3 = nn.Conv3d(in_channels=48, out_channels=5, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
+
+        self.encoder = Encoder(config)
+        self.decoder = Decoder(config)
         
 
     def forward(self, x):
 
         # Input shape B,C,T,H,W
-        x = self.enConv1(x)
-        # print("Encoder conv 1 output shape {}".format(x.shape))
+        # x = self.enConv1(x)
+        # # print("Encoder conv 1 output shape {}".format(x.shape))
 
-        x = self.enConv2(x)
-        # print("Encoder conv 2 output shape {}".format(x.shape))
+        # x = self.enConv2(x)
+        # # print("Encoder conv 2 output shape {}".format(x.shape))
 
-        x = self.avgpool1(x)
-        # print("Encoder avg pooling 1 output shape {}".format(x.shape))
+        # x = self.avgpool1(x)
+        # # print("Encoder avg pooling 1 output shape {}".format(x.shape))
 
-        x = self.enConv3(x)
-        # print("Encoder conv 3 output shape {}".format(x.shape))
+        # x = self.enConv3(x)
+        # # print("Encoder conv 3 output shape {}".format(x.shape))
 
-        x = self.avgpool2(x)
-        # print("Encoder avg pooling 2 output shape {}".format(x.shape))
+        # x = self.avgpool2(x)
+        # # print("Encoder avg pooling 2 output shape {}".format(x.shape))
 
-        x = self.upsampe1(x)
-        # print("Decoder upsampling 1 output shape {}".format(x.shape))
+        # x = self.upsampe1(x)
+        # # print("Decoder upsampling 1 output shape {}".format(x.shape))
 
-        x = self.deConv1(x)
-        # print("Dencoder conv 1 output shape {}".format(x.shape))
+        # x = self.deConv1(x)
+        # # print("Dencoder conv 1 output shape {}".format(x.shape))
 
-        x = self.upsampe2(x)
-        # print("Decoder upsampling 2 output shape {}".format(x.shape))
+        # x = self.upsampe2(x)
+        # # print("Decoder upsampling 2 output shape {}".format(x.shape))
 
-        x = self.deConv2(x)
-        # print("Dencoder conv 2 output shape {}".format(x.shape))
+        # x = self.deConv2(x)
+        # # print("Dencoder conv 2 output shape {}".format(x.shape))
 
-        x = self.deConv3(x)
-        # print("Dencoder conv 3 output shape {}".format(x.shape))
+        # x = self.deConv3(x)
+        # # print("Dencoder conv 3 output shape {}".format(x.shape))
+        x = self.encoder(x)
+        print(x.shape)
+        x = self.decoder(x)
 
         return x
 

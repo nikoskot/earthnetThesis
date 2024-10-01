@@ -71,13 +71,13 @@ decoder:
 epochs: 90      # Number of epochs to run the training for
 l1Weight: 1
 mseWeight: 1
-ssimWeight: 1
+ssimWeight: 2
 vggWeight: 1
 trainingOptimizer: "adamw"
 lr: 0.0002         # Def 0.0005
 weightDecay: 0.05
 scheduler: "CosineAnnealing"
-warmupEpochs: 5
+warmupEpochs: 2
 lrScaleFactor: 0.2
 schedulerPatience: 5
 cosineAnnealingRestartsInterval: 10
