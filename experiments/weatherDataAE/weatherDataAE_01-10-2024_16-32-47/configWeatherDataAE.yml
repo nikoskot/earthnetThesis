@@ -1,5 +1,5 @@
 # Data
-batchSize: 8
+batchSize: 28
 numWorkers: 8    # Number of workers for Dataloaders
 trainDataDir: "/home/nikoskot/earthnetThesis/EarthnetDataset/train"
 testDataDir: "/home/nikoskot/earthnetThesis/EarthnetDataset/"
@@ -8,24 +8,28 @@ trainDataSubset: null
 trainSplit: 0.8
 validationSplit: 0.2
 cropMesodynamic: True
-experimentsFolder: "/home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/"
+experimentsFolder: "/home/nikoskot/earthnetThesis/experiments/weatherDataAE/"
 overfitTraining: False
 visualizationFreq: 10
 calculateENSonValidationFreq: 10
 
 # Model
-modelType: "videoSwinUnetV1"
+modelType: "weatherDataAE"
 pretrained: null #"/home/nikoskot/earthnetThesis/swin_tiny_patch4_window7_224_22k.pth"
 pretrained2D: True
 C: 96            # C of Video Swin Transformer (number of channels after patch embedding)
-modelInputCh: 11 # Number of channels of the input data
+modelInputCh: 4 # Number of channels of the input data
 extraInputCh: 5
+contextWeatherInputCh: 5
+targetWeatherInputCh: 5
+staticInputCh: 1
 mainInputTime: 10
 outputTime: 20
 modelOutputCh: 4
 timeUpsampling: 'encoder' # 'patchEmbedding': do it after patch embedding, 'encoder': do it after encoder
 #numBlocks: 3
 inputHeightWidth: 128
+weatherHeightWidth: 80
 windowSize: [2, 7, 7]
 patchSize: [1, 2, 2]
 ape: True
@@ -68,22 +72,26 @@ decoder:
 
 
 # Optimization
-epochs: 90      # Number of epochs to run the training for
+epochs: 90     # Number of epochs to run the training for
 l1Weight: 1
 mseWeight: 1
-ssimWeight: 2
+ssimWeight: 1
 vggWeight: 1
 trainingOptimizer: "adamw"
-lr: 0.0002         # Def 0.0005
+lr: 0.002         # Def 0.0005
 weightDecay: 0.05
-scheduler: "CosineAnnealing"
-warmupEpochs: 5
-lrScaleFactor: 0.2
-schedulerPatience: 5
-cosineAnnealingRestartsInterval: 10
+scheduler: "ReduceLROnPlateau"
+warmupEpochs: 0
+lrScaleFactor: 0.5
+schedulerPatience: 7
+cosineAnnealingRestartsInterval: 0
 gradientClipping: False
 gradientClipValue: 0.5
 
 useMSE: False
-useSSIM: True
+useSSIM: False
 useVGG: False
+
+weatherAEImagesPart: "context" # "context" or "target"
+autoencoderNumLayers: 2
+autoencoderReduceTime: True

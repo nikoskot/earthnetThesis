@@ -17,6 +17,7 @@ from earthnet.parallel_score import CubeCalculator
 import yaml
 import rerun as rr
 from earthnet.plot_cube import gallery
+from WeatherDataAutoEncoder import WeatherDataAutoEncoder
 
 def timeUpsample(x, factor):
     """ 
@@ -199,7 +200,7 @@ class SwinTransformerBlock3D(nn.Module):
 
     def __init__(self, dim, num_heads, window_size=(2,7,7), shift_size=(0,0,0),
                  mlp_ratio=4., qkv_bias=True, qk_scale=None, drop=0., attn_drop=0., drop_path=0.,
-                 act_layer=nn.GELU, norm_layer=None, use_checkpoint=False):
+                 act_layer=nn.GELU, norm_layer=nn.LayerNorm, use_checkpoint=False):
         super().__init__()
         self.dim = dim
         self.num_heads = num_heads
@@ -213,23 +214,15 @@ class SwinTransformerBlock3D(nn.Module):
         assert 0 <= self.shift_size[1] < self.window_size[1], "shift_size must in 0-window_size"
         assert 0 <= self.shift_size[2] < self.window_size[2], "shift_size must in 0-window_size"
 
-        if self.norm_layer == 'LayerNorm':
-            self.norm1 = nn.LayerNorm(dim)
-        elif self.norm_layer == 'BatchNorm':
-            self.norm1 = nn.BatchNorm3d(dim)
-        else:
-            self.norm1 = None
+        if self.norm_layer is not None:
+            self.norm1 = norm_layer(dim)
         self.attn = WindowAttention3D(
             dim, window_size=self.window_size, num_heads=num_heads,
             qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop)
 
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
-        if self.norm_layer == 'LayerNorm':
-            self.norm2 = nn.LayerNorm(dim)
-        elif self.norm_layer == 'BatchNorm':
-            self.norm2 = nn.BatchNorm3d(dim)
-        else:
-            self.norm2 = None
+        if self.norm_layer is not None:
+            self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
 
@@ -237,12 +230,8 @@ class SwinTransformerBlock3D(nn.Module):
         B, D, H, W, C = x.shape
         window_size, shift_size = get_window_size((D, H, W), self.window_size, self.shift_size)
 
-        if isinstance(self.norm1, nn.LayerNorm):
-            x = self.norm1(x)       # B, D, H, W, C
-        elif isinstance(self.norm1, nn.BatchNorm3d):
-            x = x.permute(0, 4, 1, 2, 3) # B C D H W 
+        if self.norm_layer is not None:
             x = self.norm1(x)
-            x = x.permute(0, 2, 3, 4, 1) # B, D, H, W, C
         # pad feature maps to multiples of window size
         pad_l = pad_t = pad_d0 = 0
         pad_d1 = (window_size[0] - D % window_size[0]) % window_size[0]
@@ -275,14 +264,7 @@ class SwinTransformerBlock3D(nn.Module):
         return x
 
     def forward_part2(self, x):
-        if isinstance(self.norm2, nn.LayerNorm):
-            x = self.norm2(x)      # B, D, H, W, C
-        elif isinstance(self.norm2, nn.BatchNorm3d):
-            x = x.permute(0, 4, 1, 2, 3) # B C D H W 
-            x = self.norm2(x)
-            x = x.permute(0, 2, 3, 4, 1) # B, D, H, W, C
-        
-        return self.drop_path(self.mlp(x))
+        return self.drop_path(self.mlp(self.norm2(x))) if self.norm_layer is not None else self.drop_path(self.mlp(x))
 
     def forward(self, x, mask_matrix):
         """ Forward function.
@@ -315,15 +297,10 @@ class PatchMerging(nn.Module):
         dim_down: Number of input channels
         norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
     """
-    def __init__(self, dim, dim_down, norm_layer=None):
+    def __init__(self, dim, dim_down, norm_layer=nn.LayerNorm):
         super().__init__()
         self.dim = dim
-        if norm_layer == 'LayerNorm':
-            self.norm = nn.LayerNorm(4 * dim_down)
-        elif norm_layer == 'BatchNorm':
-            self.norm = nn.BatchNorm3d(4 * dim_down)
-        else:
-            self.norm = None
+        self.norm = norm_layer(4 * dim_down) if norm_layer is not None else None
         self.reduction = nn.Linear(4 * dim_down, dim, bias=False)
 
     def forward(self, x):
@@ -346,12 +323,8 @@ class PatchMerging(nn.Module):
         x3 = x[:, :, 1::2, 1::2, :]  # B D H/2 W/2 C
         x = torch.cat([x0, x1, x2, x3], -1)  # B D H/2 W/2 4*C
 
-        if isinstance(self.norm, nn.LayerNorm):
+        if self.norm is not None:
             x = self.norm(x)
-        elif isinstance(self.norm, nn.BatchNorm3d):
-            x = x.permute(0, 4, 1, 2, 3) # B 4*C D H/2 W/2 
-            x = self.norm(x)
-            x = x.permute(0, 2, 3, 4, 1) # B D H/2 W/2 4*C 
         x = self.reduction(x)
 
         # x = x.permute(0,4,1,2,3) # B,Ch,T,H,W
@@ -364,13 +337,7 @@ class PatchExpansionV2(nn.Module):
         self.spatialScale = spatialScale
         self.upsampe = nn.Upsample(scale_factor=(1, spatialScale, spatialScale), mode='trilinear')
         self.conv = nn.Conv3d(in_channels=dim, out_channels=outputChannels, kernel_size=(1,1,1), stride=(1,1,1), padding=(0,0,0), bias=True)
-        if norm == 'LayerNorm':
-            self.norm = nn.LayerNorm(outputChannels)
-        elif norm == 'BatchNorm':
-            self.norm = nn.BatchNorm3d(outputChannels)
-        else:
-            self.norm = None
-        
+        self.norm = nn.LayerNorm(outputChannels) if norm else None
 
     def forward(self, x):
         # x -> B C T H W
@@ -378,12 +345,10 @@ class PatchExpansionV2(nn.Module):
 
         x = self.conv(x)
 
-        if isinstance(self.norm, nn.LayerNorm):
+        if self.norm is not None:
             x = x.permute(0, 2, 3, 4, 1) # x -> B T H W C
             x = self.norm(x)
             x = x.permute(0, 4, 1, 2, 3) # x -> B C T H W
-        elif isinstance(self.norm, nn.BatchNorm3d):
-            x = self.norm(x)
 
         return x
     
@@ -464,10 +429,9 @@ class BasicLayerEncoder(nn.Module):
                  drop=0.,
                  attn_drop=0.,
                  drop_path=0.,
-                 norm_layer=None,
+                 norm_layer=nn.LayerNorm,
                  downsample=None,
-                 use_checkpoint=False,
-                 downsampleNorm=None):
+                 use_checkpoint=False):
         super().__init__()
         self.window_size = window_size
         self.shift_size = tuple(i // 2 for i in window_size)
@@ -476,7 +440,7 @@ class BasicLayerEncoder(nn.Module):
 
         self.downsample = downsample
         if self.downsample is not None:
-            self.downsample = downsample(dim=dim, dim_down=dim//2, norm_layer=downsampleNorm)
+            self.downsample = downsample(dim=dim, dim_down=dim//2, norm_layer=norm_layer)
 
         # build blocks
         self.blocks = nn.ModuleList([
@@ -496,7 +460,7 @@ class BasicLayerEncoder(nn.Module):
             )
             for i in range(depth)])
 
-    def forward(self, x):
+    def forward(self, x, contextWeather):
         """ Forward function.
 
         Args:
@@ -508,6 +472,8 @@ class BasicLayerEncoder(nn.Module):
         if self.downsample is not None:
             x = self.downsample(x)
         x = rearrange(x, 'b d h w c -> b c d h w')
+
+        x = x + F.interpolate(contextWeather, size=(contextWeather.shape[2], x.shape[3], x.shape[4])) # Conditioning encoder on context weather data
 
         # calculate attention mask for SW-MSA
         B, C, D, H, W = x.shape
@@ -553,10 +519,9 @@ class BasicLayerDecoder(nn.Module):
                  drop=0.,
                  attn_drop=0.,
                  drop_path=0.,
-                 norm_layer=None,
+                 norm_layer=nn.LayerNorm,
                  upsample=None,
-                 use_checkpoint=False,
-                 upsampleNorm=None):
+                 use_checkpoint=False):
         super().__init__()
         self.window_size = window_size
         self.shift_size = tuple(i // 2 for i in window_size)
@@ -583,7 +548,7 @@ class BasicLayerDecoder(nn.Module):
         
         self.upsample = upsample
         if self.upsample is not None:
-            self.upsample = upsample(dim, dim//2, spatialScale=2, norm=upsampleNorm)
+            self.upsample = upsample(dim, dim//2, spatialScale=2, norm=norm_layer)
 
     def forward(self, x):
         """ Forward function.
@@ -633,10 +598,8 @@ class PatchEmbed3D(nn.Module):
         self.embed_dim = embed_dim
 
         self.proj = nn.Conv3d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)
-        if norm_layer == "LayerNorm":
-            self.norm = nn.LayerNorm(embed_dim)
-        elif norm_layer == "BatchNorm":
-            self.norm = nn.BatchNorm3d(embed_dim)
+        if norm_layer is not None:
+            self.norm = norm_layer(embed_dim)
         else:
             self.norm = None
 
@@ -652,13 +615,11 @@ class PatchEmbed3D(nn.Module):
             x = F.pad(x, (0, 0, 0, 0, 0, self.patch_size[0] - D % self.patch_size[0]))
 
         x = self.proj(x)  # B C D Wh Ww
-        if isinstance(self.norm, nn.LayerNorm):
+        if self.norm is not None:
             D, Wh, Ww = x.size(2), x.size(3), x.size(4)
             x = x.flatten(2).transpose(1, 2)
             x = self.norm(x)
             x = x.transpose(1, 2).view(-1, self.embed_dim, D, Wh, Ww)
-        elif isinstance(self.norm, nn.BatchNorm3d):
-            x = self.norm(x)
 
         return x # B C D Wh Ww
 
@@ -679,17 +640,16 @@ class Encoder(nn.Module):
                                       drop=config['encoder']['drop'], 
                                       attn_drop=config['encoder']['attnDrop'], 
                                       drop_path=config['encoder']['dropPath'], 
-                                      norm_layer=config['encoder']['norm'], 
+                                      norm_layer=nn.LayerNorm if config['encoder']['norm'] else None, 
                                       downsample=PatchMerging if config['encoder']['downsample'][i] else None, #None if i == 0 else PatchMerging, 
-                                      use_checkpoint=config['encoder']['useCheckpoint'],
-                                      downsampleNorm=config['encoder']['downsampleNorm'])
+                                      use_checkpoint=config['encoder']['useCheckpoint'])
             self.layers.append(layer)
 
         # self.block0 = BasicLayerEncoder(dim=96, depth=2, num_heads=3, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, downsample=None, use_checkpoint=False)
         # self.block1 = BasicLayerEncoder(dim=192, depth=2, num_heads=6, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, downsample=PatchMerging, use_checkpoint=False)
         # self.block2 = BasicLayerEncoder(dim=384, depth=2, num_heads=12, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, downsample=PatchMerging, use_checkpoint=False)
 
-    def forward(self, x):
+    def forward(self, x, contextWeather):
         x_out = []
 
         N, C, T, H, W = x.shape
@@ -698,7 +658,12 @@ class Encoder(nn.Module):
         #     x = x + self.absolute_pos_embed
 
         for i, layer in enumerate(self.layers):
-            x = layer(x)
+
+            # x = x + F.interpolate(contextWeather[0], size=(T, H, W)) # Conditioning encoder on context weather data
+            # x = x + F.interpolate(staticData[0], size=(T, H, W)) # Conditioning encoder on context weather data
+
+            x = layer(x, contextWeather[i])
+
             x_out.append(x)  
 
         return x_out
@@ -721,10 +686,9 @@ class Decoder(nn.Module):
                                       drop=config['decoder']['drop'], 
                                       attn_drop=config['decoder']['attnDrop'], 
                                       drop_path=config['decoder']['dropPath'], 
-                                      norm_layer=config['decoder']['norm'], 
+                                      norm_layer=nn.LayerNorm if config['decoder']['norm'] else None, 
                                       upsample=PatchExpansionV2 if config['decoder']['upsample'][i] else None, #None if i == len(config['decoder']['layerDepths'])-1 else PatchExpansionV2, 
-                                      use_checkpoint=config['decoder']['useCheckpoint'],
-                                      upsampleNorm=config['decoder']['upsampleNorm'])
+                                      use_checkpoint=config['decoder']['useCheckpoint'])
             self.layers.append(layer)
         
         # self.block3 = BasicLayerDecoder(dim=384, depth=2, num_heads=3, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, upsample=PatchExpansionV2, use_checkpoint=False)
@@ -732,7 +696,7 @@ class Decoder(nn.Module):
         # self.block5 = BasicLayerDecoder(dim=288, depth=2, num_heads=12, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, upsample=None, use_checkpoint=False)
 
 
-    def forward(self, x):
+    def forward(self, x, targetWeather):
 
         for i, x_i in enumerate(reversed(x)):
             
@@ -740,7 +704,12 @@ class Decoder(nn.Module):
                 if x_out.size()[-3:] != x_i.size()[-3:]:
                     x_out = F.interpolate(x_out, size=x_i.size()[-3:], mode='trilinear', align_corners=False)
 
+                x_out = x_out + F.interpolate(list(reversed(targetWeather))[i], size=(list(reversed(targetWeather))[i].shape[2], x_out.shape[3], x_out.shape[4])) # Conditioning decoder on target weather data
+
                 x_i = torch.cat((x_out, x_i), dim=1)
+
+            else:
+                x_i = x_i + F.interpolate(list(reversed(targetWeather))[i], size=(list(reversed(targetWeather))[i].shape[2], x_i.shape[3], x_i.shape[4])) # Conditioning decpder on target weather data
 
             x_out = self.layers[i](x_i)
 
@@ -770,7 +739,7 @@ class VideoSwinUNet(nn.Module):
         self.patch_embed = PatchEmbed3D(patch_size=tuple(config['patchSize']), 
                                         in_chans=config['modelInputCh'], 
                                         embed_dim=config['C'], 
-                                        norm_layer=config['patchEmbedding']['norm'])
+                                        norm_layer=nn.LayerNorm if config['patchEmbedding']['norm'] else None)
         
         if self.config['ape']:
             self.absolute_pos_embed = nn.Parameter(torch.zeros(1, self.config['C'], self.config['mainInputTime'] // config['patchSize'][0], config['inputHeightWidth'] // config['patchSize'][1], config['inputHeightWidth'] // config['patchSize'][2]))
@@ -780,6 +749,23 @@ class VideoSwinUNet(nn.Module):
         # self.block0 = BasicLayerEncoder(dim=96, depth=2, num_heads=3, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, downsample=None, use_checkpoint=False)
         # self.block1 = BasicLayerEncoder(dim=192, depth=2, num_heads=6, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, downsample=PatchMerging, use_checkpoint=False)
         # self.block2 = BasicLayerEncoder(dim=384, depth=2, num_heads=12, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, downsample=PatchMerging, use_checkpoint=False)
+        self.contextWeatherEncoder = WeatherDataAutoEncoder(config=config)
+        if config['contextWeatherAutoencoderWeights']:
+            weatherDataAutoEncoderCheckpoint = torch.load(config['contextWeatherAutoencoderWeights'])
+            self.contextWeatherEncoder.load_state_dict(weatherDataAutoEncoderCheckpoint['state_dict'])
+        self.contextWeatherEncoder = self.contextWeatherEncoder.encoder
+        self.contextWeatherEncoder.eval()
+        for param in self.contextWeatherEncoder.parameters():
+            param.requires_grad = False
+
+        self.targetWeatherEncoder = WeatherDataAutoEncoder(config=config)
+        if config['targetWeatherAutoencoderWeights']:
+            weatherDataAutoEncoderCheckpoint = torch.load(config['targetWeatherAutoencoderWeights'])
+            self.targetWeatherEncoder.load_state_dict(weatherDataAutoEncoderCheckpoint['state_dict'])
+        self.targetWeatherEncoder = self.targetWeatherEncoder.encoder
+        self.targetWeatherEncoder.eval()
+        for param in self.targetWeatherEncoder.parameters():
+            param.requires_grad = False
 
         self.decoder = Decoder(config=config)
         # self.block3 = BasicLayerDecoder(dim=384, depth=2, num_heads=3, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, upsample=PatchExpansionV2, use_checkpoint=False)
@@ -934,10 +920,10 @@ class VideoSwinUNet(nn.Module):
         # else:
         #     if logger: logger.info("No pretrained loading")
 
-    def forward(self, x):
+    def forward(self, contextImgDEM, contextWeather, targetWeather):
 
         # Input shape B,C,T,H,W
-        x = self.patch_embed(x)
+        x = self.patch_embed(contextImgDEM)
         # print("Patch embedding output shape {}".format(x.shape))
 
         if self.config['ape']:
@@ -947,14 +933,25 @@ class VideoSwinUNet(nn.Module):
             x = timeUpsample(x, self.timeUpsamplingFactor)
             # print("Time upsampling output shape {}".format([x_i.shape for x_i in x]))
 
-        x = self.encoder(x)
+        with torch.no_grad():
+            contextWeather = self.contextWeatherEncoder(contextWeather)
+            # print("Context weather data shape {}".format([x_i.shape for x_i in contextWeather]))
+            targetWeather = self.targetWeatherEncoder(targetWeather)
+
+        x = self.encoder(x, contextWeather)
         # print("Encoder output shape {}".format(encoder_outputs.shape))
 
         if self.config['timeUpsampling'] == 'encoder':
             x = [timeUpsample(x_out, self.timeUpsamplingFactor) for x_out in x]
-            # print("Time upsampling output shape {}".format([enc.shape for enc in encoder_outputs]))
+            # print("Time upsampling output shape {}".format([x_i.shape for x_i in x]))
 
-        x = self.decoder(x)
+        # targetWeatherEnc = self.targetWeatherEncoder(targetWeather)
+        # print(f"Target weather data encoder output shape {targetWeatherEnc.shape}")
+
+        # x = [torch.cat((x_i, F.interpolate(targetWeather, size=(targetWeather.shape[2], x_i.shape[3], x_i.shape[4]))), dim=1) for x_i in x]
+        # print("Decoder input shape {}".format([x_i.shape for x_i in x]))
+
+        x = self.decoder(x, targetWeather)
         # print("Decoder output shape {}".format(decoder_output.shape))
 
         if self.config['patchSize'] != (1, 1, 1):
@@ -974,7 +971,7 @@ if __name__ == "__main__":
             config = yaml.safe_load(f)
         return config
     
-    config = load_config('/home/nikoskot/earthnetThesis/experiments/config.yml')
+    config = load_config('/home/nikoskot/earthnetThesis/experiments/configV7.yml')
 
     startTime = time.time()
     model = VideoSwinUNet(config, logger=None).to(torch.device('cuda'))
@@ -989,16 +986,18 @@ if __name__ == "__main__":
     totalParams = sum(p.numel() for p in model.parameters())
 
     startTime = time.time()
-    x = torch.rand(1, 11, 10, 128, 128).to(torch.device('cuda')) # B, C, T, H, W
+    contextImgAndDEM = torch.rand(1, 5, 10, 128, 128).to(torch.device('cuda')) # B, C, T, H, W
+    contextWeather = torch.rand(1, 5, 10, 80, 80).to(torch.device('cuda')) # B, C, T, H, W
+    targetWeather = torch.rand(1, 5, 20, 80, 80).to(torch.device('cuda')) # B, C, T, H, W
     endTime = time.time()
     print("Dummy data creation time {}".format(endTime - startTime))
 
     # torch.cuda.memory._record_memory_history(max_entries=100000)
     
     for i in range(20):
-        _ = torch.randn(1).cuda()        
+        _ = torch.randn(1).cuda()
         startTime = time.time()
-        y = model(x)
+        y = model(contextImgAndDEM, contextWeather, targetWeather)
         endTime = time.time()
         print("Pass time {}".format(endTime - startTime))
         optimizer.zero_grad(set_to_none=True)
@@ -1006,7 +1005,7 @@ if __name__ == "__main__":
     # torch.cuda.memory._dump_snapshot("videoSwinUnetV1.pickle")
     # torch.cuda.memory._record_memory_history(enabled=None)
 
-    y = model(x)
+    y = model(contextImgAndDEM, contextWeather, targetWeather)
 
     print("Output shape {}".format(y.shape))
 
@@ -1024,7 +1023,7 @@ def train_loop(dataloader,
                logger, 
                trainVisualizationCubenames,
                epoch):
-    print("v1 train")
+
     # Set the model to training mode - important for batch normalization and dropout layers
     model.train()
     l1LossSum = 0
@@ -1043,12 +1042,14 @@ def train_loop(dataloader,
         optimizer.zero_grad()
 
         # Move data to GPU
-        x = data['x'].to(torch.device('cuda'))
+        contextImgDEM = data['contextImgDEM'].to(torch.device('cuda'))
+        contextWeather = data['contextWeather'].to(torch.device('cuda'))
+        targetWeather = data['targetWeather'].to(torch.device('cuda'))
         y = data['y'].to(torch.device('cuda'))
         masks = data['targetMask'].to(torch.device('cuda'))
 
         # Compute prediction and loss
-        pred = model(x)
+        pred = model(contextImgDEM, contextWeather, targetWeather)
         # pred = torch.clamp(pred, min=0.0, max=1.0)
 
         l1LossValue = l1Loss(pred, y, masks)
@@ -1071,8 +1072,9 @@ def train_loop(dataloader,
         totalLoss.backward()
 
         for param in model.parameters():
-            maxGradPre = torch.maximum(maxGradPre, torch.max(param.grad.view(-1)))
-            minGradPre = torch.minimum(minGradPre, torch.min(param.grad.view(-1)))
+            if param.grad is not None:
+                maxGradPre = torch.maximum(maxGradPre, torch.max(param.grad.view(-1)))
+                minGradPre = torch.minimum(minGradPre, torch.min(param.grad.view(-1)))
 
         if config['gradientClipping']:
             nn.utils.clip_grad_value_(model.parameters(), config['gradientClipValue'])
@@ -1118,7 +1120,6 @@ def train_loop(dataloader,
     logger.info("Minimum gradient before clipping: {}".format(minGradPre))
 
     return l1LossSum / batchNumber, SSIMLossSum / batchNumber, mseLossSum / batchNumber, vggLossSum / batchNumber
-        
 
 def validation_loop(dataloader, 
                     model, 
@@ -1131,7 +1132,7 @@ def validation_loop(dataloader,
                     epoch,
                     ensCalculator,
                     logger):
-    print("v1 val")
+
     # Set the model to evaluation mode - important for batch normalization and dropout layers
     model.eval()
     l1LossSum = 0
@@ -1149,12 +1150,14 @@ def validation_loop(dataloader,
             batchNumber += 1
             
             # Move data to GPU
-            x = data['x'].to(torch.device('cuda'))
+            contextImgDEM = data['contextImgDEM'].to(torch.device('cuda'))
+            contextWeather = data['contextWeather'].to(torch.device('cuda'))
+            targetWeather = data['targetWeather'].to(torch.device('cuda'))
             y = data['y'].to(torch.device('cuda'))
             masks = data['targetMask'].to(torch.device('cuda'))
 
             # Compute prediction and loss
-            pred = model(x)
+            pred = model(contextImgDEM, contextWeather, targetWeather)
             # pred = torch.clamp(pred, min=0.0, max=1.0)
 
             l1LossValue = l1Loss(pred, y, masks)
@@ -1201,7 +1204,6 @@ def validation_loop(dataloader,
                         rr.log('/validation/prediction/{}'.format(data['cubename'][i]), rr.Image(grid))
             
             if epoch % config['calculateENSonValidationFreq'] == 0 or epoch == config['epochs']:
-                pred = torch.clamp(pred.clone(), min=0, max=1)
                 ensCalculator(pred.permute(0, 2, 3, 4, 1), y.permute(0, 2, 3, 4, 1), 1-masks.permute(0, 2, 3, 4, 1))
 
         if epoch % config['calculateENSonValidationFreq'] == 0 or epoch == config['epochs']:

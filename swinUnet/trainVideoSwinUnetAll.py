@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.utils.checkpoint as checkpoint
 import numpy as np
 import random
-from earthnetDataloader import EarthnetTestDataset, EarthnetTrainDataset, Preprocessing, PreprocessingStack, PreprocessingSeparate, PreprocessingV2
+from earthnetDataloader import EarthnetTestDataset, EarthnetTrainDataset, Preprocessing, PreprocessingStack, PreprocessingSeparate, PreprocessingV2, PreprocessingV7, PreprocessingV8
 from torch.utils.data import DataLoader, random_split, Subset
 from earthnet_scores import EarthNet2021ScoreUpdateWithoutCompute
 from losses import MaskedLoss, maskedSSIMLoss, MaskedVGGLoss
@@ -304,6 +304,10 @@ def trainVideoSwinUnet(config, args):
         from videoSwinUnetMMActionV5 import VideoSwinUNet, train_loop, validation_loop
     elif config['modelType'].endswith('V6'):
         from videoSwinUnetMMActionV6 import VideoSwinUNet, train_loop, validation_loop
+    elif config['modelType'].endswith('V7'):
+        from videoSwinUnetMMActionV7 import VideoSwinUNet, train_loop, validation_loop
+    elif config['modelType'].endswith('V8'):
+        from videoSwinUnetMMActionV8 import VideoSwinUNet, train_loop, validation_loop
     
     model = VideoSwinUNet(config, logger).to(device)
 
@@ -370,6 +374,10 @@ def trainVideoSwinUnet(config, args):
         preprocessingStage = PreprocessingV2()
     elif config['modelType'].endswith('V5') or config['modelType'].endswith('V6'):
         preprocessingStage = PreprocessingSeparate()
+    elif config['modelType'].endswith('V7'):
+        preprocessingStage = PreprocessingV7(reduceTime=not config['autoencoderReduceTime'])
+    elif config['modelType'].endswith('V8'):
+        preprocessingStage = PreprocessingV8()
 
     # Create dataset of training part of Earthnet dataset
     trainDataset = EarthnetTrainDataset(dataDir=config['trainDataDir'], dtype=config['dataDtype'], transform=preprocessingStage, cropMesodynamic=config['cropMesodynamic'])

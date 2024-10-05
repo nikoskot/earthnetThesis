@@ -1,4 +1,4 @@
-batchSize: 32
+batchSize: 28
 numWorkers: 8
 trainDataDir: /home/nikoskot/earthnetThesis/EarthnetDataset/train
 testDataDir: /home/nikoskot/earthnetThesis/EarthnetDataset/
@@ -9,7 +9,7 @@ validationSplit: 0.2
 cropMesodynamic: true
 experimentsFolder: /home/nikoskot/earthnetThesis/experiments/weatherDataAE/
 overfitTraining: false
-visualizationFreq: 30
+visualizationFreq: 10
 calculateENSonValidationFreq: 10
 modelType: weatherDataAE
 pretrained: null
@@ -56,7 +56,7 @@ decoder:
   norm: true
   upsample: [true, false]
   useCheckpoint: false
-epochs: 30
+epochs: 100
 l1Weight: 1
 mseWeight: 1
 ssimWeight: 1
@@ -67,14 +67,14 @@ weightDecay: 0.05
 scheduler: ReduceLROnPlateau
 warmupEpochs: 0
 lrScaleFactor: 0.5
-schedulerPatience: 5
+schedulerPatience: 7
 cosineAnnealingRestartsInterval: 0
 gradientClipping: false
 gradientClipValue: 0.5
 useMSE: false
 useSSIM: false
 useVGG: false
-weatherAEImagesPart: context
+weatherAEImagesPart: targetWeather
 autoencoderNumLayers: 2
-autoencoderReduceTime: true
-runFolder: weatherDataAE_01-10-2024_14-17-10
+autoencoderReduceTime: false
+runFolder: weatherDataAE_04-10-2024_11-37-40

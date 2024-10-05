@@ -46,6 +46,133 @@ class Mlp(nn.Module):
         x = self.drop(x)
         return x
 
+class LOAN(nn.Module):
+
+    """ Location-aware Adaptive Normalization layer """
+
+    def __init__(self, in_channels: int, cond_channels: int, free_norm: str = 'BatchNorm',
+                 kernel_size: int = 3, norm: bool = True):
+        super(LOAN, self).__init__()
+
+        """
+        Parameters
+        ----------
+        in_channels : int
+            number of input channels
+        cond_channels : int
+            number of channels for conditional map
+        free_norm : int (default batch)
+            type of normalization to be used for the modulated map
+        kernel_size : int (default 3)
+            kernel size of output channels 
+        norm : bool (default True)
+            option to do normalization of the modulated map
+        """
+
+        self.in_channels = in_channels
+        self.cond_channels = cond_channels
+        self.kernel_size = kernel_size
+        self.norm = norm
+        self.k_channels = cond_channels
+
+        if norm:
+            if free_norm == 'BatchNorm':
+                self.free_norm = nn.BatchNorm3d(self.in_channels, affine=False)
+            elif free_norm == 'LayerNorm':
+                self.free_norm = nn.LayerNorm(self.in_channels, elementwise_affine=False)
+            else:
+                raise ValueError('%s is not a recognized free_norm type in SPADE' % free_norm)
+
+        # self.mlp = nn.Sequential(
+        #    nn.Conv2d(in_channels=self.cond_channels, out_channels=self.k_channels, kernel_size=self.kernel_size,
+        #             padding=self.kernel_size//2, padding_mode='replicate'),
+        #    nn.ReLU(inplace=True)
+        #    )
+
+        # projection layers
+        self.mlp_gamma = nn.Conv2d(self.k_channels, self.in_channels, kernel_size=self.kernel_size,
+                                   padding=self.kernel_size // 2)
+        self.mlp_beta = nn.Conv2d(self.k_channels, self.in_channels, kernel_size=self.kernel_size,
+                                  padding=self.kernel_size // 2)
+
+        # initialize projection layers
+        # self.mlp.apply(self.init_weights)
+        self.mlp_beta.apply(self.init_weights)
+        self.mlp_gamma.apply(self.init_weights)
+
+        # normalization for the conditional map
+        # self.free_norm_cond = torch.nn.BatchNorm2d(cond_channels, affine=False)
+        if free_norm == 'BatchNorm':
+            self.free_norm_cond = torch.nn.BatchNorm2d(cond_channels, affine=False)
+        elif free_norm == 'LayerNorm':
+            self.free_norm_cond = nn.LayerNorm(cond_channels, elementwise_affine=False)
+
+    def init_weights(self, m):
+        # classname = m.__class__.__name__
+        if isinstance(m, torch.nn.Conv2d):
+            torch.nn.init.normal_(m.weight.data, 0.0, 0.01)
+            if m.bias is not None:
+                torch.nn.init.constant_(m.bias.data, 0.0)
+
+    def generate_one_hot(self, labels: torch.Tensor):
+
+        """
+        Convert the semantic map into one-hot encoded
+        This method can be used for the CORINE land cover data_m
+        """
+
+        con_map = torch.nn.functional.one_hot(labels, num_classes=10)
+        con_map = torch.permute(con_map, (0, 3, 2, 1))
+        return con_map.float()
+
+    def forward(self, x: torch.Tensor, con_map: torch.Tensor):
+
+        """
+        input tensor x [N, K, D, W, H]
+        conditional map tensor con_map [N, K, W, H]
+        """
+        _, _, _, W, H = x.shape
+
+        # parameter-free normalized map
+        if self.norm:
+            if isinstance(self.free_norm, nn.LayerNorm):
+                x = x.permute(0, 2, 3, 4, 1)   # N, D, W, H, K
+                normalized = self.free_norm(x)
+                normalized = normalized.permute(0, 4, 1, 2, 3) # N, K, D, W, H
+            elif isinstance(self.free_norm, nn.BatchNorm3d):
+                normalized = self.free_norm(x)
+        else:
+            normalized = x
+
+        # used for data_m
+        # con_map = self.generate_one_hot(con_map)
+        # con_map = con_map.float()
+
+        # produce scaling and bias conditioned on semantic map
+        # con_map = F.interpolate(con_map, size=x.size()[-2:], mode='nearest')
+
+        # normalize the conditional map
+        # actv = self.free_norm_cond(con_map)
+        if isinstance(self.free_norm_cond, nn.LayerNorm):
+            con_map = con_map.permute(0, 2, 3, 1)   # N, W, H, K
+            actv = self.free_norm_cond(con_map)
+            actv = actv.permute(0, 3, 1, 2) # N, K, W, H
+        elif isinstance(self.free_norm_cond, nn.BatchNorm2d):
+            actv = self.free_norm_cond(con_map)
+        actv = nn.functional.relu(actv)
+
+        # actv = self.mlp(con_map)
+        gamma = self.mlp_gamma(actv)
+        beta = self.mlp_beta(actv)
+
+        # Interpolate static data to match the spatial dimension of the input
+        gamma = F.interpolate(gamma, size=(W, H), mode='nearest')
+        beta = F.interpolate(beta, size=(W, H), mode='nearest')
+
+        # apply scale and bias after duplication along the D time dimension
+        out = normalized * (1 + gamma[:, :, None, :, :]) + beta[:, :, None, :, :]
+
+        return out
 
 def window_partition(x, window_size):
     """
@@ -199,7 +326,7 @@ class SwinTransformerBlock3D(nn.Module):
 
     def __init__(self, dim, num_heads, window_size=(2,7,7), shift_size=(0,0,0),
                  mlp_ratio=4., qkv_bias=True, qk_scale=None, drop=0., attn_drop=0., drop_path=0.,
-                 act_layer=nn.GELU, norm_layer=None, use_checkpoint=False):
+                 act_layer=nn.GELU, norm_layer=None, use_checkpoint=False, loanNormType='BatchNorm', loanNormalizeInput=False):
         super().__init__()
         self.dim = dim
         self.num_heads = num_heads
@@ -213,10 +340,13 @@ class SwinTransformerBlock3D(nn.Module):
         assert 0 <= self.shift_size[1] < self.window_size[1], "shift_size must in 0-window_size"
         assert 0 <= self.shift_size[2] < self.window_size[2], "shift_size must in 0-window_size"
 
+        
         if self.norm_layer == 'LayerNorm':
             self.norm1 = nn.LayerNorm(dim)
         elif self.norm_layer == 'BatchNorm':
             self.norm1 = nn.BatchNorm3d(dim)
+        elif self.norm_layer == 'LOAN':
+            self.norm1 = LOAN(in_channels=dim, cond_channels=dim, free_norm=loanNormType, kernel_size=3, norm=loanNormalizeInput)
         else:
             self.norm1 = None
         self.attn = WindowAttention3D(
@@ -228,12 +358,14 @@ class SwinTransformerBlock3D(nn.Module):
             self.norm2 = nn.LayerNorm(dim)
         elif self.norm_layer == 'BatchNorm':
             self.norm2 = nn.BatchNorm3d(dim)
+        elif self.norm_layer == 'LOAN':
+            self.norm2 = LOAN(in_channels=dim, cond_channels=dim, free_norm=loanNormType, kernel_size=3, norm=loanNormalizeInput)
         else:
             self.norm2 = None
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
 
-    def forward_part1(self, x, mask_matrix):
+    def forward_part1(self, x, mask_matrix, staticData):
         B, D, H, W, C = x.shape
         window_size, shift_size = get_window_size((D, H, W), self.window_size, self.shift_size)
 
@@ -243,6 +375,11 @@ class SwinTransformerBlock3D(nn.Module):
             x = x.permute(0, 4, 1, 2, 3) # B C D H W 
             x = self.norm1(x)
             x = x.permute(0, 2, 3, 4, 1) # B, D, H, W, C
+        elif isinstance(self.norm1, LOAN):
+            x = x.permute(0, 4, 1, 2, 3) # B C D H W 
+            x = self.norm1(x, staticData)
+            x = x.permute(0, 2, 3, 4, 1) # B, D, H, W, C
+
         # pad feature maps to multiples of window size
         pad_l = pad_t = pad_d0 = 0
         pad_d1 = (window_size[0] - D % window_size[0]) % window_size[0]
@@ -274,17 +411,21 @@ class SwinTransformerBlock3D(nn.Module):
             x = x[:, :D, :H, :W, :].contiguous()
         return x
 
-    def forward_part2(self, x):
+    def forward_part2(self, x, staticData):
         if isinstance(self.norm2, nn.LayerNorm):
             x = self.norm2(x)      # B, D, H, W, C
         elif isinstance(self.norm2, nn.BatchNorm3d):
             x = x.permute(0, 4, 1, 2, 3) # B C D H W 
             x = self.norm2(x)
             x = x.permute(0, 2, 3, 4, 1) # B, D, H, W, C
+        elif isinstance(self.norm2, LOAN):
+            x = x.permute(0, 4, 1, 2, 3) # B C D H W 
+            x = self.norm2(x, staticData)
+            x = x.permute(0, 2, 3, 4, 1) # B, D, H, W, C
         
         return self.drop_path(self.mlp(x))
 
-    def forward(self, x, mask_matrix):
+    def forward(self, x, mask_matrix, staticData):
         """ Forward function.
 
         Args:
@@ -294,15 +435,15 @@ class SwinTransformerBlock3D(nn.Module):
 
         shortcut = x
         if self.use_checkpoint:
-            x = checkpoint.checkpoint(self.forward_part1, x, mask_matrix)
+            x = checkpoint.checkpoint(self.forward_part1, x, mask_matrix, staticData)
         else:
-            x = self.forward_part1(x, mask_matrix)
+            x = self.forward_part1(x, mask_matrix, staticData)
         x = shortcut + self.drop_path(x)
 
         if self.use_checkpoint:
-            x = x + checkpoint.checkpoint(self.forward_part2, x)
+            x = x + checkpoint.checkpoint(self.forward_part2, x, staticData)
         else:
-            x = x + self.forward_part2(x)
+            x = x + self.forward_part2(x, staticData)
 
         return x
 
@@ -318,10 +459,13 @@ class PatchMerging(nn.Module):
     def __init__(self, dim, dim_down, norm_layer=None):
         super().__init__()
         self.dim = dim
+        
         if norm_layer == 'LayerNorm':
             self.norm = nn.LayerNorm(4 * dim_down)
         elif norm_layer == 'BatchNorm':
             self.norm = nn.BatchNorm3d(4 * dim_down)
+        elif norm_layer == 'LOAN':
+            raise NotImplementedError()
         else:
             self.norm = None
         self.reduction = nn.Linear(4 * dim_down, dim, bias=False)
@@ -364,10 +508,13 @@ class PatchExpansionV2(nn.Module):
         self.spatialScale = spatialScale
         self.upsampe = nn.Upsample(scale_factor=(1, spatialScale, spatialScale), mode='trilinear')
         self.conv = nn.Conv3d(in_channels=dim, out_channels=outputChannels, kernel_size=(1,1,1), stride=(1,1,1), padding=(0,0,0), bias=True)
+        
         if norm == 'LayerNorm':
             self.norm = nn.LayerNorm(outputChannels)
         elif norm == 'BatchNorm':
             self.norm = nn.BatchNorm3d(outputChannels)
+        elif norm == 'LOAN':
+            raise NotImplementedError()
         else:
             self.norm = None
         
@@ -467,7 +614,9 @@ class BasicLayerEncoder(nn.Module):
                  norm_layer=None,
                  downsample=None,
                  use_checkpoint=False,
-                 downsampleNorm=None):
+                 downsampleNorm=None,
+                 loanNormType='BatchNorm',
+                 loanNormalizeInput=False):
         super().__init__()
         self.window_size = window_size
         self.shift_size = tuple(i // 2 for i in window_size)
@@ -493,10 +642,12 @@ class BasicLayerEncoder(nn.Module):
                 drop_path=drop_path[i] if isinstance(drop_path, list) else drop_path,
                 norm_layer=norm_layer,
                 use_checkpoint=use_checkpoint,
+                loanNormType=loanNormType,
+                loanNormalizeInput=loanNormalizeInput
             )
             for i in range(depth)])
 
-    def forward(self, x):
+    def forward(self, x, staticData):
         """ Forward function.
 
         Args:
@@ -518,7 +669,7 @@ class BasicLayerEncoder(nn.Module):
         Wp = int(np.ceil(W / window_size[2])) * window_size[2]
         attn_mask = compute_mask(Dp, Hp, Wp, window_size, shift_size, x.device)
         for blk in self.blocks:
-            x = blk(x, attn_mask)
+            x = blk(x, attn_mask, staticData)
         
         x = rearrange(x, 'b d h w c -> b c d h w')
 
@@ -556,7 +707,9 @@ class BasicLayerDecoder(nn.Module):
                  norm_layer=None,
                  upsample=None,
                  use_checkpoint=False,
-                 upsampleNorm=None):
+                 upsampleNorm=None,
+                 loanNormType='BatchNorm', 
+                 loanNormalizeInput=False):
         super().__init__()
         self.window_size = window_size
         self.shift_size = tuple(i // 2 for i in window_size)
@@ -578,6 +731,8 @@ class BasicLayerDecoder(nn.Module):
                 drop_path=drop_path[i] if isinstance(drop_path, list) else drop_path,
                 norm_layer=norm_layer,
                 use_checkpoint=use_checkpoint,
+                loanNormType=loanNormType, 
+                loanNormalizeInput=loanNormalizeInput
             )
             for i in range(depth)])
         
@@ -585,7 +740,7 @@ class BasicLayerDecoder(nn.Module):
         if self.upsample is not None:
             self.upsample = upsample(dim, dim//2, spatialScale=2, norm=upsampleNorm)
 
-    def forward(self, x):
+    def forward(self, x, staticData):
         """ Forward function.
 
         Args:
@@ -606,7 +761,7 @@ class BasicLayerDecoder(nn.Module):
         Wp = int(np.ceil(W / window_size[2])) * window_size[2]
         attn_mask = compute_mask(Dp, Hp, Wp, window_size, shift_size, x.device)
         for blk in self.blocks:
-            x = blk(x, attn_mask)
+            x = blk(x, attn_mask, staticData)
         
         x = rearrange(x, 'b d h w c -> b c d h w')
 
@@ -682,14 +837,16 @@ class Encoder(nn.Module):
                                       norm_layer=config['encoder']['norm'], 
                                       downsample=PatchMerging if config['encoder']['downsample'][i] else None, #None if i == 0 else PatchMerging, 
                                       use_checkpoint=config['encoder']['useCheckpoint'],
-                                      downsampleNorm=config['encoder']['downsampleNorm'])
+                                      downsampleNorm=config['encoder']['downsampleNorm'],
+                                      loanNormType=config['encoder']['loanType'],
+                                      loanNormalizeInput=config['encoder']['loanNormalizeInput'])
             self.layers.append(layer)
 
         # self.block0 = BasicLayerEncoder(dim=96, depth=2, num_heads=3, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, downsample=None, use_checkpoint=False)
         # self.block1 = BasicLayerEncoder(dim=192, depth=2, num_heads=6, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, downsample=PatchMerging, use_checkpoint=False)
         # self.block2 = BasicLayerEncoder(dim=384, depth=2, num_heads=12, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, downsample=PatchMerging, use_checkpoint=False)
 
-    def forward(self, x):
+    def forward(self, x, staticData):
         x_out = []
 
         N, C, T, H, W = x.shape
@@ -698,7 +855,7 @@ class Encoder(nn.Module):
         #     x = x + self.absolute_pos_embed
 
         for i, layer in enumerate(self.layers):
-            x = layer(x)
+            x = layer(x, staticData[i])
             x_out.append(x)  
 
         return x_out
@@ -724,7 +881,9 @@ class Decoder(nn.Module):
                                       norm_layer=config['decoder']['norm'], 
                                       upsample=PatchExpansionV2 if config['decoder']['upsample'][i] else None, #None if i == len(config['decoder']['layerDepths'])-1 else PatchExpansionV2, 
                                       use_checkpoint=config['decoder']['useCheckpoint'],
-                                      upsampleNorm=config['decoder']['upsampleNorm'])
+                                      upsampleNorm=config['decoder']['upsampleNorm'],
+                                      loanNormType=config['decoder']['loanType'], 
+                                      loanNormalizeInput=config['decoder']['loanNormalizeInput'])
             self.layers.append(layer)
         
         # self.block3 = BasicLayerDecoder(dim=384, depth=2, num_heads=3, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, upsample=PatchExpansionV2, use_checkpoint=False)
@@ -732,7 +891,7 @@ class Decoder(nn.Module):
         # self.block5 = BasicLayerDecoder(dim=288, depth=2, num_heads=12, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, upsample=None, use_checkpoint=False)
 
 
-    def forward(self, x):
+    def forward(self, x, staticData):
 
         for i, x_i in enumerate(reversed(x)):
             
@@ -742,7 +901,7 @@ class Decoder(nn.Module):
 
                 x_i = torch.cat((x_out, x_i), dim=1)
 
-            x_out = self.layers[i](x_i)
+            x_out = self.layers[i](x_i, staticData[1])
 
         return x_out
 
@@ -760,6 +919,41 @@ class Decoder(nn.Module):
 
         # x = self.block5(x)
 
+class StaticDataEncoder(nn.Module):
+    def __init__(self, config):
+        super(StaticDataEncoder, self).__init__()
+        self.conv1 = nn.Conv2d(config['staticInputCh'], config['C'] // 2, kernel_size=(3,3), stride=(1,1), padding=(1,1))
+        if config['encoder']['norm'] == 'LayerNorm':
+            self.norm1 = nn.LayerNorm(config['C'] // 2)
+        elif config['encoder']['norm'] == 'BatchNorm':
+            self.norm1 = nn.BatchNorm2d(config['C'] // 2)
+        else:
+            self.norm1 = None
+        self.conv2 = nn.Conv2d(config['C'] // 2, config['C'], kernel_size=(3,3), stride=(1,1), padding=(1,1))
+        self.conv3 = nn.Conv2d(config['C'], config['C'] * 2, kernel_size=(3,3), stride=(1,1), padding=(1,1))
+        # self.conv1 = nn.Conv3d(config['extraInputCh'], config['C'] // 2, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))  # Reduce size
+        # self.conv2 = nn.Conv3d(config['C'] // 2, config['C'], kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
+        # self.conv3 = nn.Conv3d(128, config['encoder']['numChannels'][-1], kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
+        # self.avgPool3d = nn.AdaptiveAvgPool3d((bottleneck_shape[0], bottleneck_shape[1], bottleneck_shape[2]))
+
+    def forward(self, x):
+        x_out = []
+
+        x = self.conv1(x)
+        if isinstance(self.norm1, nn.LayerNorm):
+            x = x.permute(0, 2, 3, 1)   # N, W, H, K
+            x = self.norm1(x)
+            x = x.permute(0, 3, 1, 2) # N, K, W, H
+        elif isinstance(self.norm1, nn.BatchNorm2d):
+            x = self.norm1(x)
+
+        x = self.conv2(x)
+        x_out.append(x)
+
+        x = self.conv3(x)
+        x_out.append(x)
+
+        return x_out
 
 class VideoSwinUNet(nn.Module):
     def __init__(self, config, logger):
@@ -785,7 +979,9 @@ class VideoSwinUNet(nn.Module):
         # self.block3 = BasicLayerDecoder(dim=384, depth=2, num_heads=3, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, upsample=PatchExpansionV2, use_checkpoint=False)
         # self.block4 = BasicLayerDecoder(dim=384, depth=2, num_heads=6, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, upsample=PatchExpansionV2, use_checkpoint=False)
         # self.block5 = BasicLayerDecoder(dim=288, depth=2, num_heads=12, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, upsample=None, use_checkpoint=False)
-          
+        
+        self.staticDataEncoder = StaticDataEncoder(config=config)
+
         self.head = RegressionHead(in_channels=config['decoder']['numChannels'][-1], out_channels=config['modelOutputCh'])
 
         self.init_weights(logger=logger, config=config)
@@ -906,8 +1102,9 @@ class VideoSwinUNet(nn.Module):
                 if isinstance(m, nn.Linear) and m.bias is not None:
                     nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.LayerNorm):
-                nn.init.constant_(m.bias, 0)
-                nn.init.constant_(m.weight, 1.0)
+                if m.elementwise_affine == True:
+                    nn.init.constant_(m.bias, 0)
+                    nn.init.constant_(m.weight, 1.0)
 
         self.apply(init_func)
 
@@ -934,7 +1131,7 @@ class VideoSwinUNet(nn.Module):
         # else:
         #     if logger: logger.info("No pretrained loading")
 
-    def forward(self, x):
+    def forward(self, x, staticData):
 
         # Input shape B,C,T,H,W
         x = self.patch_embed(x)
@@ -947,14 +1144,17 @@ class VideoSwinUNet(nn.Module):
             x = timeUpsample(x, self.timeUpsamplingFactor)
             # print("Time upsampling output shape {}".format([x_i.shape for x_i in x]))
 
-        x = self.encoder(x)
+        staticData = self.staticDataEncoder(staticData)
+        # print("Static data encoder output shape {}".format([s_i.shape for s_i in staticData]))
+
+        x = self.encoder(x, staticData)
         # print("Encoder output shape {}".format(encoder_outputs.shape))
 
         if self.config['timeUpsampling'] == 'encoder':
             x = [timeUpsample(x_out, self.timeUpsamplingFactor) for x_out in x]
             # print("Time upsampling output shape {}".format([enc.shape for enc in encoder_outputs]))
 
-        x = self.decoder(x)
+        x = self.decoder(x, staticData)
         # print("Decoder output shape {}".format(decoder_output.shape))
 
         if self.config['patchSize'] != (1, 1, 1):
@@ -974,7 +1174,7 @@ if __name__ == "__main__":
             config = yaml.safe_load(f)
         return config
     
-    config = load_config('/home/nikoskot/earthnetThesis/experiments/config.yml')
+    config = load_config('/home/nikoskot/earthnetThesis/experiments/configV8.yml')
 
     startTime = time.time()
     model = VideoSwinUNet(config, logger=None).to(torch.device('cuda'))
@@ -989,7 +1189,8 @@ if __name__ == "__main__":
     totalParams = sum(p.numel() for p in model.parameters())
 
     startTime = time.time()
-    x = torch.rand(1, 11, 10, 128, 128).to(torch.device('cuda')) # B, C, T, H, W
+    x = torch.rand(1, 9, 10, 128, 128).to(torch.device('cuda')) # B, C, T, H, W
+    staticData = torch.rand(1, 1, 128, 128).to(torch.device('cuda')) # B, C, H, W
     endTime = time.time()
     print("Dummy data creation time {}".format(endTime - startTime))
 
@@ -998,7 +1199,7 @@ if __name__ == "__main__":
     for i in range(20):
         _ = torch.randn(1).cuda()        
         startTime = time.time()
-        y = model(x)
+        y = model(x, staticData)
         endTime = time.time()
         print("Pass time {}".format(endTime - startTime))
         optimizer.zero_grad(set_to_none=True)
@@ -1006,7 +1207,7 @@ if __name__ == "__main__":
     # torch.cuda.memory._dump_snapshot("videoSwinUnetV1.pickle")
     # torch.cuda.memory._record_memory_history(enabled=None)
 
-    y = model(x)
+    y = model(x, staticData)
 
     print("Output shape {}".format(y.shape))
 
@@ -1024,7 +1225,7 @@ def train_loop(dataloader,
                logger, 
                trainVisualizationCubenames,
                epoch):
-    print("v1 train")
+
     # Set the model to training mode - important for batch normalization and dropout layers
     model.train()
     l1LossSum = 0
@@ -1043,12 +1244,13 @@ def train_loop(dataloader,
         optimizer.zero_grad()
 
         # Move data to GPU
-        x = data['x'].to(torch.device('cuda'))
+        contextImgWeather = data['contextImgWeather'].to(torch.device('cuda'))
+        staticData = data['demHigh'].to(torch.device('cuda'))
         y = data['y'].to(torch.device('cuda'))
         masks = data['targetMask'].to(torch.device('cuda'))
 
         # Compute prediction and loss
-        pred = model(x)
+        pred = model(contextImgWeather, staticData)
         # pred = torch.clamp(pred, min=0.0, max=1.0)
 
         l1LossValue = l1Loss(pred, y, masks)
@@ -1131,7 +1333,7 @@ def validation_loop(dataloader,
                     epoch,
                     ensCalculator,
                     logger):
-    print("v1 val")
+
     # Set the model to evaluation mode - important for batch normalization and dropout layers
     model.eval()
     l1LossSum = 0
@@ -1149,12 +1351,13 @@ def validation_loop(dataloader,
             batchNumber += 1
             
             # Move data to GPU
-            x = data['x'].to(torch.device('cuda'))
+            contextImgWeather = data['contextImgWeather'].to(torch.device('cuda'))
+            staticData = data['demHigh'].to(torch.device('cuda'))
             y = data['y'].to(torch.device('cuda'))
             masks = data['targetMask'].to(torch.device('cuda'))
 
             # Compute prediction and loss
-            pred = model(x)
+            pred = model(contextImgWeather, staticData)
             # pred = torch.clamp(pred, min=0.0, max=1.0)
 
             l1LossValue = l1Loss(pred, y, masks)

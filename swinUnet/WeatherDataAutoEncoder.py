@@ -31,30 +31,35 @@ class Encoder(nn.Module):
                 nn.Conv3d(in_channels=5, out_channels=96, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
                 nn.AvgPool3d(kernel_size=(avgPoolingTime, 2, 2), stride=(avgPoolingTime, 2, 2), padding=(0, 0, 0)),
                 nn.Conv3d(in_channels=96, out_channels=192, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
-                nn.AvgPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2), padding=(0, 0, 0))
             )
 
         elif self.config['autoencoderNumLayers'] == 3:
             self.layers = nn.Sequential(
                 nn.Conv3d(in_channels=5, out_channels=48, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
-                nn.Conv3d(in_channels=48, out_channels=96, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
                 nn.AvgPool3d(kernel_size=(avgPoolingTime, 2, 2), stride=(avgPoolingTime, 2, 2), padding=(0, 0, 0)),
+                nn.Conv3d(in_channels=48, out_channels=96, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.AvgPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2), padding=(0, 0, 0)),
                 nn.Conv3d(in_channels=96, out_channels=192, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
-                nn.AvgPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2), padding=(0, 0, 0))
             )
         
         elif self.config['autoencoderNumLayers'] == 4:
             self.layers = nn.Sequential(
                 nn.Conv3d(in_channels=5, out_channels=24, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
                 nn.Conv3d(in_channels=24, out_channels=48, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
-                nn.Conv3d(in_channels=48, out_channels=96, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
                 nn.AvgPool3d(kernel_size=(avgPoolingTime, 2, 2), stride=(avgPoolingTime, 2, 2), padding=(0, 0, 0)),
+                nn.Conv3d(in_channels=48, out_channels=96, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.AvgPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2), padding=(0, 0, 0)),
                 nn.Conv3d(in_channels=96, out_channels=192, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
-                nn.AvgPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2), padding=(0, 0, 0))
             )
 
     def forward(self, x):
-        return self.layers(x)
+        # return self.layers(x)
+        x_out = []
+        for layer in self.layers:
+            x = layer(x)
+            if isinstance(layer, nn.Conv3d) and (layer.out_channels in [96, 192]):
+                x_out.append(x)
+        return x_out
 
   
 class Decoder(nn.Module):
@@ -66,7 +71,7 @@ class Decoder(nn.Module):
 
         if self.config['autoencoderNumLayers'] == 2:
             self.layers = nn.Sequential(
-                nn.Upsample(scale_factor=(1, 2, 2), mode='nearest'),
+                # nn.Upsample(scale_factor=(1, 2, 2), mode='nearest'),
                 nn.Conv3d(in_channels=192, out_channels=96, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
                 nn.Upsample(scale_factor=(avgPoolingTime, 2, 2), mode='nearest'),
                 nn.Conv3d(in_channels=96, out_channels=5, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
@@ -75,19 +80,19 @@ class Decoder(nn.Module):
 
         elif self.config['autoencoderNumLayers'] == 3:
             self.layers = nn.Sequential(
-                nn.Upsample(scale_factor=(1, 2, 2), mode='nearest'),
                 nn.Conv3d(in_channels=192, out_channels=96, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
-                nn.Upsample(scale_factor=(avgPoolingTime, 2, 2), mode='nearest'),
+                nn.Upsample(scale_factor=(1, 2, 2), mode='nearest'),
                 nn.Conv3d(in_channels=96, out_channels=48, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
+                nn.Upsample(scale_factor=(avgPoolingTime, 2, 2), mode='nearest'),
                 nn.Conv3d(in_channels=48, out_channels=5, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
             )
 
         elif self.config['autoencoderNumLayers'] == 4:
             self.layers = nn.Sequential(
-                nn.Upsample(scale_factor=(1, 2, 2), mode='nearest'),
                 nn.Conv3d(in_channels=192, out_channels=96, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
-                nn.Upsample(scale_factor=(avgPoolingTime, 2, 2), mode='nearest'),
+                nn.Upsample(scale_factor=(1, 2, 2), mode='nearest'),
                 nn.Conv3d(in_channels=96, out_channels=48, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
+                nn.Upsample(scale_factor=(avgPoolingTime, 2, 2), mode='nearest'),
                 nn.Conv3d(in_channels=48, out_channels=24, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
                 nn.Conv3d(in_channels=24, out_channels=5, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
             )
@@ -97,7 +102,7 @@ class Decoder(nn.Module):
 
 
 class WeatherDataAutoEncoder(nn.Module):
-    def __init__(self, config, logger):
+    def __init__(self, config):
         super().__init__()
         self.config = config
 
@@ -150,8 +155,8 @@ class WeatherDataAutoEncoder(nn.Module):
         # x = self.deConv3(x)
         # # print("Dencoder conv 3 output shape {}".format(x.shape))
         x = self.encoder(x)
-        print(x.shape)
-        x = self.decoder(x)
+        # for x_ in x: print(x_.shape)
+        x = self.decoder(x[-1])
 
         return x
 
@@ -166,7 +171,7 @@ if __name__ == "__main__":
     config = load_config('/home/nikoskot/earthnetThesis/experiments/configWeatherDataAE.yml')
 
     startTime = time.time()
-    model = WeatherDataAutoEncoder(config, logger=None).to(torch.device('cuda'))
+    model = WeatherDataAutoEncoder(config)
     endTime = time.time()
     print("Model creation time {}".format(endTime - startTime))
     print(model)
@@ -178,14 +183,14 @@ if __name__ == "__main__":
     totalParams = sum(p.numel() for p in model.parameters())
 
     startTime = time.time()
-    contextWeather = torch.rand(1, 5, 50, 80, 80).to(torch.device('cuda')) # B, C, T, H, W
+    contextWeather = torch.rand(1, 5, 20, 80, 80) # B, C, T, H, W
     endTime = time.time()
     print("Dummy data creation time {}".format(endTime - startTime))
 
     # torch.cuda.memory._record_memory_history(max_entries=100000)
     
     for i in range(20):
-        _ = torch.randn(1).cuda()        
+        _ = torch.randn(1)       
         startTime = time.time()
         y = model(contextWeather)
         endTime = time.time()
@@ -233,12 +238,12 @@ def train_loop(dataloader,
 
         # Move data to GPU
         
-        contextWeather = data['contextWeather'].to(torch.device('cuda'))
-        y = data['contextWeather'].to(torch.device('cuda'))
+        weatherData = data[config['weatherAEImagesPart']].to(torch.device('cuda'))
+        y = data[config['weatherAEImagesPart']].to(torch.device('cuda'))
         mask = torch.ones(size=(y.shape[0], 1, y.shape[2], y.shape[3], y.shape[3])).to(torch.device('cuda'))
 
         # Compute prediction and loss
-        pred = model(contextWeather)
+        pred = model(weatherData)
         # pred = torch.clamp(pred, min=0.0, max=1.0)
 
         l1LossValue = l1Loss(pred, y, mask)
@@ -354,12 +359,12 @@ def validation_loop(dataloader,
             batchNumber += 1
             
             # Move data to GPU
-            contextWeather = data['contextWeather'].to(torch.device('cuda'))
-            y = data['contextWeather'].to(torch.device('cuda'))
+            weatherData = data[config['weatherAEImagesPart']].to(torch.device('cuda'))
+            y = data[config['weatherAEImagesPart']].to(torch.device('cuda'))
             mask = torch.ones(size=(y.shape[0], 1, y.shape[2], y.shape[3], y.shape[3])).to(torch.device('cuda'))
 
             # Compute prediction and loss
-            pred = model(contextWeather)
+            pred = model(weatherData)
             # pred = torch.clamp(pred, min=0.0, max=1.0)
 
             l1LossValue = l1Loss(pred, y, mask)

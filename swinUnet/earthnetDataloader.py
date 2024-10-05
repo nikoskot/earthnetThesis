@@ -380,6 +380,93 @@ class PreprocessingWeather(object):
 
         return data
     
+class PreprocessingV7(object):
+
+    def __init__(self, reduceTime):
+        self.reduceTime = reduceTime
+
+    def __call__(self, data):
+
+        contextImages = torch.from_numpy(data['context']['images'])
+        contextWeather = torch.from_numpy(data['context']['weather'])
+        contextMask = torch.from_numpy(data['context']['mask'])
+        targetImages = torch.from_numpy(data['target']['images'])
+        targetWeather = torch.from_numpy(data['target']['weather'])
+        targetMask = torch.from_numpy(data['target']['mask'])
+        demHigh = torch.from_numpy(data['demHigh'])
+        demMeso = torch.from_numpy(data['demMeso'])
+
+        H, W = contextImages.shape[2::]
+
+        h, w = contextWeather.shape[2::]
+
+        if self.reduceTime:
+            # contextWeather = F.interpolate(contextWeather, size=(H, W))         # CThw -> CTHW T=50
+            contextWeather = contextWeather.reshape(contextWeather.shape[0], 10, 5, h, w).mean(2).reshape(contextWeather.shape[0], 10, h, w) # CThw T=50 -> CThw T=10
+            # targetWeather = F.interpolate(targetWeather, size=(H, W))         # CThw -> CTHW T=100
+            targetWeather = targetWeather.reshape(targetWeather.shape[0], 20, 5, h, w).mean(2).reshape(targetWeather.shape[0], 20, h, w) # CThw T=100 -> CThw T=20
+
+        demHigh = demHigh.unsqueeze(1)   # from CHW -> CTHW C=1 T=1
+        demHigh = torch.repeat_interleave(demHigh, repeats=10, dim=1)  # CTHW T=10
+        
+        # demMeso = demMeso.unsqueeze(1)                  # from Chw -> CThw C=1 T=1
+        # demMeso = F.interpolate(demMeso, size=(H, W))   # CTHW C=1 T=1
+        # demMeso = torch.repeat_interleave(demMeso, repeats=10, dim=1) # CTHW T=10
+
+        data = {
+            "contextImgDEM": torch.cat((contextImages, demHigh)), # CTHW, C=5, T=10
+            "contextWeather": contextWeather,                     # CThw, C=5, T=10
+            "targetWeather": targetWeather,                       # CThw, C=5, T=20
+            "y": targetImages,                                    # CTHW, C=4, T=20
+            "targetMask": targetMask,                             # CTHW, C=1, T=20
+            "tile"    : data['tile'],
+            "cubename": data['cubename'],
+        }
+
+        return data
+
+class PreprocessingV8(object):
+
+    def __init__(self):
+        pass
+
+    def __call__(self, data):
+
+        contextImages = torch.from_numpy(data['context']['images'])
+        contextWeather = torch.from_numpy(data['context']['weather'])
+        contextMask = torch.from_numpy(data['context']['mask'])
+        targetImages = torch.from_numpy(data['target']['images'])
+        targetWeather = torch.from_numpy(data['target']['weather'])
+        targetMask = torch.from_numpy(data['target']['mask'])
+        demHigh = torch.from_numpy(data['demHigh'])
+        demMeso = torch.from_numpy(data['demMeso'])
+
+        H, W = contextImages.shape[2::]
+
+        h, w = contextWeather.shape[2::]
+
+        allWeather = torch.cat((contextWeather, targetWeather), 1) # Concatenate all weather data across time to get full 150 days
+        allWeather = F.interpolate(allWeather, size=(H, W))         # CThw -> CTHW T=150
+        allWeather = allWeather.reshape(allWeather.shape[0], 10, 15, H, W).mean(2).reshape(allWeather.shape[0], 10, H, W) # CTHW T=10
+
+        # demHigh = demHigh.unsqueeze(1)   # from CHW -> CTHW C=1 T=1
+        # demHigh = torch.repeat_interleave(demHigh, repeats=10, dim=1)  # CTHW T=10
+        
+        # demMeso = demMeso.unsqueeze(1)                  # from Chw -> CThw C=1 T=1
+        # demMeso = F.interpolate(demMeso, size=(H, W))   # CTHW C=1 T=1
+        # demMeso = torch.repeat_interleave(demMeso, repeats=10, dim=1) # CTHW T=10
+
+        data = {
+            "contextImgWeather": torch.cat((contextImages, allWeather)), # CTHW, C=9, T=10
+            "demHigh": demHigh,                                          # CHW, C=1
+            "y": targetImages,                                           # CTHW, C=4, T=20
+            "targetMask": targetMask,                                    # CTHW, C=1, T=20
+            "tile"    : data['tile'],
+            "cubename": data['cubename'],
+        }
+
+        return data
+    
     
 if __name__ == "__main__":
 

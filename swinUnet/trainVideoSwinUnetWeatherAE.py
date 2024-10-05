@@ -296,7 +296,7 @@ def trainWeatherDataAutoEncoder(config, args):
 
     # Intiialize Video Swin Unet model and move to GPU
     from WeatherDataAutoEncoder import WeatherDataAutoEncoder, train_loop, validation_loop
-    model = WeatherDataAutoEncoder(config, logger).to(device)
+    model = WeatherDataAutoEncoder(config).to(device)
 
     # Setup Loss Function and Optimizer
     l1Loss = MaskedLoss(lossType='l1', lossFunction=nn.L1Loss(reduction='sum'))
@@ -397,27 +397,27 @@ def trainWeatherDataAutoEncoder(config, args):
     # Log training ground truths
     for id in cubeIds:
         # variable rr
-        targ = trainDataset.__getitem__(id)[config['weatherAEImagesPart'] + 'Weather'].numpy()[0, :, :, :]#.transpose(1, 2 ,3 ,0)
+        targ = trainDataset.__getitem__(id)[config['weatherAEImagesPart']].numpy()[0, :, :, :]#.transpose(1, 2 ,3 ,0)
         targ = colorize(targ, colormap="Blues", mask_red=np.isnan(targ))
         grid = gallery(targ)
         rr.log('/train/groundTruth/precipitaion/{}'.format(trainDataset.__getitem__(id)['cubename']), rr.Image(grid))
         # variable pp
-        targ = trainDataset.__getitem__(id)[config['weatherAEImagesPart'] + 'Weather'].numpy()[1, :, :, :]#.transpose(1, 2 ,3 ,0)
+        targ = trainDataset.__getitem__(id)[config['weatherAEImagesPart']].numpy()[1, :, :, :]#.transpose(1, 2 ,3 ,0)
         targ = colorize(targ, colormap="rainbow", mask_red=np.isnan(targ))
         grid = gallery(targ)
         rr.log('/train/groundTruth/pressure/{}'.format(trainDataset.__getitem__(id)['cubename']), rr.Image(grid))
         # variable tg
-        targ = trainDataset.__getitem__(id)[config['weatherAEImagesPart'] + 'Weather'].numpy()[2, :, :, :]#.transpose(1, 2 ,3 ,0)
+        targ = trainDataset.__getitem__(id)[config['weatherAEImagesPart']].numpy()[2, :, :, :]#.transpose(1, 2 ,3 ,0)
         targ = colorize(targ, colormap="coolwarm", mask_red=np.isnan(targ))
         grid = gallery(targ)
         rr.log('/train/groundTruth/meanTmp/{}'.format(trainDataset.__getitem__(id)['cubename']), rr.Image(grid))
         # variable tn
-        targ = trainDataset.__getitem__(id)[config['weatherAEImagesPart'] + 'Weather'].numpy()[3, :, :, :]#.transpose(1, 2 ,3 ,0)
+        targ = trainDataset.__getitem__(id)[config['weatherAEImagesPart']].numpy()[3, :, :, :]#.transpose(1, 2 ,3 ,0)
         targ = colorize(targ, colormap="coolwarm", mask_red=np.isnan(targ))
         grid = gallery(targ)
         rr.log('/train/groundTruth/minimumTmp/{}'.format(trainDataset.__getitem__(id)['cubename']), rr.Image(grid))
         # variable tx
-        targ = trainDataset.__getitem__(id)[config['weatherAEImagesPart'] + 'Weather'].numpy()[4, :, :, :]#.transpose(1, 2 ,3 ,0)
+        targ = trainDataset.__getitem__(id)[config['weatherAEImagesPart']].numpy()[4, :, :, :]#.transpose(1, 2 ,3 ,0)
         targ = colorize(targ, colormap="coolwarm", mask_red=np.isnan(targ))
         grid = gallery(targ)
         rr.log('/train/groundTruth/maximumTmp/{}'.format(trainDataset.__getitem__(id)['cubename']), rr.Image(grid))
@@ -428,27 +428,27 @@ def trainWeatherDataAutoEncoder(config, args):
 
     for id in cubeIds:
         # variable rr
-        targ = valDataset.__getitem__(id)[config['weatherAEImagesPart'] + 'Weather'].numpy()[0, :, :, :]#.transpose(1, 2 ,3 ,0)
+        targ = valDataset.__getitem__(id)[config['weatherAEImagesPart']].numpy()[0, :, :, :]#.transpose(1, 2 ,3 ,0)
         targ = colorize(targ, colormap="Blues", mask_red=np.isnan(targ))
         grid = gallery(targ)
         rr.log('/validation/groundTruth/precipitaion/{}'.format(valDataset.__getitem__(id)['cubename']), rr.Image(grid))
         # variable pp
-        targ = valDataset.__getitem__(id)[config['weatherAEImagesPart'] + 'Weather'].numpy()[1, :, :, :]#.transpose(1, 2 ,3 ,0)
+        targ = valDataset.__getitem__(id)[config['weatherAEImagesPart']].numpy()[1, :, :, :]#.transpose(1, 2 ,3 ,0)
         targ = colorize(targ, colormap="rainbow", mask_red=np.isnan(targ))
         grid = gallery(targ)
         rr.log('/validation/groundTruth/pressure/{}'.format(valDataset.__getitem__(id)['cubename']), rr.Image(grid))
         # variable tg
-        targ = valDataset.__getitem__(id)[config['weatherAEImagesPart'] + 'Weather'].numpy()[2, :, :, :]#.transpose(1, 2 ,3 ,0)
+        targ = valDataset.__getitem__(id)[config['weatherAEImagesPart']].numpy()[2, :, :, :]#.transpose(1, 2 ,3 ,0)
         targ = colorize(targ, colormap="coolwarm", mask_red=np.isnan(targ))
         grid = gallery(targ)
         rr.log('/validation/groundTruth/meanTmp/{}'.format(valDataset.__getitem__(id)['cubename']), rr.Image(grid))
         # variable tn
-        targ = valDataset.__getitem__(id)[config['weatherAEImagesPart'] + 'Weather'].numpy()[3, :, :, :]#.transpose(1, 2 ,3 ,0)
+        targ = valDataset.__getitem__(id)[config['weatherAEImagesPart']].numpy()[3, :, :, :]#.transpose(1, 2 ,3 ,0)
         targ = colorize(targ, colormap="coolwarm", mask_red=np.isnan(targ))
         grid = gallery(targ)
         rr.log('/validation/groundTruth/minimumTmp/{}'.format(valDataset.__getitem__(id)['cubename']), rr.Image(grid))
         # variable tx
-        targ = valDataset.__getitem__(id)[config['weatherAEImagesPart'] + 'Weather'].numpy()[4, :, :, :]#.transpose(1, 2 ,3 ,0)
+        targ = valDataset.__getitem__(id)[config['weatherAEImagesPart']].numpy()[4, :, :, :]#.transpose(1, 2 ,3 ,0)
         targ = colorize(targ, colormap="coolwarm", mask_red=np.isnan(targ))
         grid = gallery(targ)
         rr.log('/validation/groundTruth/maximumTmp/{}'.format(valDataset.__getitem__(id)['cubename']), rr.Image(grid))

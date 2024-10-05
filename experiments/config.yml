@@ -8,7 +8,7 @@ trainDataSubset: null
 trainSplit: 0.8
 validationSplit: 0.2
 cropMesodynamic: True
-experimentsFolder: "/home/nikoskot/earthnetThesis/experiments"
+experimentsFolder: "/home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/"
 overfitTraining: False
 visualizationFreq: 10
 calculateENSonValidationFreq: 10
@@ -26,11 +26,11 @@ modelOutputCh: 4
 timeUpsampling: 'encoder' # 'patchEmbedding': do it after patch embedding, 'encoder': do it after encoder
 #numBlocks: 3
 inputHeightWidth: 128
-windowSize: [8, 3, 3]
-patchSize: [2, 2, 2]
+windowSize: [2, 7, 7]
+patchSize: [1, 2, 2]
 ape: True
 patchEmbedding:
-  norm: True
+  norm: "LayerNorm"       # 'LayerNorm' or 'BatchNorm' or null 
 encoder:
   numChannels: [96, 192]
   layerDepths: [2, 2]
@@ -40,9 +40,10 @@ encoder:
   qkScale: null
   drop: 0.
   attnDrop: 0.
-  dropPath: 0.3
-  norm: True
+  dropPath: 0.2
+  norm: "LayerNorm"        # 'LayerNorm' or 'BatchNorm' or null 
   downsample: [False, True]
+  downsampleNorm: "LayerNorm"   # 'LayerNorm' or 'BatchNorm' or null 
   useCheckpoint: False
   # patchMerging:
   #   norm: False
@@ -59,9 +60,10 @@ decoder:
   qkScale: null
   drop: 0.
   attnDrop: 0.
-  dropPath: 0.1
-  norm: True
+  dropPath: 0.2
+  norm: "LayerNorm"        # 'LayerNorm' or 'BatchNorm' or null 
   upsample: [True, False]
+  upsampleNorm: "LayerNorm"   # 'LayerNorm' or 'BatchNorm' or null 
   useCheckpoint: False
   # patchExpansion:
   #   norm: False
@@ -69,16 +71,21 @@ decoder:
 
 # Optimization
 epochs: 90      # Number of epochs to run the training for
-# trainLossFunctions: ["maskedL1"] # First one is the one that is used for checkpoint saving
-l1Weight: 2.7
-mseWeight: 3.4
-ssimWeight: 5.6
+l1Weight: 1
+mseWeight: 1
+ssimWeight: 1
+vggWeight: 1
 trainingOptimizer: "adamw"
-lr: 0.0003         # Def 0.0005
-weightDecay: 0.045
-scheduler: "ReduceLROnPlateau"
-warmupEpochs: 10
+lr: 0.0002         # Def 0.0005
+weightDecay: 0.05
+scheduler: "CosineAnnealing"
+warmupEpochs: 5
 lrScaleFactor: 0.2
-schedulerPatience: 10
+schedulerPatience: 5
+cosineAnnealingRestartsInterval: 10
 gradientClipping: False
 gradientClipValue: 0.5
+
+useMSE: False
+useSSIM: True
+useVGG: False
