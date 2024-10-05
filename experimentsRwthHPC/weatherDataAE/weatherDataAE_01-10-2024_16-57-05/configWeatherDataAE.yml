@@ -93,5 +93,5 @@ useSSIM: False
 useVGG: False
 
 weatherAEImagesPart: "context" # "context" or "target"
-autoencoderNumLayers: 3
+autoencoderNumLayers: 2
 autoencoderReduceTime: True
