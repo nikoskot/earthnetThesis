@@ -1,0 +1,8 @@
+#!/bin/bash
+#SBATCH --partition=A100short
+#SBATCH --time=8:00:00
+#SBATCH --gpus=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
+
+python /home/nikoskot/earthnetThesis/swinUnet/calculateMeanStd.py

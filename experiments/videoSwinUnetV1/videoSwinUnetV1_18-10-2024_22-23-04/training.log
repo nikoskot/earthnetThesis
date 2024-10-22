@@ -1,0 +1,558 @@
+2024-10-18 22:23:04,342 - INFO - NOTE: None
+2024-10-18 22:23:04,364 - INFO - Torch, random, numpy seed: 88
+2024-10-18 22:23:07,298 - INFO - load model from: /home/nikoskot/earthnetThesis/swin_tiny_patch244_window877_kinetics400_1k.pth
+2024-10-18 22:23:07,418 - INFO - _IncompatibleKeys(missing_keys=['encoder.layers.0.blocks.0.attn.relative_position_index', 'encoder.layers.0.blocks.1.attn.relative_position_index', 'encoder.layers.1.blocks.0.attn.relative_position_index', 'encoder.layers.1.blocks.1.attn.relative_position_index', 'encoder.layers.2.blocks.0.attn.relative_position_index', 'encoder.layers.2.blocks.1.attn.relative_position_index', 'decoder.layers.0.blocks.0.norm1.weight', 'decoder.layers.0.blocks.0.norm1.bias', 'decoder.layers.0.blocks.0.attn.relative_position_bias_table', 'decoder.layers.0.blocks.0.attn.relative_position_index', 'decoder.layers.0.blocks.0.attn.qkv.weight', 'decoder.layers.0.blocks.0.attn.qkv.bias', 'decoder.layers.0.blocks.0.attn.proj.weight', 'decoder.layers.0.blocks.0.attn.proj.bias', 'decoder.layers.0.blocks.0.norm2.weight', 'decoder.layers.0.blocks.0.norm2.bias', 'decoder.layers.0.blocks.0.mlp.fc1.weight', 'decoder.layers.0.blocks.0.mlp.fc1.bias', 'decoder.layers.0.blocks.0.mlp.fc2.weight', 'decoder.layers.0.blocks.0.mlp.fc2.bias', 'decoder.layers.0.blocks.1.norm1.weight', 'decoder.layers.0.blocks.1.norm1.bias', 'decoder.layers.0.blocks.1.attn.relative_position_bias_table', 'decoder.layers.0.blocks.1.attn.relative_position_index', 'decoder.layers.0.blocks.1.attn.qkv.weight', 'decoder.layers.0.blocks.1.attn.qkv.bias', 'decoder.layers.0.blocks.1.attn.proj.weight', 'decoder.layers.0.blocks.1.attn.proj.bias', 'decoder.layers.0.blocks.1.norm2.weight', 'decoder.layers.0.blocks.1.norm2.bias', 'decoder.layers.0.blocks.1.mlp.fc1.weight', 'decoder.layers.0.blocks.1.mlp.fc1.bias', 'decoder.layers.0.blocks.1.mlp.fc2.weight', 'decoder.layers.0.blocks.1.mlp.fc2.bias', 'decoder.layers.0.upsample.conv.weight', 'decoder.layers.0.upsample.conv.bias', 'decoder.layers.0.upsample.norm.weight', 'decoder.layers.0.upsample.norm.bias', 'decoder.layers.1.blocks.0.norm1.weight', 'decoder.layers.1.blocks.0.norm1.bias', 'decoder.layers.1.blocks.0.attn.relative_position_bias_table', 'decoder.layers.1.blocks.0.attn.relative_position_index', 'decoder.layers.1.blocks.0.attn.qkv.weight', 'decoder.layers.1.blocks.0.attn.qkv.bias', 'decoder.layers.1.blocks.0.attn.proj.weight', 'decoder.layers.1.blocks.0.attn.proj.bias', 'decoder.layers.1.blocks.0.norm2.weight', 'decoder.layers.1.blocks.0.norm2.bias', 'decoder.layers.1.blocks.0.mlp.fc1.weight', 'decoder.layers.1.blocks.0.mlp.fc1.bias', 'decoder.layers.1.blocks.0.mlp.fc2.weight', 'decoder.layers.1.blocks.0.mlp.fc2.bias', 'decoder.layers.1.blocks.1.norm1.weight', 'decoder.layers.1.blocks.1.norm1.bias', 'decoder.layers.1.blocks.1.attn.relative_position_bias_table', 'decoder.layers.1.blocks.1.attn.relative_position_index', 'decoder.layers.1.blocks.1.attn.qkv.weight', 'decoder.layers.1.blocks.1.attn.qkv.bias', 'decoder.layers.1.blocks.1.attn.proj.weight', 'decoder.layers.1.blocks.1.attn.proj.bias', 'decoder.layers.1.blocks.1.norm2.weight', 'decoder.layers.1.blocks.1.norm2.bias', 'decoder.layers.1.blocks.1.mlp.fc1.weight', 'decoder.layers.1.blocks.1.mlp.fc1.bias', 'decoder.layers.1.blocks.1.mlp.fc2.weight', 'decoder.layers.1.blocks.1.mlp.fc2.bias', 'decoder.layers.1.upsample.conv.weight', 'decoder.layers.1.upsample.conv.bias', 'decoder.layers.1.upsample.norm.weight', 'decoder.layers.1.upsample.norm.bias', 'decoder.layers.2.blocks.0.norm1.weight', 'decoder.layers.2.blocks.0.norm1.bias', 'decoder.layers.2.blocks.0.attn.relative_position_bias_table', 'decoder.layers.2.blocks.0.attn.relative_position_index', 'decoder.layers.2.blocks.0.attn.qkv.weight', 'decoder.layers.2.blocks.0.attn.qkv.bias', 'decoder.layers.2.blocks.0.attn.proj.weight', 'decoder.layers.2.blocks.0.attn.proj.bias', 'decoder.layers.2.blocks.0.norm2.weight', 'decoder.layers.2.blocks.0.norm2.bias', 'decoder.layers.2.blocks.0.mlp.fc1.weight', 'decoder.layers.2.blocks.0.mlp.fc1.bias', 'decoder.layers.2.blocks.0.mlp.fc2.weight', 'decoder.layers.2.blocks.0.mlp.fc2.bias', 'decoder.layers.2.blocks.1.norm1.weight', 'decoder.layers.2.blocks.1.norm1.bias', 'decoder.layers.2.blocks.1.attn.relative_position_bias_table', 'decoder.layers.2.blocks.1.attn.relative_position_index', 'decoder.layers.2.blocks.1.attn.qkv.weight', 'decoder.layers.2.blocks.1.attn.qkv.bias', 'decoder.layers.2.blocks.1.attn.proj.weight', 'decoder.layers.2.blocks.1.attn.proj.bias', 'decoder.layers.2.blocks.1.norm2.weight', 'decoder.layers.2.blocks.1.norm2.bias', 'decoder.layers.2.blocks.1.mlp.fc1.weight', 'decoder.layers.2.blocks.1.mlp.fc1.bias', 'decoder.layers.2.blocks.1.mlp.fc2.weight', 'decoder.layers.2.blocks.1.mlp.fc2.bias', 'head.conv1.weight', 'head.conv1.bias', 'head.conv2.weight', 'head.conv2.bias', 'head.conv3.weight', 'head.conv3.bias'], unexpected_keys=['encoder.layers.3.downsample.reduction.weight', 'encoder.layers.3.downsample.norm.weight', 'encoder.layers.3.downsample.norm.bias', 'encoder.layers.2.blocks.2.norm1.weight', 'encoder.layers.2.blocks.2.norm1.bias', 'encoder.layers.2.blocks.2.attn.qkv.weight', 'encoder.layers.2.blocks.2.attn.qkv.bias', 'encoder.layers.2.blocks.2.attn.proj.weight', 'encoder.layers.2.blocks.2.attn.proj.bias', 'encoder.layers.2.blocks.2.norm2.weight', 'encoder.layers.2.blocks.2.norm2.bias', 'encoder.layers.2.blocks.2.mlp.fc1.weight', 'encoder.layers.2.blocks.2.mlp.fc1.bias', 'encoder.layers.2.blocks.2.mlp.fc2.weight', 'encoder.layers.2.blocks.2.mlp.fc2.bias', 'encoder.layers.2.blocks.3.norm1.weight', 'encoder.layers.2.blocks.3.norm1.bias', 'encoder.layers.2.blocks.3.attn.qkv.weight', 'encoder.layers.2.blocks.3.attn.qkv.bias', 'encoder.layers.2.blocks.3.attn.proj.weight', 'encoder.layers.2.blocks.3.attn.proj.bias', 'encoder.layers.2.blocks.3.norm2.weight', 'encoder.layers.2.blocks.3.norm2.bias', 'encoder.layers.2.blocks.3.mlp.fc1.weight', 'encoder.layers.2.blocks.3.mlp.fc1.bias', 'encoder.layers.2.blocks.3.mlp.fc2.weight', 'encoder.layers.2.blocks.3.mlp.fc2.bias', 'encoder.layers.2.blocks.4.norm1.weight', 'encoder.layers.2.blocks.4.norm1.bias', 'encoder.layers.2.blocks.4.attn.qkv.weight', 'encoder.layers.2.blocks.4.attn.qkv.bias', 'encoder.layers.2.blocks.4.attn.proj.weight', 'encoder.layers.2.blocks.4.attn.proj.bias', 'encoder.layers.2.blocks.4.norm2.weight', 'encoder.layers.2.blocks.4.norm2.bias', 'encoder.layers.2.blocks.4.mlp.fc1.weight', 'encoder.layers.2.blocks.4.mlp.fc1.bias', 'encoder.layers.2.blocks.4.mlp.fc2.weight', 'encoder.layers.2.blocks.4.mlp.fc2.bias', 'encoder.layers.2.blocks.5.norm1.weight', 'encoder.layers.2.blocks.5.norm1.bias', 'encoder.layers.2.blocks.5.attn.qkv.weight', 'encoder.layers.2.blocks.5.attn.qkv.bias', 'encoder.layers.2.blocks.5.attn.proj.weight', 'encoder.layers.2.blocks.5.attn.proj.bias', 'encoder.layers.2.blocks.5.norm2.weight', 'encoder.layers.2.blocks.5.norm2.bias', 'encoder.layers.2.blocks.5.mlp.fc1.weight', 'encoder.layers.2.blocks.5.mlp.fc1.bias', 'encoder.layers.2.blocks.5.mlp.fc2.weight', 'encoder.layers.2.blocks.5.mlp.fc2.bias'])
+2024-10-18 22:23:07,420 - INFO - => loaded successfully '/home/nikoskot/earthnetThesis/swin_tiny_patch244_window877_kinetics400_1k.pth'
+2024-10-18 22:23:08,793 - INFO - Starting training from from epoch 1
+2024-10-18 22:23:18,018 - INFO - Epoch 1
+-------------------------------
+2024-10-18 22:23:18,018 - INFO - Learning Rate of group 0: 0.0
+2024-10-18 22:23:18,018 - INFO - Learning Rate of group 1: 0.0
+2024-10-18 23:17:23,619 - INFO - Maximum gradient before clipping: 0.26622459292411804
+2024-10-18 23:17:23,620 - INFO - Minimum gradient before clipping: -0.22491243481636047
+2024-10-18 23:17:23,621 - INFO - Mean training L1 loss: 0.1504372755125545
+2024-10-18 23:17:23,621 - INFO - Mean training SSIM loss: 0.9997682832165873
+2024-10-18 23:17:23,621 - INFO - Mean training MSE loss: 0.0
+2024-10-18 23:17:23,621 - INFO - Mean training VGG loss: 0.0
+2024-10-18 23:21:49,396 - INFO - Mean validation L1 loss: 0.14788254803937415
+2024-10-18 23:21:49,397 - INFO - Mean validation SSIM loss: 0.9997487702098579
+2024-10-18 23:21:49,397 - INFO - Mean validation MSE loss: 0.0
+2024-10-18 23:21:49,397 - INFO - Mean validation VGG loss: 0.0
+2024-10-18 23:21:50,085 - INFO - New best validation Loss 0.14788254803937415, at epoch 1
+2024-10-18 23:21:51,255 - INFO - Epoch 2
+-------------------------------
+2024-10-18 23:21:51,255 - INFO - Learning Rate of group 0: 3.3333333333333335e-05
+2024-10-18 23:21:51,255 - INFO - Learning Rate of group 1: 1.3333333333333333e-05
+2024-10-19 00:15:53,548 - INFO - Maximum gradient before clipping: 0.9454489350318909
+2024-10-19 00:15:53,549 - INFO - Minimum gradient before clipping: -0.7756406664848328
+2024-10-19 00:15:53,550 - INFO - Mean training L1 loss: 0.04337000185160246
+2024-10-19 00:15:53,550 - INFO - Mean training SSIM loss: 0.9761819638801089
+2024-10-19 00:15:53,550 - INFO - Mean training MSE loss: 0.0
+2024-10-19 00:15:53,550 - INFO - Mean training VGG loss: 0.0
+2024-10-19 00:20:19,441 - INFO - Mean validation L1 loss: 0.04280728760820169
+2024-10-19 00:20:19,442 - INFO - Mean validation SSIM loss: 0.9752828334286859
+2024-10-19 00:20:19,442 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 00:20:19,442 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 00:20:20,120 - INFO - New best validation Loss 0.04280728760820169, at epoch 2
+2024-10-19 00:20:20,795 - INFO - Epoch 3
+-------------------------------
+2024-10-19 00:20:20,795 - INFO - Learning Rate of group 0: 6.666666666666667e-05
+2024-10-19 00:20:20,795 - INFO - Learning Rate of group 1: 2.6666666666666667e-05
+2024-10-19 01:14:23,475 - INFO - Maximum gradient before clipping: 0.9523515701293945
+2024-10-19 01:14:23,475 - INFO - Minimum gradient before clipping: -0.744943380355835
+2024-10-19 01:14:23,476 - INFO - Mean training L1 loss: 0.04290873940063415
+2024-10-19 01:14:23,476 - INFO - Mean training SSIM loss: 0.9759085135747079
+2024-10-19 01:14:23,476 - INFO - Mean training MSE loss: 0.0
+2024-10-19 01:14:23,476 - INFO - Mean training VGG loss: 0.0
+2024-10-19 01:18:48,716 - INFO - Mean validation L1 loss: 0.042847982629585425
+2024-10-19 01:18:48,717 - INFO - Mean validation SSIM loss: 0.9753121631001948
+2024-10-19 01:18:48,717 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 01:18:48,717 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 01:18:49,414 - INFO - Epoch 4
+-------------------------------
+2024-10-19 01:18:49,414 - INFO - Learning Rate of group 0: 0.0001
+2024-10-19 01:18:49,414 - INFO - Learning Rate of group 1: 4e-05
+2024-10-19 02:12:52,460 - INFO - Maximum gradient before clipping: 1.164089322090149
+2024-10-19 02:12:52,460 - INFO - Minimum gradient before clipping: -1.5995041131973267
+2024-10-19 02:12:52,461 - INFO - Mean training L1 loss: 0.0415755613293734
+2024-10-19 02:12:52,461 - INFO - Mean training SSIM loss: 0.9685653529621876
+2024-10-19 02:12:52,461 - INFO - Mean training MSE loss: 0.0
+2024-10-19 02:12:52,461 - INFO - Mean training VGG loss: 0.0
+2024-10-19 02:17:18,331 - INFO - Mean validation L1 loss: 0.038442041833937964
+2024-10-19 02:17:18,331 - INFO - Mean validation SSIM loss: 0.9450585423504628
+2024-10-19 02:17:18,331 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 02:17:18,332 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 02:17:19,054 - INFO - New best validation Loss 0.038442041833937964, at epoch 4
+2024-10-19 02:17:19,719 - INFO - Epoch 5
+-------------------------------
+2024-10-19 02:17:19,719 - INFO - Learning Rate of group 0: 0.00013333333333333334
+2024-10-19 02:17:19,719 - INFO - Learning Rate of group 1: 5.333333333333333e-05
+2024-10-19 03:11:23,327 - INFO - Maximum gradient before clipping: 2.8153469562530518
+2024-10-19 03:11:23,330 - INFO - Minimum gradient before clipping: -2.6059255599975586
+2024-10-19 03:11:23,331 - INFO - Mean training L1 loss: 0.03495656837296755
+2024-10-19 03:11:23,331 - INFO - Mean training SSIM loss: 0.9215910354950896
+2024-10-19 03:11:23,331 - INFO - Mean training MSE loss: 0.0
+2024-10-19 03:11:23,331 - INFO - Mean training VGG loss: 0.0
+2024-10-19 03:15:49,284 - INFO - Mean validation L1 loss: 0.03243664073380938
+2024-10-19 03:15:49,285 - INFO - Mean validation SSIM loss: 0.8955416951490485
+2024-10-19 03:15:49,285 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 03:15:49,285 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 03:15:49,993 - INFO - New best validation Loss 0.03243664073380938, at epoch 5
+2024-10-19 03:15:50,655 - INFO - Epoch 6
+-------------------------------
+2024-10-19 03:15:50,655 - INFO - Learning Rate of group 0: 0.00016666666666666666
+2024-10-19 03:15:50,655 - INFO - Learning Rate of group 1: 6.666666666666667e-05
+2024-10-19 04:09:54,198 - INFO - Maximum gradient before clipping: 4.896746635437012
+2024-10-19 04:09:54,199 - INFO - Minimum gradient before clipping: -4.337094306945801
+2024-10-19 04:09:54,200 - INFO - Mean training L1 loss: 0.030743891087375092
+2024-10-19 04:09:54,200 - INFO - Mean training SSIM loss: 0.8822065149576083
+2024-10-19 04:09:54,200 - INFO - Mean training MSE loss: 0.0
+2024-10-19 04:09:54,200 - INFO - Mean training VGG loss: 0.0
+2024-10-19 04:14:19,692 - INFO - Mean validation L1 loss: 0.03219164762471532
+2024-10-19 04:14:19,692 - INFO - Mean validation SSIM loss: 0.8794732965952576
+2024-10-19 04:14:19,692 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 04:14:19,692 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 04:14:20,404 - INFO - New best validation Loss 0.03219164762471532, at epoch 6
+2024-10-19 04:14:21,214 - INFO - Epoch 7
+-------------------------------
+2024-10-19 04:14:21,214 - INFO - Learning Rate of group 0: 0.0002
+2024-10-19 04:14:21,214 - INFO - Learning Rate of group 1: 8e-05
+2024-10-19 05:08:24,668 - INFO - Maximum gradient before clipping: 3.9386396408081055
+2024-10-19 05:08:24,669 - INFO - Minimum gradient before clipping: -5.130799770355225
+2024-10-19 05:08:24,669 - INFO - Mean training L1 loss: 0.028997916756302977
+2024-10-19 05:08:24,670 - INFO - Mean training SSIM loss: 0.8609158982297258
+2024-10-19 05:08:24,670 - INFO - Mean training MSE loss: 0.0
+2024-10-19 05:08:24,670 - INFO - Mean training VGG loss: 0.0
+2024-10-19 05:12:50,177 - INFO - Mean validation L1 loss: 0.027484665643486093
+2024-10-19 05:12:50,178 - INFO - Mean validation SSIM loss: 0.84405011496815
+2024-10-19 05:12:50,178 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 05:12:50,178 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 05:12:50,882 - INFO - New best validation Loss 0.027484665643486093, at epoch 7
+2024-10-19 05:12:51,552 - INFO - Epoch 8
+-------------------------------
+2024-10-19 05:12:51,552 - INFO - Learning Rate of group 0: 0.00023333333333333333
+2024-10-19 05:12:51,552 - INFO - Learning Rate of group 1: 9.333333333333334e-05
+2024-10-19 06:06:54,696 - INFO - Maximum gradient before clipping: 4.204493999481201
+2024-10-19 06:06:54,696 - INFO - Minimum gradient before clipping: -4.211012840270996
+2024-10-19 06:06:54,697 - INFO - Mean training L1 loss: 0.028279502342082326
+2024-10-19 06:06:54,697 - INFO - Mean training SSIM loss: 0.8506729562179856
+2024-10-19 06:06:54,697 - INFO - Mean training MSE loss: 0.0
+2024-10-19 06:06:54,697 - INFO - Mean training VGG loss: 0.0
+2024-10-19 06:11:20,257 - INFO - Mean validation L1 loss: 0.026663539632158135
+2024-10-19 06:11:20,257 - INFO - Mean validation SSIM loss: 0.8331652504943287
+2024-10-19 06:11:20,257 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 06:11:20,257 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 06:11:20,925 - INFO - New best validation Loss 0.026663539632158135, at epoch 8
+2024-10-19 06:11:21,584 - INFO - Epoch 9
+-------------------------------
+2024-10-19 06:11:21,584 - INFO - Learning Rate of group 0: 0.0002666666666666667
+2024-10-19 06:11:21,584 - INFO - Learning Rate of group 1: 0.00010666666666666667
+2024-10-19 10:20:16,096 - INFO - NOTE: None
+2024-10-19 10:20:16,123 - INFO - Torch, random, numpy seed: 88
+2024-10-19 10:20:16,657 - INFO - load model from: /home/nikoskot/earthnetThesis/swin_tiny_patch244_window877_kinetics400_1k.pth
+2024-10-19 10:20:16,765 - INFO - _IncompatibleKeys(missing_keys=['encoder.layers.0.blocks.0.attn.relative_position_index', 'encoder.layers.0.blocks.1.attn.relative_position_index', 'encoder.layers.1.blocks.0.attn.relative_position_index', 'encoder.layers.1.blocks.1.attn.relative_position_index', 'encoder.layers.2.blocks.0.attn.relative_position_index', 'encoder.layers.2.blocks.1.attn.relative_position_index', 'decoder.layers.0.blocks.0.norm1.weight', 'decoder.layers.0.blocks.0.norm1.bias', 'decoder.layers.0.blocks.0.attn.relative_position_bias_table', 'decoder.layers.0.blocks.0.attn.relative_position_index', 'decoder.layers.0.blocks.0.attn.qkv.weight', 'decoder.layers.0.blocks.0.attn.qkv.bias', 'decoder.layers.0.blocks.0.attn.proj.weight', 'decoder.layers.0.blocks.0.attn.proj.bias', 'decoder.layers.0.blocks.0.norm2.weight', 'decoder.layers.0.blocks.0.norm2.bias', 'decoder.layers.0.blocks.0.mlp.fc1.weight', 'decoder.layers.0.blocks.0.mlp.fc1.bias', 'decoder.layers.0.blocks.0.mlp.fc2.weight', 'decoder.layers.0.blocks.0.mlp.fc2.bias', 'decoder.layers.0.blocks.1.norm1.weight', 'decoder.layers.0.blocks.1.norm1.bias', 'decoder.layers.0.blocks.1.attn.relative_position_bias_table', 'decoder.layers.0.blocks.1.attn.relative_position_index', 'decoder.layers.0.blocks.1.attn.qkv.weight', 'decoder.layers.0.blocks.1.attn.qkv.bias', 'decoder.layers.0.blocks.1.attn.proj.weight', 'decoder.layers.0.blocks.1.attn.proj.bias', 'decoder.layers.0.blocks.1.norm2.weight', 'decoder.layers.0.blocks.1.norm2.bias', 'decoder.layers.0.blocks.1.mlp.fc1.weight', 'decoder.layers.0.blocks.1.mlp.fc1.bias', 'decoder.layers.0.blocks.1.mlp.fc2.weight', 'decoder.layers.0.blocks.1.mlp.fc2.bias', 'decoder.layers.0.upsample.conv.weight', 'decoder.layers.0.upsample.conv.bias', 'decoder.layers.0.upsample.norm.weight', 'decoder.layers.0.upsample.norm.bias', 'decoder.layers.1.blocks.0.norm1.weight', 'decoder.layers.1.blocks.0.norm1.bias', 'decoder.layers.1.blocks.0.attn.relative_position_bias_table', 'decoder.layers.1.blocks.0.attn.relative_position_index', 'decoder.layers.1.blocks.0.attn.qkv.weight', 'decoder.layers.1.blocks.0.attn.qkv.bias', 'decoder.layers.1.blocks.0.attn.proj.weight', 'decoder.layers.1.blocks.0.attn.proj.bias', 'decoder.layers.1.blocks.0.norm2.weight', 'decoder.layers.1.blocks.0.norm2.bias', 'decoder.layers.1.blocks.0.mlp.fc1.weight', 'decoder.layers.1.blocks.0.mlp.fc1.bias', 'decoder.layers.1.blocks.0.mlp.fc2.weight', 'decoder.layers.1.blocks.0.mlp.fc2.bias', 'decoder.layers.1.blocks.1.norm1.weight', 'decoder.layers.1.blocks.1.norm1.bias', 'decoder.layers.1.blocks.1.attn.relative_position_bias_table', 'decoder.layers.1.blocks.1.attn.relative_position_index', 'decoder.layers.1.blocks.1.attn.qkv.weight', 'decoder.layers.1.blocks.1.attn.qkv.bias', 'decoder.layers.1.blocks.1.attn.proj.weight', 'decoder.layers.1.blocks.1.attn.proj.bias', 'decoder.layers.1.blocks.1.norm2.weight', 'decoder.layers.1.blocks.1.norm2.bias', 'decoder.layers.1.blocks.1.mlp.fc1.weight', 'decoder.layers.1.blocks.1.mlp.fc1.bias', 'decoder.layers.1.blocks.1.mlp.fc2.weight', 'decoder.layers.1.blocks.1.mlp.fc2.bias', 'decoder.layers.1.upsample.conv.weight', 'decoder.layers.1.upsample.conv.bias', 'decoder.layers.1.upsample.norm.weight', 'decoder.layers.1.upsample.norm.bias', 'decoder.layers.2.blocks.0.norm1.weight', 'decoder.layers.2.blocks.0.norm1.bias', 'decoder.layers.2.blocks.0.attn.relative_position_bias_table', 'decoder.layers.2.blocks.0.attn.relative_position_index', 'decoder.layers.2.blocks.0.attn.qkv.weight', 'decoder.layers.2.blocks.0.attn.qkv.bias', 'decoder.layers.2.blocks.0.attn.proj.weight', 'decoder.layers.2.blocks.0.attn.proj.bias', 'decoder.layers.2.blocks.0.norm2.weight', 'decoder.layers.2.blocks.0.norm2.bias', 'decoder.layers.2.blocks.0.mlp.fc1.weight', 'decoder.layers.2.blocks.0.mlp.fc1.bias', 'decoder.layers.2.blocks.0.mlp.fc2.weight', 'decoder.layers.2.blocks.0.mlp.fc2.bias', 'decoder.layers.2.blocks.1.norm1.weight', 'decoder.layers.2.blocks.1.norm1.bias', 'decoder.layers.2.blocks.1.attn.relative_position_bias_table', 'decoder.layers.2.blocks.1.attn.relative_position_index', 'decoder.layers.2.blocks.1.attn.qkv.weight', 'decoder.layers.2.blocks.1.attn.qkv.bias', 'decoder.layers.2.blocks.1.attn.proj.weight', 'decoder.layers.2.blocks.1.attn.proj.bias', 'decoder.layers.2.blocks.1.norm2.weight', 'decoder.layers.2.blocks.1.norm2.bias', 'decoder.layers.2.blocks.1.mlp.fc1.weight', 'decoder.layers.2.blocks.1.mlp.fc1.bias', 'decoder.layers.2.blocks.1.mlp.fc2.weight', 'decoder.layers.2.blocks.1.mlp.fc2.bias', 'head.conv1.weight', 'head.conv1.bias', 'head.conv2.weight', 'head.conv2.bias', 'head.conv3.weight', 'head.conv3.bias'], unexpected_keys=['encoder.layers.3.downsample.reduction.weight', 'encoder.layers.3.downsample.norm.weight', 'encoder.layers.3.downsample.norm.bias', 'encoder.layers.2.blocks.2.norm1.weight', 'encoder.layers.2.blocks.2.norm1.bias', 'encoder.layers.2.blocks.2.attn.qkv.weight', 'encoder.layers.2.blocks.2.attn.qkv.bias', 'encoder.layers.2.blocks.2.attn.proj.weight', 'encoder.layers.2.blocks.2.attn.proj.bias', 'encoder.layers.2.blocks.2.norm2.weight', 'encoder.layers.2.blocks.2.norm2.bias', 'encoder.layers.2.blocks.2.mlp.fc1.weight', 'encoder.layers.2.blocks.2.mlp.fc1.bias', 'encoder.layers.2.blocks.2.mlp.fc2.weight', 'encoder.layers.2.blocks.2.mlp.fc2.bias', 'encoder.layers.2.blocks.3.norm1.weight', 'encoder.layers.2.blocks.3.norm1.bias', 'encoder.layers.2.blocks.3.attn.qkv.weight', 'encoder.layers.2.blocks.3.attn.qkv.bias', 'encoder.layers.2.blocks.3.attn.proj.weight', 'encoder.layers.2.blocks.3.attn.proj.bias', 'encoder.layers.2.blocks.3.norm2.weight', 'encoder.layers.2.blocks.3.norm2.bias', 'encoder.layers.2.blocks.3.mlp.fc1.weight', 'encoder.layers.2.blocks.3.mlp.fc1.bias', 'encoder.layers.2.blocks.3.mlp.fc2.weight', 'encoder.layers.2.blocks.3.mlp.fc2.bias', 'encoder.layers.2.blocks.4.norm1.weight', 'encoder.layers.2.blocks.4.norm1.bias', 'encoder.layers.2.blocks.4.attn.qkv.weight', 'encoder.layers.2.blocks.4.attn.qkv.bias', 'encoder.layers.2.blocks.4.attn.proj.weight', 'encoder.layers.2.blocks.4.attn.proj.bias', 'encoder.layers.2.blocks.4.norm2.weight', 'encoder.layers.2.blocks.4.norm2.bias', 'encoder.layers.2.blocks.4.mlp.fc1.weight', 'encoder.layers.2.blocks.4.mlp.fc1.bias', 'encoder.layers.2.blocks.4.mlp.fc2.weight', 'encoder.layers.2.blocks.4.mlp.fc2.bias', 'encoder.layers.2.blocks.5.norm1.weight', 'encoder.layers.2.blocks.5.norm1.bias', 'encoder.layers.2.blocks.5.attn.qkv.weight', 'encoder.layers.2.blocks.5.attn.qkv.bias', 'encoder.layers.2.blocks.5.attn.proj.weight', 'encoder.layers.2.blocks.5.attn.proj.bias', 'encoder.layers.2.blocks.5.norm2.weight', 'encoder.layers.2.blocks.5.norm2.bias', 'encoder.layers.2.blocks.5.mlp.fc1.weight', 'encoder.layers.2.blocks.5.mlp.fc1.bias', 'encoder.layers.2.blocks.5.mlp.fc2.weight', 'encoder.layers.2.blocks.5.mlp.fc2.bias'])
+2024-10-19 10:20:16,765 - INFO - => loaded successfully '/home/nikoskot/earthnetThesis/swin_tiny_patch244_window877_kinetics400_1k.pth'
+2024-10-19 10:20:18,877 - INFO - Resuming training from checkpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_18-10-2024_22-23-04/checkpointLast.pth from epoch 9
+2024-10-19 10:20:26,452 - INFO - Epoch 9
+-------------------------------
+2024-10-19 10:20:26,452 - INFO - Learning Rate of group 0: 0.0
+2024-10-19 10:20:26,453 - INFO - Learning Rate of group 1: 0.0
+2024-10-19 11:14:40,786 - INFO - Maximum gradient before clipping: 3.321845769882202
+2024-10-19 11:14:40,787 - INFO - Minimum gradient before clipping: -3.536341667175293
+2024-10-19 11:14:40,788 - INFO - Mean training L1 loss: 0.02726142871182292
+2024-10-19 11:14:40,788 - INFO - Mean training SSIM loss: 0.840008438680522
+2024-10-19 11:14:40,788 - INFO - Mean training MSE loss: 0.0
+2024-10-19 11:14:40,788 - INFO - Mean training VGG loss: 0.0
+2024-10-19 11:19:07,287 - INFO - Mean validation L1 loss: 0.026653594113138807
+2024-10-19 11:19:07,288 - INFO - Mean validation SSIM loss: 0.8332935554726068
+2024-10-19 11:19:07,288 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 11:19:07,288 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 11:19:07,957 - INFO - New best validation Loss 0.026653594113138807, at epoch 9
+2024-10-19 11:19:08,625 - INFO - Epoch 10
+-------------------------------
+2024-10-19 11:19:08,626 - INFO - Learning Rate of group 0: 0.0002666666666666667
+2024-10-19 11:19:08,626 - INFO - Learning Rate of group 1: 0.00010666666666666667
+2024-10-19 12:13:17,796 - INFO - Maximum gradient before clipping: 3.8999390602111816
+2024-10-19 12:13:17,797 - INFO - Minimum gradient before clipping: -6.246159553527832
+2024-10-19 12:13:17,798 - INFO - Mean training L1 loss: 0.027824637267017206
+2024-10-19 12:13:17,798 - INFO - Mean training SSIM loss: 0.8439156142102779
+2024-10-19 12:13:17,798 - INFO - Mean training MSE loss: 0.0
+2024-10-19 12:13:17,798 - INFO - Mean training VGG loss: 0.0
+2024-10-19 12:20:10,841 - INFO - Validation split Earthnet Score on epoch 10
+2024-10-19 12:24:03,875 - INFO - MAD: 0.23275459905665227, OLS: 0.3234140734151314, EMD: 0.21595449888957727, SSIM: 0.34804769000493985, ENS: 0.2685977789271066
+2024-10-19 12:24:03,893 - INFO - Mean validation L1 loss: 0.027992405056529817
+2024-10-19 12:24:03,893 - INFO - Mean validation SSIM loss: 0.8472741932972617
+2024-10-19 12:24:03,893 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 12:24:03,893 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 12:24:04,553 - INFO - New best Earthnet Score 0.2685977789271066, at epoch 10
+2024-10-19 12:24:05,216 - INFO - Epoch 11
+-------------------------------
+2024-10-19 12:24:05,216 - INFO - Learning Rate of group 0: 0.0003
+2024-10-19 12:24:05,216 - INFO - Learning Rate of group 1: 0.00012
+2024-10-19 13:18:14,818 - INFO - Maximum gradient before clipping: 4.435204029083252
+2024-10-19 13:18:14,819 - INFO - Minimum gradient before clipping: -6.327890396118164
+2024-10-19 13:18:14,819 - INFO - Mean training L1 loss: 0.027189914335776003
+2024-10-19 13:18:14,820 - INFO - Mean training SSIM loss: 0.8351654884756384
+2024-10-19 13:18:14,820 - INFO - Mean training MSE loss: 0.0
+2024-10-19 13:18:14,820 - INFO - Mean training VGG loss: 0.0
+2024-10-19 13:22:41,204 - INFO - Mean validation L1 loss: 0.025690115508576698
+2024-10-19 13:22:41,204 - INFO - Mean validation SSIM loss: 0.8249367267192407
+2024-10-19 13:22:41,204 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 13:22:41,204 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 13:22:41,864 - INFO - New best validation Loss 0.025690115508576698, at epoch 11
+2024-10-19 13:22:42,526 - INFO - Epoch 12
+-------------------------------
+2024-10-19 13:22:42,526 - INFO - Learning Rate of group 0: 0.0003333333333333333
+2024-10-19 13:22:42,526 - INFO - Learning Rate of group 1: 0.00013333333333333334
+2024-10-19 14:16:51,202 - INFO - Maximum gradient before clipping: 4.4099626541137695
+2024-10-19 14:16:51,203 - INFO - Minimum gradient before clipping: -5.30220365524292
+2024-10-19 14:16:51,204 - INFO - Mean training L1 loss: 0.026692077466872934
+2024-10-19 14:16:51,204 - INFO - Mean training SSIM loss: 0.8278268748175295
+2024-10-19 14:16:51,204 - INFO - Mean training MSE loss: 0.0
+2024-10-19 14:16:51,204 - INFO - Mean training VGG loss: 0.0
+2024-10-19 14:21:17,012 - INFO - Mean validation L1 loss: 0.027532166524176612
+2024-10-19 14:21:17,013 - INFO - Mean validation SSIM loss: 0.8279556458610356
+2024-10-19 14:21:17,013 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 14:21:17,013 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 14:21:17,691 - INFO - Epoch 13
+-------------------------------
+2024-10-19 14:21:17,691 - INFO - Learning Rate of group 0: 0.00036666666666666667
+2024-10-19 14:21:17,691 - INFO - Learning Rate of group 1: 0.00014666666666666666
+2024-10-19 15:15:23,540 - INFO - Maximum gradient before clipping: 4.565201759338379
+2024-10-19 15:15:23,541 - INFO - Minimum gradient before clipping: -7.088547706604004
+2024-10-19 15:15:23,542 - INFO - Mean training L1 loss: 0.026354042644912805
+2024-10-19 15:15:23,542 - INFO - Mean training SSIM loss: 0.8221405417487393
+2024-10-19 15:15:23,542 - INFO - Mean training MSE loss: 0.0
+2024-10-19 15:15:23,542 - INFO - Mean training VGG loss: 0.0
+2024-10-19 15:19:48,709 - INFO - Mean validation L1 loss: 0.02548642748698941
+2024-10-19 15:19:48,710 - INFO - Mean validation SSIM loss: 0.8134468499832728
+2024-10-19 15:19:48,710 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 15:19:48,710 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 15:19:49,372 - INFO - New best validation Loss 0.02548642748698941, at epoch 13
+2024-10-19 15:19:50,012 - INFO - Epoch 14
+-------------------------------
+2024-10-19 15:19:50,013 - INFO - Learning Rate of group 0: 0.0004
+2024-10-19 15:19:50,013 - INFO - Learning Rate of group 1: 0.00016
+2024-10-19 16:13:56,150 - INFO - Maximum gradient before clipping: 6.409316539764404
+2024-10-19 16:13:56,151 - INFO - Minimum gradient before clipping: -7.252079963684082
+2024-10-19 16:13:56,152 - INFO - Mean training L1 loss: 0.026076432722198045
+2024-10-19 16:13:56,152 - INFO - Mean training SSIM loss: 0.8167402554336126
+2024-10-19 16:13:56,152 - INFO - Mean training MSE loss: 0.0
+2024-10-19 16:13:56,152 - INFO - Mean training VGG loss: 0.0
+2024-10-19 16:18:21,762 - INFO - Mean validation L1 loss: 0.027127299124505806
+2024-10-19 16:18:21,762 - INFO - Mean validation SSIM loss: 0.8137821065741638
+2024-10-19 16:18:21,763 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 16:18:21,763 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 16:18:22,424 - INFO - Epoch 15
+-------------------------------
+2024-10-19 16:18:22,424 - INFO - Learning Rate of group 0: 0.00043333333333333337
+2024-10-19 16:18:22,424 - INFO - Learning Rate of group 1: 0.00017333333333333334
+2024-10-19 17:12:29,201 - INFO - Maximum gradient before clipping: 4.76861047744751
+2024-10-19 17:12:29,202 - INFO - Minimum gradient before clipping: -7.7050323486328125
+2024-10-19 17:12:29,202 - INFO - Mean training L1 loss: 0.025691492166736295
+2024-10-19 17:12:29,203 - INFO - Mean training SSIM loss: 0.8094163381470042
+2024-10-19 17:12:29,203 - INFO - Mean training MSE loss: 0.0
+2024-10-19 17:12:29,203 - INFO - Mean training VGG loss: 0.0
+2024-10-19 17:16:54,835 - INFO - Mean validation L1 loss: 0.023609952931058744
+2024-10-19 17:16:54,836 - INFO - Mean validation SSIM loss: 0.7792977061758073
+2024-10-19 17:16:54,836 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 17:16:54,836 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 17:16:55,486 - INFO - New best validation Loss 0.023609952931058744, at epoch 15
+2024-10-19 17:16:56,149 - INFO - Epoch 16
+-------------------------------
+2024-10-19 17:16:56,150 - INFO - Learning Rate of group 0: 0.00046666666666666666
+2024-10-19 17:16:56,150 - INFO - Learning Rate of group 1: 0.0001866666666666667
+2024-10-19 18:11:02,607 - INFO - Maximum gradient before clipping: 4.804670333862305
+2024-10-19 18:11:02,608 - INFO - Minimum gradient before clipping: -7.588212966918945
+2024-10-19 18:11:02,609 - INFO - Mean training L1 loss: 0.025327329000747138
+2024-10-19 18:11:02,609 - INFO - Mean training SSIM loss: 0.8029177314015623
+2024-10-19 18:11:02,609 - INFO - Mean training MSE loss: 0.0
+2024-10-19 18:11:02,609 - INFO - Mean training VGG loss: 0.0
+2024-10-19 18:15:28,542 - INFO - Mean validation L1 loss: 0.024230031919569076
+2024-10-19 18:15:28,543 - INFO - Mean validation SSIM loss: 0.7842494103820826
+2024-10-19 18:15:28,543 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 18:15:28,543 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 18:15:29,270 - INFO - Epoch 17
+-------------------------------
+2024-10-19 18:15:29,270 - INFO - Learning Rate of group 0: 0.00046652483089094617
+2024-10-19 18:15:29,270 - INFO - Learning Rate of group 1: 0.00018661011510827274
+2024-10-19 18:20:21,027 - INFO - NOTE: None
+2024-10-19 18:20:21,029 - INFO - Torch, random, numpy seed: 88
+2024-10-19 18:20:21,637 - INFO - load model from: /home/nikoskot/earthnetThesis/swin_tiny_patch244_window877_kinetics400_1k.pth
+2024-10-19 18:20:21,753 - INFO - _IncompatibleKeys(missing_keys=['encoder.layers.0.blocks.0.attn.relative_position_index', 'encoder.layers.0.blocks.1.attn.relative_position_index', 'encoder.layers.1.blocks.0.attn.relative_position_index', 'encoder.layers.1.blocks.1.attn.relative_position_index', 'encoder.layers.2.blocks.0.attn.relative_position_index', 'encoder.layers.2.blocks.1.attn.relative_position_index', 'decoder.layers.0.blocks.0.norm1.weight', 'decoder.layers.0.blocks.0.norm1.bias', 'decoder.layers.0.blocks.0.attn.relative_position_bias_table', 'decoder.layers.0.blocks.0.attn.relative_position_index', 'decoder.layers.0.blocks.0.attn.qkv.weight', 'decoder.layers.0.blocks.0.attn.qkv.bias', 'decoder.layers.0.blocks.0.attn.proj.weight', 'decoder.layers.0.blocks.0.attn.proj.bias', 'decoder.layers.0.blocks.0.norm2.weight', 'decoder.layers.0.blocks.0.norm2.bias', 'decoder.layers.0.blocks.0.mlp.fc1.weight', 'decoder.layers.0.blocks.0.mlp.fc1.bias', 'decoder.layers.0.blocks.0.mlp.fc2.weight', 'decoder.layers.0.blocks.0.mlp.fc2.bias', 'decoder.layers.0.blocks.1.norm1.weight', 'decoder.layers.0.blocks.1.norm1.bias', 'decoder.layers.0.blocks.1.attn.relative_position_bias_table', 'decoder.layers.0.blocks.1.attn.relative_position_index', 'decoder.layers.0.blocks.1.attn.qkv.weight', 'decoder.layers.0.blocks.1.attn.qkv.bias', 'decoder.layers.0.blocks.1.attn.proj.weight', 'decoder.layers.0.blocks.1.attn.proj.bias', 'decoder.layers.0.blocks.1.norm2.weight', 'decoder.layers.0.blocks.1.norm2.bias', 'decoder.layers.0.blocks.1.mlp.fc1.weight', 'decoder.layers.0.blocks.1.mlp.fc1.bias', 'decoder.layers.0.blocks.1.mlp.fc2.weight', 'decoder.layers.0.blocks.1.mlp.fc2.bias', 'decoder.layers.0.upsample.conv.weight', 'decoder.layers.0.upsample.conv.bias', 'decoder.layers.0.upsample.norm.weight', 'decoder.layers.0.upsample.norm.bias', 'decoder.layers.1.blocks.0.norm1.weight', 'decoder.layers.1.blocks.0.norm1.bias', 'decoder.layers.1.blocks.0.attn.relative_position_bias_table', 'decoder.layers.1.blocks.0.attn.relative_position_index', 'decoder.layers.1.blocks.0.attn.qkv.weight', 'decoder.layers.1.blocks.0.attn.qkv.bias', 'decoder.layers.1.blocks.0.attn.proj.weight', 'decoder.layers.1.blocks.0.attn.proj.bias', 'decoder.layers.1.blocks.0.norm2.weight', 'decoder.layers.1.blocks.0.norm2.bias', 'decoder.layers.1.blocks.0.mlp.fc1.weight', 'decoder.layers.1.blocks.0.mlp.fc1.bias', 'decoder.layers.1.blocks.0.mlp.fc2.weight', 'decoder.layers.1.blocks.0.mlp.fc2.bias', 'decoder.layers.1.blocks.1.norm1.weight', 'decoder.layers.1.blocks.1.norm1.bias', 'decoder.layers.1.blocks.1.attn.relative_position_bias_table', 'decoder.layers.1.blocks.1.attn.relative_position_index', 'decoder.layers.1.blocks.1.attn.qkv.weight', 'decoder.layers.1.blocks.1.attn.qkv.bias', 'decoder.layers.1.blocks.1.attn.proj.weight', 'decoder.layers.1.blocks.1.attn.proj.bias', 'decoder.layers.1.blocks.1.norm2.weight', 'decoder.layers.1.blocks.1.norm2.bias', 'decoder.layers.1.blocks.1.mlp.fc1.weight', 'decoder.layers.1.blocks.1.mlp.fc1.bias', 'decoder.layers.1.blocks.1.mlp.fc2.weight', 'decoder.layers.1.blocks.1.mlp.fc2.bias', 'decoder.layers.1.upsample.conv.weight', 'decoder.layers.1.upsample.conv.bias', 'decoder.layers.1.upsample.norm.weight', 'decoder.layers.1.upsample.norm.bias', 'decoder.layers.2.blocks.0.norm1.weight', 'decoder.layers.2.blocks.0.norm1.bias', 'decoder.layers.2.blocks.0.attn.relative_position_bias_table', 'decoder.layers.2.blocks.0.attn.relative_position_index', 'decoder.layers.2.blocks.0.attn.qkv.weight', 'decoder.layers.2.blocks.0.attn.qkv.bias', 'decoder.layers.2.blocks.0.attn.proj.weight', 'decoder.layers.2.blocks.0.attn.proj.bias', 'decoder.layers.2.blocks.0.norm2.weight', 'decoder.layers.2.blocks.0.norm2.bias', 'decoder.layers.2.blocks.0.mlp.fc1.weight', 'decoder.layers.2.blocks.0.mlp.fc1.bias', 'decoder.layers.2.blocks.0.mlp.fc2.weight', 'decoder.layers.2.blocks.0.mlp.fc2.bias', 'decoder.layers.2.blocks.1.norm1.weight', 'decoder.layers.2.blocks.1.norm1.bias', 'decoder.layers.2.blocks.1.attn.relative_position_bias_table', 'decoder.layers.2.blocks.1.attn.relative_position_index', 'decoder.layers.2.blocks.1.attn.qkv.weight', 'decoder.layers.2.blocks.1.attn.qkv.bias', 'decoder.layers.2.blocks.1.attn.proj.weight', 'decoder.layers.2.blocks.1.attn.proj.bias', 'decoder.layers.2.blocks.1.norm2.weight', 'decoder.layers.2.blocks.1.norm2.bias', 'decoder.layers.2.blocks.1.mlp.fc1.weight', 'decoder.layers.2.blocks.1.mlp.fc1.bias', 'decoder.layers.2.blocks.1.mlp.fc2.weight', 'decoder.layers.2.blocks.1.mlp.fc2.bias', 'head.conv1.weight', 'head.conv1.bias', 'head.conv2.weight', 'head.conv2.bias', 'head.conv3.weight', 'head.conv3.bias'], unexpected_keys=['encoder.layers.3.downsample.reduction.weight', 'encoder.layers.3.downsample.norm.weight', 'encoder.layers.3.downsample.norm.bias', 'encoder.layers.2.blocks.2.norm1.weight', 'encoder.layers.2.blocks.2.norm1.bias', 'encoder.layers.2.blocks.2.attn.qkv.weight', 'encoder.layers.2.blocks.2.attn.qkv.bias', 'encoder.layers.2.blocks.2.attn.proj.weight', 'encoder.layers.2.blocks.2.attn.proj.bias', 'encoder.layers.2.blocks.2.norm2.weight', 'encoder.layers.2.blocks.2.norm2.bias', 'encoder.layers.2.blocks.2.mlp.fc1.weight', 'encoder.layers.2.blocks.2.mlp.fc1.bias', 'encoder.layers.2.blocks.2.mlp.fc2.weight', 'encoder.layers.2.blocks.2.mlp.fc2.bias', 'encoder.layers.2.blocks.3.norm1.weight', 'encoder.layers.2.blocks.3.norm1.bias', 'encoder.layers.2.blocks.3.attn.qkv.weight', 'encoder.layers.2.blocks.3.attn.qkv.bias', 'encoder.layers.2.blocks.3.attn.proj.weight', 'encoder.layers.2.blocks.3.attn.proj.bias', 'encoder.layers.2.blocks.3.norm2.weight', 'encoder.layers.2.blocks.3.norm2.bias', 'encoder.layers.2.blocks.3.mlp.fc1.weight', 'encoder.layers.2.blocks.3.mlp.fc1.bias', 'encoder.layers.2.blocks.3.mlp.fc2.weight', 'encoder.layers.2.blocks.3.mlp.fc2.bias', 'encoder.layers.2.blocks.4.norm1.weight', 'encoder.layers.2.blocks.4.norm1.bias', 'encoder.layers.2.blocks.4.attn.qkv.weight', 'encoder.layers.2.blocks.4.attn.qkv.bias', 'encoder.layers.2.blocks.4.attn.proj.weight', 'encoder.layers.2.blocks.4.attn.proj.bias', 'encoder.layers.2.blocks.4.norm2.weight', 'encoder.layers.2.blocks.4.norm2.bias', 'encoder.layers.2.blocks.4.mlp.fc1.weight', 'encoder.layers.2.blocks.4.mlp.fc1.bias', 'encoder.layers.2.blocks.4.mlp.fc2.weight', 'encoder.layers.2.blocks.4.mlp.fc2.bias', 'encoder.layers.2.blocks.5.norm1.weight', 'encoder.layers.2.blocks.5.norm1.bias', 'encoder.layers.2.blocks.5.attn.qkv.weight', 'encoder.layers.2.blocks.5.attn.qkv.bias', 'encoder.layers.2.blocks.5.attn.proj.weight', 'encoder.layers.2.blocks.5.attn.proj.bias', 'encoder.layers.2.blocks.5.norm2.weight', 'encoder.layers.2.blocks.5.norm2.bias', 'encoder.layers.2.blocks.5.mlp.fc1.weight', 'encoder.layers.2.blocks.5.mlp.fc1.bias', 'encoder.layers.2.blocks.5.mlp.fc2.weight', 'encoder.layers.2.blocks.5.mlp.fc2.bias'])
+2024-10-19 18:20:21,753 - INFO - => loaded successfully '/home/nikoskot/earthnetThesis/swin_tiny_patch244_window877_kinetics400_1k.pth'
+2024-10-19 18:20:23,684 - INFO - Resuming training from checkpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_18-10-2024_22-23-04/checkpointLast.pth from epoch 17
+2024-10-19 18:20:31,307 - INFO - Epoch 17
+-------------------------------
+2024-10-19 18:20:31,307 - INFO - Learning Rate of group 0: 0.0
+2024-10-19 18:20:31,307 - INFO - Learning Rate of group 1: 0.0
+2024-10-19 19:14:21,583 - INFO - Maximum gradient before clipping: 5.816516399383545
+2024-10-19 19:14:21,583 - INFO - Minimum gradient before clipping: -2.7136130332946777
+2024-10-19 19:14:21,584 - INFO - Mean training L1 loss: 0.024992785351495024
+2024-10-19 19:14:21,584 - INFO - Mean training SSIM loss: 0.7980914153298889
+2024-10-19 19:14:21,584 - INFO - Mean training MSE loss: 0.0
+2024-10-19 19:14:21,584 - INFO - Mean training VGG loss: 0.0
+2024-10-19 19:18:43,351 - INFO - Mean validation L1 loss: 0.02422791888881288
+2024-10-19 19:18:43,352 - INFO - Mean validation SSIM loss: 0.7841347590537374
+2024-10-19 19:18:43,352 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 19:18:43,352 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 19:18:44,000 - INFO - Epoch 18
+-------------------------------
+2024-10-19 19:18:44,000 - INFO - Learning Rate of group 0: 3.045864904521228e-10
+2024-10-19 19:18:44,000 - INFO - Learning Rate of group 1: 3.045864904521228e-10
+2024-10-19 20:12:33,222 - INFO - Maximum gradient before clipping: 5.826376914978027
+2024-10-19 20:12:33,223 - INFO - Minimum gradient before clipping: -2.500007390975952
+2024-10-19 20:12:33,224 - INFO - Mean training L1 loss: 0.024976309836814464
+2024-10-19 20:12:33,224 - INFO - Mean training SSIM loss: 0.798012245030445
+2024-10-19 20:12:33,224 - INFO - Mean training MSE loss: 0.0
+2024-10-19 20:12:33,224 - INFO - Mean training VGG loss: 0.0
+2024-10-19 20:16:55,126 - INFO - Mean validation L1 loss: 0.024236314219849366
+2024-10-19 20:16:55,126 - INFO - Mean validation SSIM loss: 0.7852206815245957
+2024-10-19 20:16:55,126 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 20:16:55,126 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 20:16:55,776 - INFO - Epoch 19
+-------------------------------
+2024-10-19 20:16:55,776 - INFO - Learning Rate of group 0: 1.2179748700879827e-09
+2024-10-19 20:16:55,776 - INFO - Learning Rate of group 1: 1.2179748700879827e-09
+2024-10-19 21:10:43,098 - INFO - Maximum gradient before clipping: 5.3773932456970215
+2024-10-19 21:10:43,098 - INFO - Minimum gradient before clipping: -2.3096532821655273
+2024-10-19 21:10:43,099 - INFO - Mean training L1 loss: 0.024958183523851776
+2024-10-19 21:10:43,099 - INFO - Mean training SSIM loss: 0.7977830766135806
+2024-10-19 21:10:43,099 - INFO - Mean training MSE loss: 0.0
+2024-10-19 21:10:43,099 - INFO - Mean training VGG loss: 0.0
+2024-10-19 21:15:04,811 - INFO - Mean validation L1 loss: 0.024177373477248444
+2024-10-19 21:15:04,812 - INFO - Mean validation SSIM loss: 0.7849486091463861
+2024-10-19 21:15:04,812 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 21:15:04,812 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 21:15:05,462 - INFO - Epoch 20
+-------------------------------
+2024-10-19 21:15:05,462 - INFO - Learning Rate of group 0: 2.739052315863442e-09
+2024-10-19 21:15:05,462 - INFO - Learning Rate of group 1: 2.739052315863442e-09
+2024-10-19 22:08:55,212 - INFO - Maximum gradient before clipping: 6.162949085235596
+2024-10-19 22:08:55,212 - INFO - Minimum gradient before clipping: -2.417614698410034
+2024-10-19 22:08:55,213 - INFO - Mean training L1 loss: 0.024888895914762503
+2024-10-19 22:08:55,213 - INFO - Mean training SSIM loss: 0.7970751581058398
+2024-10-19 22:08:55,213 - INFO - Mean training MSE loss: 0.0
+2024-10-19 22:08:55,213 - INFO - Mean training VGG loss: 0.0
+2024-10-19 22:15:56,428 - INFO - Validation split Earthnet Score on epoch 20
+2024-10-19 22:19:43,715 - INFO - MAD: 0.2457684515428428, OLS: 0.32778020850608913, EMD: 0.2300791764686076, SSIM: 0.4305184532543441, ENS: 0.2900903922930616
+2024-10-19 22:19:43,716 - INFO - Mean validation L1 loss: 0.024087954328136898
+2024-10-19 22:19:43,716 - INFO - Mean validation SSIM loss: 0.7838841282005693
+2024-10-19 22:19:43,716 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 22:19:43,716 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 22:19:44,366 - INFO - New best Earthnet Score 0.2900903922930616, at epoch 20
+2024-10-19 22:19:45,060 - INFO - Epoch 21
+-------------------------------
+2024-10-19 22:19:45,061 - INFO - Learning Rate of group 0: 4.865965629214869e-09
+2024-10-19 22:19:45,061 - INFO - Learning Rate of group 1: 4.865965629214869e-09
+2024-10-19 23:13:34,791 - INFO - Maximum gradient before clipping: 7.2280426025390625
+2024-10-19 23:13:34,792 - INFO - Minimum gradient before clipping: -2.8884217739105225
+2024-10-19 23:13:34,792 - INFO - Mean training L1 loss: 0.02476936449199005
+2024-10-19 23:13:34,793 - INFO - Mean training SSIM loss: 0.7962345415356268
+2024-10-19 23:13:34,793 - INFO - Mean training MSE loss: 0.0
+2024-10-19 23:13:34,793 - INFO - Mean training VGG loss: 0.0
+2024-10-19 23:17:56,969 - INFO - Mean validation L1 loss: 0.02392776897582023
+2024-10-19 23:17:56,969 - INFO - Mean validation SSIM loss: 0.782205770047612
+2024-10-19 23:17:56,969 - INFO - Mean validation MSE loss: 0.0
+2024-10-19 23:17:56,969 - INFO - Mean validation VGG loss: 0.0
+2024-10-19 23:17:57,621 - INFO - Epoch 22
+-------------------------------
+2024-10-19 23:17:57,621 - INFO - Learning Rate of group 0: 7.596123493895972e-09
+2024-10-19 23:17:57,621 - INFO - Learning Rate of group 1: 7.596123493895972e-09
+2024-10-20 00:11:47,304 - INFO - Maximum gradient before clipping: 6.796456336975098
+2024-10-20 00:11:47,305 - INFO - Minimum gradient before clipping: -2.0571165084838867
+2024-10-20 00:11:47,306 - INFO - Mean training L1 loss: 0.02457275405130417
+2024-10-20 00:11:47,306 - INFO - Mean training SSIM loss: 0.7950818244506505
+2024-10-20 00:11:47,306 - INFO - Mean training MSE loss: 0.0
+2024-10-20 00:11:47,306 - INFO - Mean training VGG loss: 0.0
+2024-10-20 00:16:09,349 - INFO - Mean validation L1 loss: 0.02372092434382658
+2024-10-20 00:16:09,349 - INFO - Mean validation SSIM loss: 0.7810624653479726
+2024-10-20 00:16:09,349 - INFO - Mean validation MSE loss: 0.0
+2024-10-20 00:16:09,349 - INFO - Mean validation VGG loss: 0.0
+2024-10-20 00:16:09,991 - INFO - Epoch 23
+-------------------------------
+2024-10-20 00:16:09,991 - INFO - Learning Rate of group 0: 1.0926199633097236e-08
+2024-10-20 00:16:09,991 - INFO - Learning Rate of group 1: 1.0926199633097236e-08
+2024-10-20 01:10:00,990 - INFO - Maximum gradient before clipping: 5.284923553466797
+2024-10-20 01:10:00,991 - INFO - Minimum gradient before clipping: -3.4276649951934814
+2024-10-20 01:10:00,992 - INFO - Mean training L1 loss: 0.024346585025203024
+2024-10-20 01:10:00,992 - INFO - Mean training SSIM loss: 0.7929244904476247
+2024-10-20 01:10:00,992 - INFO - Mean training MSE loss: 0.0
+2024-10-20 01:10:00,992 - INFO - Mean training VGG loss: 0.0
+2024-10-20 01:14:23,080 - INFO - Mean validation L1 loss: 0.023491215150815786
+2024-10-20 01:14:23,081 - INFO - Mean validation SSIM loss: 0.7788966673871746
+2024-10-20 01:14:23,081 - INFO - Mean validation MSE loss: 0.0
+2024-10-20 01:14:23,081 - INFO - Mean validation VGG loss: 0.0
+2024-10-20 01:14:23,782 - INFO - New best validation Loss 0.023491215150815786, at epoch 23
+2024-10-20 01:14:24,438 - INFO - Epoch 24
+-------------------------------
+2024-10-20 01:14:24,438 - INFO - Learning Rate of group 0: 1.4852136862002001e-08
+2024-10-20 01:14:24,438 - INFO - Learning Rate of group 1: 1.4852136862002001e-08
+2024-10-20 02:08:14,507 - INFO - Maximum gradient before clipping: 6.399514198303223
+2024-10-20 02:08:14,508 - INFO - Minimum gradient before clipping: -2.6366782188415527
+2024-10-20 02:08:14,508 - INFO - Mean training L1 loss: 0.024107615690520997
+2024-10-20 02:08:14,509 - INFO - Mean training SSIM loss: 0.7901650533572444
+2024-10-20 02:08:14,509 - INFO - Mean training MSE loss: 0.0
+2024-10-20 02:08:14,509 - INFO - Mean training VGG loss: 0.0
+2024-10-20 02:12:36,305 - INFO - Mean validation L1 loss: 0.023298780089649168
+2024-10-20 02:12:36,305 - INFO - Mean validation SSIM loss: 0.776486420611474
+2024-10-20 02:12:36,305 - INFO - Mean validation MSE loss: 0.0
+2024-10-20 02:12:36,305 - INFO - Mean validation VGG loss: 0.0
+2024-10-20 02:12:36,962 - INFO - New best validation Loss 0.023298780089649168, at epoch 24
+2024-10-20 02:12:37,602 - INFO - Epoch 25
+-------------------------------
+2024-10-20 02:12:37,602 - INFO - Learning Rate of group 0: 1.9369152030840776e-08
+2024-10-20 02:12:37,602 - INFO - Learning Rate of group 1: 1.9369152030840776e-08
+2024-10-20 02:20:49,836 - INFO - NOTE: None
+2024-10-20 02:20:49,880 - INFO - Torch, random, numpy seed: 88
+2024-10-20 02:20:50,414 - INFO - load model from: /home/nikoskot/earthnetThesis/swin_tiny_patch244_window877_kinetics400_1k.pth
+2024-10-20 02:20:50,525 - INFO - _IncompatibleKeys(missing_keys=['encoder.layers.0.blocks.0.attn.relative_position_index', 'encoder.layers.0.blocks.1.attn.relative_position_index', 'encoder.layers.1.blocks.0.attn.relative_position_index', 'encoder.layers.1.blocks.1.attn.relative_position_index', 'encoder.layers.2.blocks.0.attn.relative_position_index', 'encoder.layers.2.blocks.1.attn.relative_position_index', 'decoder.layers.0.blocks.0.norm1.weight', 'decoder.layers.0.blocks.0.norm1.bias', 'decoder.layers.0.blocks.0.attn.relative_position_bias_table', 'decoder.layers.0.blocks.0.attn.relative_position_index', 'decoder.layers.0.blocks.0.attn.qkv.weight', 'decoder.layers.0.blocks.0.attn.qkv.bias', 'decoder.layers.0.blocks.0.attn.proj.weight', 'decoder.layers.0.blocks.0.attn.proj.bias', 'decoder.layers.0.blocks.0.norm2.weight', 'decoder.layers.0.blocks.0.norm2.bias', 'decoder.layers.0.blocks.0.mlp.fc1.weight', 'decoder.layers.0.blocks.0.mlp.fc1.bias', 'decoder.layers.0.blocks.0.mlp.fc2.weight', 'decoder.layers.0.blocks.0.mlp.fc2.bias', 'decoder.layers.0.blocks.1.norm1.weight', 'decoder.layers.0.blocks.1.norm1.bias', 'decoder.layers.0.blocks.1.attn.relative_position_bias_table', 'decoder.layers.0.blocks.1.attn.relative_position_index', 'decoder.layers.0.blocks.1.attn.qkv.weight', 'decoder.layers.0.blocks.1.attn.qkv.bias', 'decoder.layers.0.blocks.1.attn.proj.weight', 'decoder.layers.0.blocks.1.attn.proj.bias', 'decoder.layers.0.blocks.1.norm2.weight', 'decoder.layers.0.blocks.1.norm2.bias', 'decoder.layers.0.blocks.1.mlp.fc1.weight', 'decoder.layers.0.blocks.1.mlp.fc1.bias', 'decoder.layers.0.blocks.1.mlp.fc2.weight', 'decoder.layers.0.blocks.1.mlp.fc2.bias', 'decoder.layers.0.upsample.conv.weight', 'decoder.layers.0.upsample.conv.bias', 'decoder.layers.0.upsample.norm.weight', 'decoder.layers.0.upsample.norm.bias', 'decoder.layers.1.blocks.0.norm1.weight', 'decoder.layers.1.blocks.0.norm1.bias', 'decoder.layers.1.blocks.0.attn.relative_position_bias_table', 'decoder.layers.1.blocks.0.attn.relative_position_index', 'decoder.layers.1.blocks.0.attn.qkv.weight', 'decoder.layers.1.blocks.0.attn.qkv.bias', 'decoder.layers.1.blocks.0.attn.proj.weight', 'decoder.layers.1.blocks.0.attn.proj.bias', 'decoder.layers.1.blocks.0.norm2.weight', 'decoder.layers.1.blocks.0.norm2.bias', 'decoder.layers.1.blocks.0.mlp.fc1.weight', 'decoder.layers.1.blocks.0.mlp.fc1.bias', 'decoder.layers.1.blocks.0.mlp.fc2.weight', 'decoder.layers.1.blocks.0.mlp.fc2.bias', 'decoder.layers.1.blocks.1.norm1.weight', 'decoder.layers.1.blocks.1.norm1.bias', 'decoder.layers.1.blocks.1.attn.relative_position_bias_table', 'decoder.layers.1.blocks.1.attn.relative_position_index', 'decoder.layers.1.blocks.1.attn.qkv.weight', 'decoder.layers.1.blocks.1.attn.qkv.bias', 'decoder.layers.1.blocks.1.attn.proj.weight', 'decoder.layers.1.blocks.1.attn.proj.bias', 'decoder.layers.1.blocks.1.norm2.weight', 'decoder.layers.1.blocks.1.norm2.bias', 'decoder.layers.1.blocks.1.mlp.fc1.weight', 'decoder.layers.1.blocks.1.mlp.fc1.bias', 'decoder.layers.1.blocks.1.mlp.fc2.weight', 'decoder.layers.1.blocks.1.mlp.fc2.bias', 'decoder.layers.1.upsample.conv.weight', 'decoder.layers.1.upsample.conv.bias', 'decoder.layers.1.upsample.norm.weight', 'decoder.layers.1.upsample.norm.bias', 'decoder.layers.2.blocks.0.norm1.weight', 'decoder.layers.2.blocks.0.norm1.bias', 'decoder.layers.2.blocks.0.attn.relative_position_bias_table', 'decoder.layers.2.blocks.0.attn.relative_position_index', 'decoder.layers.2.blocks.0.attn.qkv.weight', 'decoder.layers.2.blocks.0.attn.qkv.bias', 'decoder.layers.2.blocks.0.attn.proj.weight', 'decoder.layers.2.blocks.0.attn.proj.bias', 'decoder.layers.2.blocks.0.norm2.weight', 'decoder.layers.2.blocks.0.norm2.bias', 'decoder.layers.2.blocks.0.mlp.fc1.weight', 'decoder.layers.2.blocks.0.mlp.fc1.bias', 'decoder.layers.2.blocks.0.mlp.fc2.weight', 'decoder.layers.2.blocks.0.mlp.fc2.bias', 'decoder.layers.2.blocks.1.norm1.weight', 'decoder.layers.2.blocks.1.norm1.bias', 'decoder.layers.2.blocks.1.attn.relative_position_bias_table', 'decoder.layers.2.blocks.1.attn.relative_position_index', 'decoder.layers.2.blocks.1.attn.qkv.weight', 'decoder.layers.2.blocks.1.attn.qkv.bias', 'decoder.layers.2.blocks.1.attn.proj.weight', 'decoder.layers.2.blocks.1.attn.proj.bias', 'decoder.layers.2.blocks.1.norm2.weight', 'decoder.layers.2.blocks.1.norm2.bias', 'decoder.layers.2.blocks.1.mlp.fc1.weight', 'decoder.layers.2.blocks.1.mlp.fc1.bias', 'decoder.layers.2.blocks.1.mlp.fc2.weight', 'decoder.layers.2.blocks.1.mlp.fc2.bias', 'head.conv1.weight', 'head.conv1.bias', 'head.conv2.weight', 'head.conv2.bias', 'head.conv3.weight', 'head.conv3.bias'], unexpected_keys=['encoder.layers.3.downsample.reduction.weight', 'encoder.layers.3.downsample.norm.weight', 'encoder.layers.3.downsample.norm.bias', 'encoder.layers.2.blocks.2.norm1.weight', 'encoder.layers.2.blocks.2.norm1.bias', 'encoder.layers.2.blocks.2.attn.qkv.weight', 'encoder.layers.2.blocks.2.attn.qkv.bias', 'encoder.layers.2.blocks.2.attn.proj.weight', 'encoder.layers.2.blocks.2.attn.proj.bias', 'encoder.layers.2.blocks.2.norm2.weight', 'encoder.layers.2.blocks.2.norm2.bias', 'encoder.layers.2.blocks.2.mlp.fc1.weight', 'encoder.layers.2.blocks.2.mlp.fc1.bias', 'encoder.layers.2.blocks.2.mlp.fc2.weight', 'encoder.layers.2.blocks.2.mlp.fc2.bias', 'encoder.layers.2.blocks.3.norm1.weight', 'encoder.layers.2.blocks.3.norm1.bias', 'encoder.layers.2.blocks.3.attn.qkv.weight', 'encoder.layers.2.blocks.3.attn.qkv.bias', 'encoder.layers.2.blocks.3.attn.proj.weight', 'encoder.layers.2.blocks.3.attn.proj.bias', 'encoder.layers.2.blocks.3.norm2.weight', 'encoder.layers.2.blocks.3.norm2.bias', 'encoder.layers.2.blocks.3.mlp.fc1.weight', 'encoder.layers.2.blocks.3.mlp.fc1.bias', 'encoder.layers.2.blocks.3.mlp.fc2.weight', 'encoder.layers.2.blocks.3.mlp.fc2.bias', 'encoder.layers.2.blocks.4.norm1.weight', 'encoder.layers.2.blocks.4.norm1.bias', 'encoder.layers.2.blocks.4.attn.qkv.weight', 'encoder.layers.2.blocks.4.attn.qkv.bias', 'encoder.layers.2.blocks.4.attn.proj.weight', 'encoder.layers.2.blocks.4.attn.proj.bias', 'encoder.layers.2.blocks.4.norm2.weight', 'encoder.layers.2.blocks.4.norm2.bias', 'encoder.layers.2.blocks.4.mlp.fc1.weight', 'encoder.layers.2.blocks.4.mlp.fc1.bias', 'encoder.layers.2.blocks.4.mlp.fc2.weight', 'encoder.layers.2.blocks.4.mlp.fc2.bias', 'encoder.layers.2.blocks.5.norm1.weight', 'encoder.layers.2.blocks.5.norm1.bias', 'encoder.layers.2.blocks.5.attn.qkv.weight', 'encoder.layers.2.blocks.5.attn.qkv.bias', 'encoder.layers.2.blocks.5.attn.proj.weight', 'encoder.layers.2.blocks.5.attn.proj.bias', 'encoder.layers.2.blocks.5.norm2.weight', 'encoder.layers.2.blocks.5.norm2.bias', 'encoder.layers.2.blocks.5.mlp.fc1.weight', 'encoder.layers.2.blocks.5.mlp.fc1.bias', 'encoder.layers.2.blocks.5.mlp.fc2.weight', 'encoder.layers.2.blocks.5.mlp.fc2.bias'])
+2024-10-20 02:20:50,525 - INFO - => loaded successfully '/home/nikoskot/earthnetThesis/swin_tiny_patch244_window877_kinetics400_1k.pth'
+2024-10-20 02:20:52,416 - INFO - Resuming training from checkpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_18-10-2024_22-23-04/checkpointLast.pth from epoch 25
+2024-10-20 02:21:00,004 - INFO - Epoch 25
+-------------------------------
+2024-10-20 02:21:00,005 - INFO - Learning Rate of group 0: 1.4852136862002001e-08
+2024-10-20 02:21:00,005 - INFO - Learning Rate of group 1: 1.4852136862002001e-08
+2024-10-20 03:14:50,395 - INFO - Maximum gradient before clipping: 5.382219314575195
+2024-10-20 03:14:50,396 - INFO - Minimum gradient before clipping: -2.825814962387085
+2024-10-20 03:14:50,396 - INFO - Mean training L1 loss: 0.024091435983132015
+2024-10-20 03:14:50,397 - INFO - Mean training SSIM loss: 0.7901589352932
+2024-10-20 03:14:50,397 - INFO - Mean training MSE loss: 0.0
+2024-10-20 03:14:50,397 - INFO - Mean training VGG loss: 0.0
+2024-10-20 03:19:11,937 - INFO - Mean validation L1 loss: 0.02319700771282399
+2024-10-20 03:19:11,938 - INFO - Mean validation SSIM loss: 0.7747925606659025
+2024-10-20 03:19:11,938 - INFO - Mean validation MSE loss: 0.0
+2024-10-20 03:19:11,938 - INFO - Mean validation VGG loss: 0.0
+2024-10-20 03:19:12,633 - INFO - New best validation Loss 0.02319700771282399, at epoch 25
+2024-10-20 03:19:13,294 - INFO - Epoch 26
+-------------------------------
+2024-10-20 03:19:13,294 - INFO - Learning Rate of group 0: 1.9369152030840776e-08
+2024-10-20 03:19:13,294 - INFO - Learning Rate of group 1: 1.9369152030840776e-08
+2024-10-20 04:13:02,626 - INFO - Maximum gradient before clipping: 5.444311618804932
+2024-10-20 04:13:02,626 - INFO - Minimum gradient before clipping: -2.4876561164855957
+2024-10-20 04:13:02,627 - INFO - Mean training L1 loss: 0.02401681886483428
+2024-10-20 04:13:02,627 - INFO - Mean training SSIM loss: 0.7886637773587583
+2024-10-20 04:13:02,627 - INFO - Mean training MSE loss: 0.0
+2024-10-20 04:13:02,627 - INFO - Mean training VGG loss: 0.0
+2024-10-20 04:17:24,373 - INFO - Mean validation L1 loss: 0.023139011891976147
+2024-10-20 04:17:24,374 - INFO - Mean validation SSIM loss: 0.7743821966408886
+2024-10-20 04:17:24,374 - INFO - Mean validation MSE loss: 0.0
+2024-10-20 04:17:24,374 - INFO - Mean validation VGG loss: 0.0
+2024-10-20 04:17:25,046 - INFO - New best validation Loss 0.023139011891976147, at epoch 26
+2024-10-20 04:17:25,685 - INFO - Epoch 27
+-------------------------------
+2024-10-20 04:17:25,685 - INFO - Learning Rate of group 0: 2.4471741852423276e-08
+2024-10-20 04:17:25,686 - INFO - Learning Rate of group 1: 2.4471741852423276e-08
+2024-10-20 05:11:15,359 - INFO - Maximum gradient before clipping: 4.56516695022583
+2024-10-20 05:11:15,360 - INFO - Minimum gradient before clipping: -2.3493876457214355
+2024-10-20 05:11:15,361 - INFO - Mean training L1 loss: 0.023948191549817498
+2024-10-20 05:11:15,361 - INFO - Mean training SSIM loss: 0.7870497530297423
+2024-10-20 05:11:15,361 - INFO - Mean training MSE loss: 0.0
+2024-10-20 05:11:15,361 - INFO - Mean training VGG loss: 0.0
+2024-10-20 05:15:36,952 - INFO - Mean validation L1 loss: 0.0230452072305175
+2024-10-20 05:15:36,953 - INFO - Mean validation SSIM loss: 0.772815942664609
+2024-10-20 05:15:36,953 - INFO - Mean validation MSE loss: 0.0
+2024-10-20 05:15:36,953 - INFO - Mean validation VGG loss: 0.0
+2024-10-20 05:15:37,597 - INFO - New best validation Loss 0.0230452072305175, at epoch 27
+2024-10-20 05:15:38,241 - INFO - Epoch 28
+-------------------------------
+2024-10-20 05:15:38,241 - INFO - Learning Rate of group 0: 3.015368960704583e-08
+2024-10-20 05:15:38,241 - INFO - Learning Rate of group 1: 3.015368960704583e-08
+2024-10-20 06:09:27,808 - INFO - Maximum gradient before clipping: 4.584333419799805
+2024-10-20 06:09:27,808 - INFO - Minimum gradient before clipping: -3.0176239013671875
+2024-10-20 06:09:27,809 - INFO - Mean training L1 loss: 0.023864614928008024
+2024-10-20 06:09:27,809 - INFO - Mean training SSIM loss: 0.7852891104982169
+2024-10-20 06:09:27,809 - INFO - Mean training MSE loss: 0.0
+2024-10-20 06:09:27,809 - INFO - Mean training VGG loss: 0.0
+2024-10-20 06:13:49,634 - INFO - Mean validation L1 loss: 0.022969230822595863
+2024-10-20 06:13:49,635 - INFO - Mean validation SSIM loss: 0.770901780961748
+2024-10-20 06:13:49,635 - INFO - Mean validation MSE loss: 0.0
+2024-10-20 06:13:49,635 - INFO - Mean validation VGG loss: 0.0
+2024-10-20 06:13:50,276 - INFO - New best validation Loss 0.022969230822595863, at epoch 28
+2024-10-20 06:13:50,914 - INFO - Epoch 29
+-------------------------------
+2024-10-20 06:13:50,915 - INFO - Learning Rate of group 0: 3.640807271660622e-08
+2024-10-20 06:13:50,915 - INFO - Learning Rate of group 1: 3.640807271660622e-08
+2024-10-20 07:07:40,750 - INFO - Maximum gradient before clipping: 5.321709632873535
+2024-10-20 07:07:40,751 - INFO - Minimum gradient before clipping: -2.9024882316589355
+2024-10-20 07:07:40,752 - INFO - Mean training L1 loss: 0.023771578684411803
+2024-10-20 07:07:40,752 - INFO - Mean training SSIM loss: 0.7838531250187863
+2024-10-20 07:07:40,752 - INFO - Mean training MSE loss: 0.0
+2024-10-20 07:07:40,752 - INFO - Mean training VGG loss: 0.0
+2024-10-20 07:12:02,649 - INFO - Mean validation L1 loss: 0.022879737399730295
+2024-10-20 07:12:02,650 - INFO - Mean validation SSIM loss: 0.7689382018253557
+2024-10-20 07:12:02,650 - INFO - Mean validation MSE loss: 0.0
+2024-10-20 07:12:02,650 - INFO - Mean validation VGG loss: 0.0
+2024-10-20 07:12:03,301 - INFO - New best validation Loss 0.022879737399730295, at epoch 29
+2024-10-20 07:12:03,936 - INFO - Epoch 30
+-------------------------------
+2024-10-20 07:12:03,936 - INFO - Learning Rate of group 0: 4.32272711786996e-08
+2024-10-20 07:12:03,936 - INFO - Learning Rate of group 1: 4.32272711786996e-08
+2024-10-20 08:05:53,678 - INFO - Maximum gradient before clipping: 6.122635841369629
+2024-10-20 08:05:53,679 - INFO - Minimum gradient before clipping: -2.6724953651428223
+2024-10-20 08:05:53,679 - INFO - Mean training L1 loss: 0.023657701724134495
+2024-10-20 08:05:53,679 - INFO - Mean training SSIM loss: 0.7826348608480443
+2024-10-20 08:05:53,680 - INFO - Mean training MSE loss: 0.0
+2024-10-20 08:05:53,680 - INFO - Mean training VGG loss: 0.0
+2024-10-20 08:12:50,078 - INFO - Validation split Earthnet Score on epoch 30
+2024-10-20 08:16:44,772 - INFO - MAD: 0.25059263848879826, OLS: 0.3282815878886259, EMD: 0.23783527062423546, SSIM: 0.4554419107369051, ENS: 0.29768625695819045
+2024-10-20 08:16:44,773 - INFO - Mean validation L1 loss: 0.0227931974608339
+2024-10-20 08:16:44,774 - INFO - Mean validation SSIM loss: 0.7680988849006768
+2024-10-20 08:16:44,774 - INFO - Mean validation MSE loss: 0.0
+2024-10-20 08:16:44,774 - INFO - Mean validation VGG loss: 0.0
+2024-10-20 08:16:45,411 - INFO - New best validation Loss 0.0227931974608339, at epoch 30
+2024-10-20 08:16:46,096 - INFO - New best Earthnet Score 0.29768625695819045, at epoch 30
+2024-10-20 08:16:46,738 - INFO - Epoch 31
+-------------------------------
+2024-10-20 08:16:46,738 - INFO - Learning Rate of group 0: 5.060297685041651e-08
+2024-10-20 08:16:46,738 - INFO - Learning Rate of group 1: 5.060297685041651e-08
+2024-10-20 09:10:35,557 - INFO - Maximum gradient before clipping: 3.7287333011627197
+2024-10-20 09:10:35,558 - INFO - Minimum gradient before clipping: -3.6577529907226562
+2024-10-20 09:10:35,559 - INFO - Mean training L1 loss: 0.02353997859910648
+2024-10-20 09:10:35,559 - INFO - Mean training SSIM loss: 0.7808462903869546
+2024-10-20 09:10:35,559 - INFO - Mean training MSE loss: 0.0
+2024-10-20 09:10:35,559 - INFO - Mean training VGG loss: 0.0
+2024-10-20 09:14:57,641 - INFO - Mean validation L1 loss: 0.02271067597327075
+2024-10-20 09:14:57,642 - INFO - Mean validation SSIM loss: 0.7668141652907815
+2024-10-20 09:14:57,642 - INFO - Mean validation MSE loss: 0.0
+2024-10-20 09:14:57,642 - INFO - Mean validation VGG loss: 0.0
+2024-10-20 09:14:58,340 - INFO - New best validation Loss 0.02271067597327075, at epoch 31
+2024-10-20 09:14:58,985 - INFO - Epoch 32
+-------------------------------
+2024-10-20 09:14:58,986 - INFO - Learning Rate of group 0: 5.852620357053654e-08
+2024-10-20 09:14:58,986 - INFO - Learning Rate of group 1: 5.852620357053654e-08
+2024-10-20 10:08:48,101 - INFO - Maximum gradient before clipping: 4.98559045791626
+2024-10-20 10:08:48,102 - INFO - Minimum gradient before clipping: -2.830610752105713
+2024-10-20 10:08:48,102 - INFO - Mean training L1 loss: 0.023393091406799394
+2024-10-20 10:08:48,103 - INFO - Mean training SSIM loss: 0.7787771958878029
+2024-10-20 10:08:48,103 - INFO - Mean training MSE loss: 0.0
+2024-10-20 10:08:48,103 - INFO - Mean training VGG loss: 0.0
+2024-10-20 10:13:09,642 - INFO - Mean validation L1 loss: 0.02262398422256511
+2024-10-20 10:13:09,643 - INFO - Mean validation SSIM loss: 0.7653057571238897
+2024-10-20 10:13:09,643 - INFO - Mean validation MSE loss: 0.0
+2024-10-20 10:13:09,643 - INFO - Mean validation VGG loss: 0.0
+2024-10-20 10:13:10,291 - INFO - New best validation Loss 0.02262398422256511, at epoch 32
+2024-10-20 10:13:10,930 - INFO - Epoch 33
+-------------------------------
+2024-10-20 10:13:10,930 - INFO - Learning Rate of group 0: 6.698729810778064e-08
+2024-10-20 10:13:10,930 - INFO - Learning Rate of group 1: 6.698729810778064e-08
+2024-10-20 10:21:19,920 - INFO - NOTE: None
+2024-10-20 10:21:19,921 - INFO - Torch, random, numpy seed: 88
+2024-10-20 10:21:20,447 - INFO - load model from: /home/nikoskot/earthnetThesis/swin_tiny_patch244_window877_kinetics400_1k.pth
+2024-10-20 10:21:20,557 - INFO - _IncompatibleKeys(missing_keys=['encoder.layers.0.blocks.0.attn.relative_position_index', 'encoder.layers.0.blocks.1.attn.relative_position_index', 'encoder.layers.1.blocks.0.attn.relative_position_index', 'encoder.layers.1.blocks.1.attn.relative_position_index', 'encoder.layers.2.blocks.0.attn.relative_position_index', 'encoder.layers.2.blocks.1.attn.relative_position_index', 'decoder.layers.0.blocks.0.norm1.weight', 'decoder.layers.0.blocks.0.norm1.bias', 'decoder.layers.0.blocks.0.attn.relative_position_bias_table', 'decoder.layers.0.blocks.0.attn.relative_position_index', 'decoder.layers.0.blocks.0.attn.qkv.weight', 'decoder.layers.0.blocks.0.attn.qkv.bias', 'decoder.layers.0.blocks.0.attn.proj.weight', 'decoder.layers.0.blocks.0.attn.proj.bias', 'decoder.layers.0.blocks.0.norm2.weight', 'decoder.layers.0.blocks.0.norm2.bias', 'decoder.layers.0.blocks.0.mlp.fc1.weight', 'decoder.layers.0.blocks.0.mlp.fc1.bias', 'decoder.layers.0.blocks.0.mlp.fc2.weight', 'decoder.layers.0.blocks.0.mlp.fc2.bias', 'decoder.layers.0.blocks.1.norm1.weight', 'decoder.layers.0.blocks.1.norm1.bias', 'decoder.layers.0.blocks.1.attn.relative_position_bias_table', 'decoder.layers.0.blocks.1.attn.relative_position_index', 'decoder.layers.0.blocks.1.attn.qkv.weight', 'decoder.layers.0.blocks.1.attn.qkv.bias', 'decoder.layers.0.blocks.1.attn.proj.weight', 'decoder.layers.0.blocks.1.attn.proj.bias', 'decoder.layers.0.blocks.1.norm2.weight', 'decoder.layers.0.blocks.1.norm2.bias', 'decoder.layers.0.blocks.1.mlp.fc1.weight', 'decoder.layers.0.blocks.1.mlp.fc1.bias', 'decoder.layers.0.blocks.1.mlp.fc2.weight', 'decoder.layers.0.blocks.1.mlp.fc2.bias', 'decoder.layers.0.upsample.conv.weight', 'decoder.layers.0.upsample.conv.bias', 'decoder.layers.0.upsample.norm.weight', 'decoder.layers.0.upsample.norm.bias', 'decoder.layers.1.blocks.0.norm1.weight', 'decoder.layers.1.blocks.0.norm1.bias', 'decoder.layers.1.blocks.0.attn.relative_position_bias_table', 'decoder.layers.1.blocks.0.attn.relative_position_index', 'decoder.layers.1.blocks.0.attn.qkv.weight', 'decoder.layers.1.blocks.0.attn.qkv.bias', 'decoder.layers.1.blocks.0.attn.proj.weight', 'decoder.layers.1.blocks.0.attn.proj.bias', 'decoder.layers.1.blocks.0.norm2.weight', 'decoder.layers.1.blocks.0.norm2.bias', 'decoder.layers.1.blocks.0.mlp.fc1.weight', 'decoder.layers.1.blocks.0.mlp.fc1.bias', 'decoder.layers.1.blocks.0.mlp.fc2.weight', 'decoder.layers.1.blocks.0.mlp.fc2.bias', 'decoder.layers.1.blocks.1.norm1.weight', 'decoder.layers.1.blocks.1.norm1.bias', 'decoder.layers.1.blocks.1.attn.relative_position_bias_table', 'decoder.layers.1.blocks.1.attn.relative_position_index', 'decoder.layers.1.blocks.1.attn.qkv.weight', 'decoder.layers.1.blocks.1.attn.qkv.bias', 'decoder.layers.1.blocks.1.attn.proj.weight', 'decoder.layers.1.blocks.1.attn.proj.bias', 'decoder.layers.1.blocks.1.norm2.weight', 'decoder.layers.1.blocks.1.norm2.bias', 'decoder.layers.1.blocks.1.mlp.fc1.weight', 'decoder.layers.1.blocks.1.mlp.fc1.bias', 'decoder.layers.1.blocks.1.mlp.fc2.weight', 'decoder.layers.1.blocks.1.mlp.fc2.bias', 'decoder.layers.1.upsample.conv.weight', 'decoder.layers.1.upsample.conv.bias', 'decoder.layers.1.upsample.norm.weight', 'decoder.layers.1.upsample.norm.bias', 'decoder.layers.2.blocks.0.norm1.weight', 'decoder.layers.2.blocks.0.norm1.bias', 'decoder.layers.2.blocks.0.attn.relative_position_bias_table', 'decoder.layers.2.blocks.0.attn.relative_position_index', 'decoder.layers.2.blocks.0.attn.qkv.weight', 'decoder.layers.2.blocks.0.attn.qkv.bias', 'decoder.layers.2.blocks.0.attn.proj.weight', 'decoder.layers.2.blocks.0.attn.proj.bias', 'decoder.layers.2.blocks.0.norm2.weight', 'decoder.layers.2.blocks.0.norm2.bias', 'decoder.layers.2.blocks.0.mlp.fc1.weight', 'decoder.layers.2.blocks.0.mlp.fc1.bias', 'decoder.layers.2.blocks.0.mlp.fc2.weight', 'decoder.layers.2.blocks.0.mlp.fc2.bias', 'decoder.layers.2.blocks.1.norm1.weight', 'decoder.layers.2.blocks.1.norm1.bias', 'decoder.layers.2.blocks.1.attn.relative_position_bias_table', 'decoder.layers.2.blocks.1.attn.relative_position_index', 'decoder.layers.2.blocks.1.attn.qkv.weight', 'decoder.layers.2.blocks.1.attn.qkv.bias', 'decoder.layers.2.blocks.1.attn.proj.weight', 'decoder.layers.2.blocks.1.attn.proj.bias', 'decoder.layers.2.blocks.1.norm2.weight', 'decoder.layers.2.blocks.1.norm2.bias', 'decoder.layers.2.blocks.1.mlp.fc1.weight', 'decoder.layers.2.blocks.1.mlp.fc1.bias', 'decoder.layers.2.blocks.1.mlp.fc2.weight', 'decoder.layers.2.blocks.1.mlp.fc2.bias', 'head.conv1.weight', 'head.conv1.bias', 'head.conv2.weight', 'head.conv2.bias', 'head.conv3.weight', 'head.conv3.bias'], unexpected_keys=['encoder.layers.3.downsample.reduction.weight', 'encoder.layers.3.downsample.norm.weight', 'encoder.layers.3.downsample.norm.bias', 'encoder.layers.2.blocks.2.norm1.weight', 'encoder.layers.2.blocks.2.norm1.bias', 'encoder.layers.2.blocks.2.attn.qkv.weight', 'encoder.layers.2.blocks.2.attn.qkv.bias', 'encoder.layers.2.blocks.2.attn.proj.weight', 'encoder.layers.2.blocks.2.attn.proj.bias', 'encoder.layers.2.blocks.2.norm2.weight', 'encoder.layers.2.blocks.2.norm2.bias', 'encoder.layers.2.blocks.2.mlp.fc1.weight', 'encoder.layers.2.blocks.2.mlp.fc1.bias', 'encoder.layers.2.blocks.2.mlp.fc2.weight', 'encoder.layers.2.blocks.2.mlp.fc2.bias', 'encoder.layers.2.blocks.3.norm1.weight', 'encoder.layers.2.blocks.3.norm1.bias', 'encoder.layers.2.blocks.3.attn.qkv.weight', 'encoder.layers.2.blocks.3.attn.qkv.bias', 'encoder.layers.2.blocks.3.attn.proj.weight', 'encoder.layers.2.blocks.3.attn.proj.bias', 'encoder.layers.2.blocks.3.norm2.weight', 'encoder.layers.2.blocks.3.norm2.bias', 'encoder.layers.2.blocks.3.mlp.fc1.weight', 'encoder.layers.2.blocks.3.mlp.fc1.bias', 'encoder.layers.2.blocks.3.mlp.fc2.weight', 'encoder.layers.2.blocks.3.mlp.fc2.bias', 'encoder.layers.2.blocks.4.norm1.weight', 'encoder.layers.2.blocks.4.norm1.bias', 'encoder.layers.2.blocks.4.attn.qkv.weight', 'encoder.layers.2.blocks.4.attn.qkv.bias', 'encoder.layers.2.blocks.4.attn.proj.weight', 'encoder.layers.2.blocks.4.attn.proj.bias', 'encoder.layers.2.blocks.4.norm2.weight', 'encoder.layers.2.blocks.4.norm2.bias', 'encoder.layers.2.blocks.4.mlp.fc1.weight', 'encoder.layers.2.blocks.4.mlp.fc1.bias', 'encoder.layers.2.blocks.4.mlp.fc2.weight', 'encoder.layers.2.blocks.4.mlp.fc2.bias', 'encoder.layers.2.blocks.5.norm1.weight', 'encoder.layers.2.blocks.5.norm1.bias', 'encoder.layers.2.blocks.5.attn.qkv.weight', 'encoder.layers.2.blocks.5.attn.qkv.bias', 'encoder.layers.2.blocks.5.attn.proj.weight', 'encoder.layers.2.blocks.5.attn.proj.bias', 'encoder.layers.2.blocks.5.norm2.weight', 'encoder.layers.2.blocks.5.norm2.bias', 'encoder.layers.2.blocks.5.mlp.fc1.weight', 'encoder.layers.2.blocks.5.mlp.fc1.bias', 'encoder.layers.2.blocks.5.mlp.fc2.weight', 'encoder.layers.2.blocks.5.mlp.fc2.bias'])
+2024-10-20 10:21:20,557 - INFO - => loaded successfully '/home/nikoskot/earthnetThesis/swin_tiny_patch244_window877_kinetics400_1k.pth'
+2024-10-20 10:21:22,451 - INFO - Resuming training from checkpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_18-10-2024_22-23-04/checkpointLast.pth from epoch 33
+2024-10-20 10:21:30,033 - INFO - Epoch 33
+-------------------------------
+2024-10-20 10:21:30,033 - INFO - Learning Rate of group 0: 5.852620357053654e-08
+2024-10-20 10:21:30,034 - INFO - Learning Rate of group 1: 5.852620357053654e-08
+2024-10-20 11:15:20,047 - INFO - Maximum gradient before clipping: 3.386228561401367
+2024-10-20 11:15:20,048 - INFO - Minimum gradient before clipping: -3.000401258468628
+2024-10-20 11:15:20,049 - INFO - Mean training L1 loss: 0.023429139428828512
+2024-10-20 11:15:20,049 - INFO - Mean training SSIM loss: 0.7796560692418225
+2024-10-20 11:15:20,049 - INFO - Mean training MSE loss: 0.0
+2024-10-20 11:15:20,049 - INFO - Mean training VGG loss: 0.0
+2024-10-20 11:19:41,891 - INFO - Mean validation L1 loss: 0.022561707029299792
+2024-10-20 11:19:41,892 - INFO - Mean validation SSIM loss: 0.7644433035300329
+2024-10-20 11:19:41,892 - INFO - Mean validation MSE loss: 0.0
+2024-10-20 11:19:41,892 - INFO - Mean validation VGG loss: 0.0
+2024-10-20 11:19:42,540 - INFO - New best validation Loss 0.022561707029299792, at epoch 33
+2024-10-20 11:19:43,182 - INFO - Epoch 34
+-------------------------------
+2024-10-20 11:19:43,183 - INFO - Learning Rate of group 0: 6.698729810778064e-08
+2024-10-20 11:19:43,183 - INFO - Learning Rate of group 1: 6.698729810778064e-08
+2024-10-20 12:13:32,437 - INFO - Maximum gradient before clipping: 4.070075988769531
+2024-10-20 12:13:32,438 - INFO - Minimum gradient before clipping: -4.078808784484863
+2024-10-20 12:13:32,439 - INFO - Mean training L1 loss: 0.023364420404127208
+2024-10-20 12:13:32,439 - INFO - Mean training SSIM loss: 0.7788890760994914
+2024-10-20 12:13:32,439 - INFO - Mean training MSE loss: 0.0
+2024-10-20 12:13:32,439 - INFO - Mean training VGG loss: 0.0
+2024-10-20 12:17:54,243 - INFO - Mean validation L1 loss: 0.022516036273780776
+2024-10-20 12:17:54,243 - INFO - Mean validation SSIM loss: 0.765033330407031
+2024-10-20 12:17:54,243 - INFO - Mean validation MSE loss: 0.0
+2024-10-20 12:17:54,243 - INFO - Mean validation VGG loss: 0.0
+2024-10-20 12:17:54,895 - INFO - New best validation Loss 0.022516036273780776, at epoch 34
+2024-10-20 12:17:55,543 - INFO - Epoch 35
+-------------------------------
+2024-10-20 12:17:55,543 - INFO - Learning Rate of group 0: 7.59759519217872e-08
+2024-10-20 12:17:55,543 - INFO - Learning Rate of group 1: 7.59759519217872e-08

@@ -2,10 +2,14 @@
 #SBATCH --partition=A100short
 #SBATCH --time=8:00:00
 #SBATCH --gpus=1
+#SBATCH --array=0-3
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
-#SBATCH --dependency=afterany:121971
+#SBATCH --dependency=afterany:$((SLURM_ARRAY_TASK_ID)_(SLURM_ARRAY_TASK_ID-1))
 
 python checkGPU.py
+echo $SLURM_ARRAY_JOB_ID
+echo $SLURM_ARRAY_TASK_ID
+echo $SLURM_JOB_ID
 
-python /home/nikoskot/earthnetThesis/swinUnet/trainVideoSwinUnetV2.py --config /home/nikoskot/earthnetThesis/experiments/configV2CosAn.yml --resumeTraining --resumeCheckpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV2/videoSwinUnetV2_13-09-2024_10-49-40/checkpointLast.pth
+# python /home/nikoskot/earthnetThesis/swinUnet/trainVideoSwinUnetV2.py --config /home/nikoskot/earthnetThesis/experiments/configV2CosAn.yml --resumeTraining --resumeCheckpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV2/videoSwinUnetV2_13-09-2024_10-49-40/checkpointLast.pth

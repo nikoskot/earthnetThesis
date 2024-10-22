@@ -467,6 +467,51 @@ class PreprocessingV8(object):
 
         return data
     
+class PreprocessingEarthformer(object):
+
+    def __init__(self):
+        None
+
+    def __call__(self, data):
+
+        contextImages = torch.from_numpy(data['context']['images'])
+        contextWeather = torch.from_numpy(data['context']['weather'])
+        contextMask = torch.from_numpy(data['context']['mask'])
+        targetImages = torch.from_numpy(data['target']['images'])
+        targetWeather = torch.from_numpy(data['target']['weather'])
+        targetMask = torch.from_numpy(data['target']['mask'])
+        demHigh = torch.from_numpy(data['demHigh'])
+        demMeso = torch.from_numpy(data['demMeso'])
+
+        H, W = contextImages.shape[2::]
+
+        allImages = torch.cat((contextImages, targetImages), dim=1) # CTHW, T=30, C=4
+        allImages = allImages.permute(1,2,3,0) # THWC
+        
+        allMasks = torch.cat((contextMask, targetMask), dim=1) # CTHW, T=30, C=1
+        allMasks = (1 - allMasks).permute(1,2,3,0) # THWC
+
+        highresdynamic = torch.cat((allImages, allMasks), dim=3)
+
+        allWeather = torch.cat((contextWeather, targetWeather), dim=1) # CThw, T=150, C=5
+        allWeather = allWeather.permute(1,2,3,0) # THWC
+        
+        # demHigh = demHigh # CHW -> C=1     
+
+        # demMeso = demMeso # Chw C=1
+
+        data = {
+            "highresdynamic": highresdynamic,
+            "highresstatic": demHigh,
+            "mesodynamic": allWeather,
+            "mesostatic": demMeso,
+            "targetMask": targetMask,
+            "tile"    : data['tile'],
+            "cubename": data['cubename']
+        }
+
+        return data
+    
     
 if __name__ == "__main__":
 

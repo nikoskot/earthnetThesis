@@ -15,8 +15,9 @@ calculateENSonValidationFreq: 10
 
 # Model
 modelType: "videoSwinUnetV1"
-pretrained: null #"/home/nikoskot/earthnetThesis/swin_tiny_patch4_window7_224_22k.pth"
-pretrained2D: True
+pretrained: "/home/nikoskot/earthnetThesis/swin_tiny_patch244_window877_kinetics400_1k.pth"
+pretrained2D: False
+pretrained3D: True
 C: 96            # C of Video Swin Transformer (number of channels after patch embedding)
 modelInputCh: 11 # Number of channels of the input data
 extraInputCh: 5
@@ -77,6 +78,7 @@ ssimWeight: 1
 vggWeight: 1
 trainingOptimizer: "adamw"
 lr: 0.0002         # Def 0.0005
+pretrainedLr: 0.0001
 weightDecay: 0.05
 scheduler: "CosineAnnealing"
 warmupEpochs: 5

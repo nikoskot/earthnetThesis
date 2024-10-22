@@ -29,27 +29,36 @@ class Encoder(nn.Module):
             self.layers = nn.Sequential(
                 # nn.Conv3d(in_channels=5, out_channels=48, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
                 nn.Conv3d(in_channels=5, out_channels=96, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.ReLU(),
                 nn.AvgPool3d(kernel_size=(avgPoolingTime, 2, 2), stride=(avgPoolingTime, 2, 2), padding=(0, 0, 0)),
                 nn.Conv3d(in_channels=96, out_channels=192, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.ReLU(),
             )
 
         elif self.config['autoencoderNumLayers'] == 3:
             self.layers = nn.Sequential(
                 nn.Conv3d(in_channels=5, out_channels=48, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.ReLU(),
                 nn.AvgPool3d(kernel_size=(avgPoolingTime, 2, 2), stride=(avgPoolingTime, 2, 2), padding=(0, 0, 0)),
                 nn.Conv3d(in_channels=48, out_channels=96, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.ReLU(),
                 nn.AvgPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2), padding=(0, 0, 0)),
                 nn.Conv3d(in_channels=96, out_channels=192, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.ReLU(),
             )
         
         elif self.config['autoencoderNumLayers'] == 4:
             self.layers = nn.Sequential(
                 nn.Conv3d(in_channels=5, out_channels=24, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.ReLU(),
                 nn.Conv3d(in_channels=24, out_channels=48, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.ReLU(),
                 nn.AvgPool3d(kernel_size=(avgPoolingTime, 2, 2), stride=(avgPoolingTime, 2, 2), padding=(0, 0, 0)),
                 nn.Conv3d(in_channels=48, out_channels=96, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.ReLU(),
                 nn.AvgPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2), padding=(0, 0, 0)),
                 nn.Conv3d(in_channels=96, out_channels=192, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=True),
+                nn.ReLU(),
             )
 
     def forward(self, x):
@@ -73,6 +82,7 @@ class Decoder(nn.Module):
             self.layers = nn.Sequential(
                 # nn.Upsample(scale_factor=(1, 2, 2), mode='nearest'),
                 nn.Conv3d(in_channels=192, out_channels=96, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
+                nn.ReLU(),
                 nn.Upsample(scale_factor=(avgPoolingTime, 2, 2), mode='nearest'),
                 nn.Conv3d(in_channels=96, out_channels=5, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
                 # nn.Conv3d(in_channels=48, out_channels=5, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
@@ -81,8 +91,10 @@ class Decoder(nn.Module):
         elif self.config['autoencoderNumLayers'] == 3:
             self.layers = nn.Sequential(
                 nn.Conv3d(in_channels=192, out_channels=96, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
+                nn.ReLU(),
                 nn.Upsample(scale_factor=(1, 2, 2), mode='nearest'),
                 nn.Conv3d(in_channels=96, out_channels=48, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
+                nn.ReLU(),
                 nn.Upsample(scale_factor=(avgPoolingTime, 2, 2), mode='nearest'),
                 nn.Conv3d(in_channels=48, out_channels=5, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
             )
@@ -90,10 +102,13 @@ class Decoder(nn.Module):
         elif self.config['autoencoderNumLayers'] == 4:
             self.layers = nn.Sequential(
                 nn.Conv3d(in_channels=192, out_channels=96, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
+                nn.ReLU(),
                 nn.Upsample(scale_factor=(1, 2, 2), mode='nearest'),
                 nn.Conv3d(in_channels=96, out_channels=48, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
+                nn.ReLU(),
                 nn.Upsample(scale_factor=(avgPoolingTime, 2, 2), mode='nearest'),
                 nn.Conv3d(in_channels=48, out_channels=24, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True),
+                nn.ReLU(),
                 nn.Conv3d(in_channels=24, out_channels=5, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
             )
 

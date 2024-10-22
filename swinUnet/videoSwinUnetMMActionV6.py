@@ -17,6 +17,8 @@ from earthnet.parallel_score import CubeCalculator
 import yaml
 import rerun as rr
 from earthnet.plot_cube import gallery
+import torch.multiprocessing as mp
+import os
 
 def timeUpsample(x, factor):
     """ 
@@ -1211,6 +1213,12 @@ def validation_loop(dataloader,
     earthnetScore = 0
 
     batchNumber = 0
+    pool = mp.Pool(processes=config['batchSize'])
+    allENSMetrics = []
+    def appendENSResults(result):
+        allENSMetrics.append([result['MAD'], result['OLS'], result['EMD'], result['SSIM']])
+    def handler(error):
+        print(f'Error: {error}', flush=True)
 
     # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
     # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
@@ -1274,13 +1282,50 @@ def validation_loop(dataloader,
                         rr.log('/validation/prediction/{}'.format(data['cubename'][i]), rr.Image(grid))
             
             if epoch % config['calculateENSonValidationFreq'] == 0 or epoch == config['epochs']:
-                ensCalculator(pred.permute(0, 2, 3, 4, 1), y.permute(0, 2, 3, 4, 1), 1-masks.permute(0, 2, 3, 4, 1))
+                # pred = torch.clamp(pred.clone(), min=0, max=1)
+                # ensCalculator(pred.permute(0, 2, 3, 4, 1), y.permute(0, 2, 3, 4, 1), 1-masks.permute(0, 2, 3, 4, 1))
+                # preprocessing
+                pred = torch.clamp(pred, min=0, max=1).permute(0, 3, 4, 1, 2).detach().cpu().numpy() # BHWCT
+                target = y.permute(0, 3, 4, 1, 2).detach().cpu().numpy() # BHWCT
+                mask = masks.permute(0, 3, 4, 1, 2).detach().cpu().numpy().repeat(4,3)
+                ndvi_pred = ((pred[:,:,:,3,:] - pred[:,:,:,2,:])/(pred[:,:,:,3,:] + pred[:,:,:,2,:] + 1e-6))[:,:,:,np.newaxis,:]
+                ndvi_targ = ((target[:,:,:,3,:] - target[:,:,:,2,:])/(target[:,:,:,3,:] + target[:,:,:,2,:] + 1e-6))[:,:,:,np.newaxis,:]
+                ndvi_mask = mask[:,:,:,0,:][:,:,:,np.newaxis,:]
+                for t in range(pred.shape[0]):
+                    pool.apply_async(calculateENSMetrics, args=(pred[t], target[t], mask[t], ndvi_pred[t], ndvi_targ[t], ndvi_mask[t]), callback=appendENSResults, error_callback=handler)
 
         if epoch % config['calculateENSonValidationFreq'] == 0 or epoch == config['epochs']:
             logger.info("Validation split Earthnet Score on epoch {}".format(epoch))
-            ens = ensCalculator.compute()
-            logger.info(ens)
-            earthnetScore = ens['EarthNetScore']
-            ensCalculator.reset()
+            pool.close()
+            pool.join()
+            allENSMetrics = np.array(allENSMetrics, dtype = np.float64)
+            meanScores = np.nanmean(allENSMetrics, axis = 0).tolist()
+            earthnetScore = harmonicMean(meanScores)
+            logger.info(f"MAD: {meanScores[0]}, OLS: {meanScores[1]}, EMD: {meanScores[2]}, SSIM: {meanScores[3]}, ENS: {earthnetScore}")
+            # ens = ensCalculator.compute()
+            # logger.info(ens)
+            # earthnetScore = ens['EarthNetScore']
+            # ensCalculator.reset()
 
     return l1LossSum / batchNumber, SSIMLossSum / batchNumber, mseLossSum / batchNumber, vggLossSum / batchNumber, earthnetScore
+
+def calculateENSMetrics(pred, targ, mask, ndvi_pred, ndvi_targ, ndvi_mask):
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+    mad, _ = CubeCalculator.MAD(pred, targ, mask)
+    ols, _ = CubeCalculator.OLS(ndvi_pred, ndvi_targ, ndvi_mask)
+    emd, _ = CubeCalculator.EMD(ndvi_pred, ndvi_targ, ndvi_mask)
+    ssim, _ = CubeCalculator.SSIM(pred, targ, mask)
+    
+    return {
+        "MAD": mad,
+        "OLS": ols,
+        "EMD": emd,
+        "SSIM": ssim,
+    }
+
+def harmonicMean(vals):
+    vals = list(filter(None, vals))
+    if len(vals) == 0:
+        return None
+    else:
+        return min(1,len(vals)/sum([1/(v+1e-8) for v in vals]))

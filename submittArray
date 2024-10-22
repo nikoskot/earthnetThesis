@@ -1,0 +1,8 @@
+#!/bin/bash
+# First, submit the initial job
+jobid=$(sbatch --array=0 v2CosAn | awk '{print $4}')
+
+# Loop through the rest of the array and set each job to depend on the previous one
+for i in $(seq 1 3); do
+  jobid=$(sbatch --dependency=afterok:$jobid --array=$i v2CosAn | awk '{print $4}')
+done

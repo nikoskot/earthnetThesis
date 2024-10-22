@@ -1,5 +1,7 @@
 EarthnetDataset/
+GreenEarthnetDataset
 *.npz
+*.nc
 *.pth
 predictions/
 *.out

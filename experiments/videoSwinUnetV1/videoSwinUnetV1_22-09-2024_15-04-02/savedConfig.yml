@@ -25,7 +25,7 @@ inputHeightWidth: 128
 windowSize: [2, 7, 7]
 patchSize: [1, 2, 2]
 ape: true
-patchEmbedding: {norm: true}
+patchEmbedding: {norm: LayerNorm}
 encoder:
   numChannels: [96, 192]
   layerDepths: [2, 2]
@@ -36,8 +36,9 @@ encoder:
   drop: 0.0
   attnDrop: 0.0
   dropPath: 0.2
-  norm: true
+  norm: LayerNorm
   downsample: [false, true]
+  downsampleNorm: LayerNorm
   useCheckpoint: false
 decoder:
   numChannels: [192, 192]
@@ -49,8 +50,9 @@ decoder:
   drop: 0.0
   attnDrop: 0.0
   dropPath: 0.2
-  norm: true
+  norm: LayerNorm
   upsample: [true, false]
+  upsampleNorm: LayerNorm
   useCheckpoint: false
 epochs: 90
 l1Weight: 1
@@ -70,4 +72,4 @@ gradientClipValue: 0.5
 useMSE: false
 useSSIM: true
 useVGG: false
-runFolder: videoSwinUnetV1_23-09-2024_15-18-57
+runFolder: videoSwinUnetV1_07-10-2024_10-11-01

@@ -1,0 +1,93 @@
+# Data
+batchSize: 8
+numWorkers: 8    # Number of workers for Dataloaders
+trainDataDir: "/home/nikoskot/earthnetThesis/EarthnetDataset/train"
+testDataDir: "/home/nikoskot/earthnetThesis/EarthnetDataset/"
+dataDtype: "float32"
+trainDataSubset: null
+trainSplit: 0.8
+validationSplit: 0.2
+cropMesodynamic: True
+experimentsFolder: "/home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/"
+overfitTraining: False
+visualizationFreq: 10
+calculateENSonValidationFreq: 10
+
+# Model
+modelType: "videoSwinUnetV1"
+pretrained: "/home/nikoskot/earthnetThesis/swin_tiny_patch244_window877_kinetics400_1k.pth"
+pretrained2D: False
+pretrained3D: True
+C: 48            # C of Video Swin Transformer (number of channels after patch embedding)
+modelInputCh: 11 # Number of channels of the input data
+extraInputCh: 5
+mainInputTime: 10
+outputTime: 20
+modelOutputCh: 4
+timeUpsampling: 'encoder' # 'patchEmbedding': do it after patch embedding, 'encoder': do it after encoder
+#numBlocks: 3
+inputHeightWidth: 128
+windowSize: [3, 7, 7]
+patchSize: [1, 2, 2]
+ape: False
+patchEmbedding:
+  norm: "LayerNorm"       # 'LayerNorm' or 'BatchNorm' or null 
+encoder:
+  numChannels: [48, 96]
+  layerDepths: [2, 2]
+  layerNumHeads: [3, 6, 12]
+  mlpRatio: 4.
+  qkvBias: True
+  qkScale: null
+  drop: 0.
+  attnDrop: 0.
+  dropPath: 0.2
+  norm: "LayerNorm"        # 'LayerNorm' or 'BatchNorm' or null 
+  downsample: [False, True]
+  downsampleNorm: "LayerNorm"   # 'LayerNorm' or 'BatchNorm' or null 
+  useCheckpoint: False
+  # patchMerging:
+  #   norm: False
+# bottleneck:
+#   depth: 2
+#   numHeads: 12
+#   norm: False
+decoder:
+  numChannels: [96, 96]
+  layerDepths: [2, 2]
+  layerNumHeads: [3, 6, 12]
+  mlpRatio: 4.
+  qkvBias: True
+  qkScale: null
+  drop: 0.
+  attnDrop: 0.
+  dropPath: 0.2
+  norm: "LayerNorm"        # 'LayerNorm' or 'BatchNorm' or null 
+  upsample: [True, False]
+  upsampleNorm: "LayerNorm"   # 'LayerNorm' or 'BatchNorm' or null 
+  useCheckpoint: False
+  # patchExpansion:
+  #   norm: False
+
+
+# Optimization
+epochs: 90      # Number of epochs to run the training for
+l1Weight: 1
+mseWeight: 1
+ssimWeight: 1
+vggWeight: 1
+trainingOptimizer: "adamw"
+lr: 0.0005         # Def 0.0005
+pretrainedLr: 0.0002
+weightDecay: 0.05
+scheduler: "CosineAnnealing"
+warmupEpochs: 10
+lrScaleFactor: 0.2
+schedulerPatience: 5
+cosineAnnealingRestartsInterval: 10
+gradientClipping: False
+gradientClipValue: 0.5
+
+useMSE: False
+useSSIM: True
+useVGG: False

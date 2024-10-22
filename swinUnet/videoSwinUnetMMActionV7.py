@@ -18,6 +18,19 @@ import yaml
 import rerun as rr
 from earthnet.plot_cube import gallery
 from WeatherDataAutoEncoder import WeatherDataAutoEncoder
+import torch.multiprocessing as mp
+import os
+import re
+
+def closest_divisors(n):
+    # Find the square root of the number
+    sqrt_n = int(np.sqrt(n))
+    
+    # Iterate from sqrt(n) down to 1 to find the divisors
+    for i in range(sqrt_n, 0, -1):
+        if n % i == 0:
+            # Return the pair (i, n // i) when the divisor is found
+            return i, n // i
 
 def timeUpsample(x, factor):
     """ 
@@ -25,7 +38,7 @@ def timeUpsample(x, factor):
         x: (B, C, T, H, W)
     """
     _, _, T, H, W = x.shape
-    return F.interpolate(input=x, size=(T*factor, H, W), mode='trilinear')
+    return F.interpolate(input=x, size=(T*factor, H, W), mode='nearest')
 
 class Mlp(nn.Module):
     """ Multilayer perceptron."""
@@ -200,7 +213,7 @@ class SwinTransformerBlock3D(nn.Module):
 
     def __init__(self, dim, num_heads, window_size=(2,7,7), shift_size=(0,0,0),
                  mlp_ratio=4., qkv_bias=True, qk_scale=None, drop=0., attn_drop=0., drop_path=0.,
-                 act_layer=nn.GELU, norm_layer=nn.LayerNorm, use_checkpoint=False):
+                 act_layer=nn.GELU, norm_layer=None, use_checkpoint=False):
         super().__init__()
         self.dim = dim
         self.num_heads = num_heads
@@ -214,15 +227,23 @@ class SwinTransformerBlock3D(nn.Module):
         assert 0 <= self.shift_size[1] < self.window_size[1], "shift_size must in 0-window_size"
         assert 0 <= self.shift_size[2] < self.window_size[2], "shift_size must in 0-window_size"
 
-        if self.norm_layer is not None:
-            self.norm1 = norm_layer(dim)
+        if self.norm_layer == 'LayerNorm':
+            self.norm1 = nn.LayerNorm(dim)
+        elif self.norm_layer == 'BatchNorm':
+            self.norm1 = nn.BatchNorm3d(dim)
+        else:
+            self.norm1 = None
         self.attn = WindowAttention3D(
             dim, window_size=self.window_size, num_heads=num_heads,
             qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop)
 
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
-        if self.norm_layer is not None:
-            self.norm2 = norm_layer(dim)
+        if self.norm_layer == 'LayerNorm':
+            self.norm2 = nn.LayerNorm(dim)
+        elif self.norm_layer == 'BatchNorm':
+            self.norm2 = nn.BatchNorm3d(dim)
+        else:
+            self.norm2 = None
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
 
@@ -230,8 +251,12 @@ class SwinTransformerBlock3D(nn.Module):
         B, D, H, W, C = x.shape
         window_size, shift_size = get_window_size((D, H, W), self.window_size, self.shift_size)
 
-        if self.norm_layer is not None:
+        if isinstance(self.norm1, nn.LayerNorm):
+            x = self.norm1(x)       # B, D, H, W, C
+        elif isinstance(self.norm1, nn.BatchNorm3d):
+            x = x.permute(0, 4, 1, 2, 3) # B C D H W 
             x = self.norm1(x)
+            x = x.permute(0, 2, 3, 4, 1) # B, D, H, W, C
         # pad feature maps to multiples of window size
         pad_l = pad_t = pad_d0 = 0
         pad_d1 = (window_size[0] - D % window_size[0]) % window_size[0]
@@ -264,7 +289,14 @@ class SwinTransformerBlock3D(nn.Module):
         return x
 
     def forward_part2(self, x):
-        return self.drop_path(self.mlp(self.norm2(x))) if self.norm_layer is not None else self.drop_path(self.mlp(x))
+        if isinstance(self.norm2, nn.LayerNorm):
+            x = self.norm2(x)      # B, D, H, W, C
+        elif isinstance(self.norm2, nn.BatchNorm3d):
+            x = x.permute(0, 4, 1, 2, 3) # B C D H W 
+            x = self.norm2(x)
+            x = x.permute(0, 2, 3, 4, 1) # B, D, H, W, C
+        
+        return self.drop_path(self.mlp(x))
 
     def forward(self, x, mask_matrix):
         """ Forward function.
@@ -297,10 +329,15 @@ class PatchMerging(nn.Module):
         dim_down: Number of input channels
         norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
     """
-    def __init__(self, dim, dim_down, norm_layer=nn.LayerNorm):
+    def __init__(self, dim, dim_down, norm_layer=None):
         super().__init__()
         self.dim = dim
-        self.norm = norm_layer(4 * dim_down) if norm_layer is not None else None
+        if norm_layer == 'LayerNorm':
+            self.norm = nn.LayerNorm(4 * dim_down)
+        elif norm_layer == 'BatchNorm':
+            self.norm = nn.BatchNorm3d(4 * dim_down)
+        else:
+            self.norm = None
         self.reduction = nn.Linear(4 * dim_down, dim, bias=False)
 
     def forward(self, x):
@@ -323,8 +360,12 @@ class PatchMerging(nn.Module):
         x3 = x[:, :, 1::2, 1::2, :]  # B D H/2 W/2 C
         x = torch.cat([x0, x1, x2, x3], -1)  # B D H/2 W/2 4*C
 
-        if self.norm is not None:
+        if isinstance(self.norm, nn.LayerNorm):
             x = self.norm(x)
+        elif isinstance(self.norm, nn.BatchNorm3d):
+            x = x.permute(0, 4, 1, 2, 3) # B 4*C D H/2 W/2 
+            x = self.norm(x)
+            x = x.permute(0, 2, 3, 4, 1) # B D H/2 W/2 4*C 
         x = self.reduction(x)
 
         # x = x.permute(0,4,1,2,3) # B,Ch,T,H,W
@@ -335,9 +376,15 @@ class PatchExpansionV2(nn.Module):
     def __init__(self, dim, outputChannels, spatialScale=2, norm=None):
         super().__init__()
         self.spatialScale = spatialScale
-        self.upsampe = nn.Upsample(scale_factor=(1, spatialScale, spatialScale), mode='trilinear')
-        self.conv = nn.Conv3d(in_channels=dim, out_channels=outputChannels, kernel_size=(1,1,1), stride=(1,1,1), padding=(0,0,0), bias=True)
-        self.norm = nn.LayerNorm(outputChannels) if norm else None
+        self.upsampe = nn.Upsample(scale_factor=(1, spatialScale, spatialScale), mode='nearest')
+        self.conv = nn.Conv3d(in_channels=dim, out_channels=outputChannels, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
+        if norm == 'LayerNorm':
+            self.norm = nn.LayerNorm(outputChannels)
+        elif norm == 'BatchNorm':
+            self.norm = nn.BatchNorm3d(outputChannels)
+        else:
+            self.norm = None
+        
 
     def forward(self, x):
         # x -> B C T H W
@@ -345,10 +392,12 @@ class PatchExpansionV2(nn.Module):
 
         x = self.conv(x)
 
-        if self.norm is not None:
+        if isinstance(self.norm, nn.LayerNorm):
             x = x.permute(0, 2, 3, 4, 1) # x -> B T H W C
             x = self.norm(x)
             x = x.permute(0, 4, 1, 2, 3) # x -> B C T H W
+        elif isinstance(self.norm, nn.BatchNorm3d):
+            x = self.norm(x)
 
         return x
     
@@ -429,9 +478,10 @@ class BasicLayerEncoder(nn.Module):
                  drop=0.,
                  attn_drop=0.,
                  drop_path=0.,
-                 norm_layer=nn.LayerNorm,
+                 norm_layer=None,
                  downsample=None,
-                 use_checkpoint=False):
+                 use_checkpoint=False,
+                 downsampleNorm=None):
         super().__init__()
         self.window_size = window_size
         self.shift_size = tuple(i // 2 for i in window_size)
@@ -440,7 +490,7 @@ class BasicLayerEncoder(nn.Module):
 
         self.downsample = downsample
         if self.downsample is not None:
-            self.downsample = downsample(dim=dim, dim_down=dim//2, norm_layer=norm_layer)
+            self.downsample = downsample(dim=dim, dim_down=dim//2, norm_layer=downsampleNorm)
 
         # build blocks
         self.blocks = nn.ModuleList([
@@ -519,9 +569,10 @@ class BasicLayerDecoder(nn.Module):
                  drop=0.,
                  attn_drop=0.,
                  drop_path=0.,
-                 norm_layer=nn.LayerNorm,
+                 norm_layer=None,
                  upsample=None,
-                 use_checkpoint=False):
+                 use_checkpoint=False,
+                 upsampleNorm=None):
         super().__init__()
         self.window_size = window_size
         self.shift_size = tuple(i // 2 for i in window_size)
@@ -548,7 +599,7 @@ class BasicLayerDecoder(nn.Module):
         
         self.upsample = upsample
         if self.upsample is not None:
-            self.upsample = upsample(dim, dim//2, spatialScale=2, norm=norm_layer)
+            self.upsample = upsample(dim, dim//2, spatialScale=2, norm=upsampleNorm)
 
     def forward(self, x):
         """ Forward function.
@@ -598,8 +649,10 @@ class PatchEmbed3D(nn.Module):
         self.embed_dim = embed_dim
 
         self.proj = nn.Conv3d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)
-        if norm_layer is not None:
-            self.norm = norm_layer(embed_dim)
+        if norm_layer == "LayerNorm":
+            self.norm = nn.LayerNorm(embed_dim)
+        elif norm_layer == "BatchNorm":
+            self.norm = nn.BatchNorm3d(embed_dim)
         else:
             self.norm = None
 
@@ -615,11 +668,13 @@ class PatchEmbed3D(nn.Module):
             x = F.pad(x, (0, 0, 0, 0, 0, self.patch_size[0] - D % self.patch_size[0]))
 
         x = self.proj(x)  # B C D Wh Ww
-        if self.norm is not None:
+        if isinstance(self.norm, nn.LayerNorm):
             D, Wh, Ww = x.size(2), x.size(3), x.size(4)
             x = x.flatten(2).transpose(1, 2)
             x = self.norm(x)
             x = x.transpose(1, 2).view(-1, self.embed_dim, D, Wh, Ww)
+        elif isinstance(self.norm, nn.BatchNorm3d):
+            x = self.norm(x)
 
         return x # B C D Wh Ww
 
@@ -640,9 +695,10 @@ class Encoder(nn.Module):
                                       drop=config['encoder']['drop'], 
                                       attn_drop=config['encoder']['attnDrop'], 
                                       drop_path=config['encoder']['dropPath'], 
-                                      norm_layer=nn.LayerNorm if config['encoder']['norm'] else None, 
+                                      norm_layer=config['encoder']['norm'], 
                                       downsample=PatchMerging if config['encoder']['downsample'][i] else None, #None if i == 0 else PatchMerging, 
-                                      use_checkpoint=config['encoder']['useCheckpoint'])
+                                      use_checkpoint=config['encoder']['useCheckpoint'],
+                                      downsampleNorm=config['encoder']['downsampleNorm'])
             self.layers.append(layer)
 
         # self.block0 = BasicLayerEncoder(dim=96, depth=2, num_heads=3, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, downsample=None, use_checkpoint=False)
@@ -686,9 +742,10 @@ class Decoder(nn.Module):
                                       drop=config['decoder']['drop'], 
                                       attn_drop=config['decoder']['attnDrop'], 
                                       drop_path=config['decoder']['dropPath'], 
-                                      norm_layer=nn.LayerNorm if config['decoder']['norm'] else None, 
+                                      norm_layer=config['decoder']['norm'], 
                                       upsample=PatchExpansionV2 if config['decoder']['upsample'][i] else None, #None if i == len(config['decoder']['layerDepths'])-1 else PatchExpansionV2, 
-                                      use_checkpoint=config['decoder']['useCheckpoint'])
+                                      use_checkpoint=config['decoder']['useCheckpoint'],
+                                      upsampleNorm=config['decoder']['upsampleNorm'])
             self.layers.append(layer)
         
         # self.block3 = BasicLayerDecoder(dim=384, depth=2, num_heads=3, window_size=(3, 7, 7), mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, norm_layer=None, upsample=PatchExpansionV2, use_checkpoint=False)
@@ -702,7 +759,7 @@ class Decoder(nn.Module):
             
             if i != 0:
                 if x_out.size()[-3:] != x_i.size()[-3:]:
-                    x_out = F.interpolate(x_out, size=x_i.size()[-3:], mode='trilinear', align_corners=False)
+                    x_out = F.interpolate(x_out, size=x_i.size()[-3:], mode='nearest')
 
                 x_out = x_out + F.interpolate(list(reversed(targetWeather))[i], size=(list(reversed(targetWeather))[i].shape[2], x_out.shape[3], x_out.shape[4])) # Conditioning decoder on target weather data
 
@@ -739,7 +796,7 @@ class VideoSwinUNet(nn.Module):
         self.patch_embed = PatchEmbed3D(patch_size=tuple(config['patchSize']), 
                                         in_chans=config['modelInputCh'], 
                                         embed_dim=config['C'], 
-                                        norm_layer=nn.LayerNorm if config['patchEmbedding']['norm'] else None)
+                                        norm_layer=config['patchEmbedding']['norm'])
         
         if self.config['ape']:
             self.absolute_pos_embed = nn.Parameter(torch.zeros(1, self.config['C'], self.config['mainInputTime'] // config['patchSize'][0], config['inputHeightWidth'] // config['patchSize'][1], config['inputHeightWidth'] // config['patchSize'][2]))
@@ -858,6 +915,107 @@ class VideoSwinUNet(nn.Module):
         del checkpoint
         torch.cuda.empty_cache()
 
+    def transfer_weights(self, logger, config):
+        checkpoint = torch.load(self.pretrained, map_location='cpu')
+        state_dict = checkpoint['state_dict']
+
+        new_state_dict = {}
+
+        # delete relative_position_index since we always re-init it
+        relative_position_index_keys = [k for k in state_dict.keys() if "relative_position_index" in k]
+        for k in relative_position_index_keys:
+            del state_dict[k]
+
+        # delete attn_mask since we always re-init it
+        attn_mask_keys = [k for k in state_dict.keys() if "attn_mask" in k]
+        for k in attn_mask_keys:
+            del state_dict[k]
+
+        # delete last norm layer
+        del state_dict['backbone.norm.weight'], state_dict['backbone.norm.bias']
+
+        # If we have different number of embedding dimension, reshape the weights
+        if config['C'] != 96:
+            factor = 96 // config['C']
+            for k in state_dict.keys():
+                if 'patch_embed.proj.weight' in k:
+                    # reduce only 1st dimension
+                    A, B, C, D, E = state_dict[k].shape
+                    state_dict[k] = state_dict[k].reshape(config['C'], factor, B, C, D, E).mean(1).reshape(config['C'], B, C, D, E)
+                elif 'relative_position_bias_table' in k:
+                    continue
+                else:
+                    # reduce all dimensions
+                    if len(state_dict[k].shape) == 1:
+                        A = state_dict[k].shape[0]
+                        state_dict[k] = state_dict[k].reshape(A // factor, factor).mean(1).reshape(A // factor)
+                    elif len(state_dict[k].shape) == 2:
+                        A, B = state_dict[k].shape
+                        state_dict[k] = state_dict[k].reshape(A // factor, factor, B // factor, factor).mean(dim=(1, 3)).reshape(A // factor, B // factor)
+
+        # prepare patch embed weights
+        m1 = state_dict['backbone.patch_embed.proj.weight'].mean()
+        s1 = state_dict['backbone.patch_embed.proj.weight'].std()
+        state_dict['backbone.patch_embed.proj.weight'] = state_dict['backbone.patch_embed.proj.weight'].mean(axis=(1, 2, 3, 4)).\
+        unsqueeze(-1).unsqueeze(-1).unsqueeze(-1).unsqueeze(-1).repeat(1, config['modelInputCh'], config['patchSize'][0], config['patchSize'][1], config['patchSize'][2])
+        m2 = state_dict['backbone.patch_embed.proj.weight'].mean()
+        s2 = state_dict['backbone.patch_embed.proj.weight'].std()
+        state_dict['backbone.patch_embed.proj.weight'] = m1 + (state_dict['backbone.patch_embed.proj.weight'] - m2) * s1/s2
+
+        patch_embed_keys = [k for k in state_dict.keys() if "patch_embed" in k]
+        for k in patch_embed_keys:
+            new_state_dict[k.removeprefix("backbone.")] = state_dict[k]
+
+        # change 'backbone' prefix to 'encoder' prefix and add 1 to the downsample layers numbers for the encoder
+        for k in list(state_dict.keys()):
+            match = re.search(r"backbone.layers\.(\d+)", k)
+            if not match:
+                continue
+            numLayer = int(match.group(1))
+            if (numLayer == 0 or numLayer == 1 or numLayer == 2):
+                if "downsample" in k:
+                    new_state_dict["encoder.layers." + str(numLayer + 1) + k.removeprefix("backbone.layers." + str(numLayer))] = state_dict[k]
+                    # del state_dict[k]
+                else:
+                    if "relative_position_bias_table" in k:
+                        state_dict["encoder" + k.removeprefix("backbone")] = state_dict[k]
+                        del state_dict[k]
+                    else:
+                        new_state_dict["encoder" + k.removeprefix("backbone")] = state_dict[k]
+                        # del state_dict[k]
+        
+        # bicubic interpolate relative_position_bias_table if not match
+        relative_position_bias_table_keys = [k for k in state_dict.keys() if "relative_position_bias_table" in k]
+        for k in relative_position_bias_table_keys:
+            if k in list(self.state_dict().keys()):
+                relative_position_bias_table_pretrained = state_dict[k]
+                relative_position_bias_table_current = self.state_dict()[k]
+                L1, nH1 = relative_position_bias_table_pretrained.size()
+                L2, nH2 = relative_position_bias_table_current.size()
+                L2 = (2*config['windowSize'][1]-1) * (2*config['windowSize'][2]-1)
+                wd = config['windowSize'][0]
+                if nH1 != nH2:
+                    if logger: logger.warning(f"Error in loading {k}, passing")
+                else:
+                    if L1 != L2:
+                        # S1 = int(L1 ** 0.5)
+                        S1, D1 = closest_divisors(L1)
+                        relative_position_bias_table_pretrained_resized = torch.nn.functional.interpolate(
+                            relative_position_bias_table_pretrained.permute(1, 0).view(1, nH1, S1, D1), size=(2*config['windowSize'][1]-1, 2*config['windowSize'][2]-1),
+                            mode='bicubic')
+                        relative_position_bias_table_pretrained = relative_position_bias_table_pretrained_resized.view(nH2, L2).permute(1, 0)
+                state_dict[k] = relative_position_bias_table_pretrained.repeat(2*wd-1,1)
+                new_state_dict[k] = state_dict[k]
+        
+        # for k in list(new_state_dict.keys()):
+        #     print(k + f" {new_state_dict[k].shape}")
+        msg = self.load_state_dict(new_state_dict, strict=False)
+        if logger:
+            logger.info(msg)
+            logger.info(f"=> loaded successfully '{self.pretrained}'")
+        del checkpoint
+        torch.cuda.empty_cache()
+
     def init_weights(self, logger, config, init_type='xavier', gain=1):
         """Initialize the weights in backbone.
 
@@ -906,19 +1064,20 @@ class VideoSwinUNet(nn.Module):
                     if i == 4:
                         nn.init.constant_(m.bias, 0.263)
 
-        # if config['pretrained']:
-        #     self.pretrained = config['pretrained']
-        # if isinstance(config['pretrained'], str):
-        #     if logger: logger.info(f'load model from: {self.pretrained}')
+        if config['pretrained']:
+            self.pretrained = config['pretrained']
+        if isinstance(config['pretrained'], str):
+            if logger: logger.info(f'load model from: {self.pretrained}')
 
-        #     if config['pretrained2D']:
-        #         # Inflate 2D model into 3D model.
-        #         self.inflate_weights(logger, config)
-        #     else:
-        #         # Directly load 3D model.
-        #         torch.load(self, self.pretrained, strict=False, logger=logger)
-        # else:
-        #     if logger: logger.info("No pretrained loading")
+            if config['pretrained2D']:
+                # Inflate 2D model into 3D model.
+                self.inflate_weights(logger, config)
+            elif config['pretrained3D']:
+                # Directly load 3D model.
+                self.transfer_weights(logger, config)
+                # torch.load(self, self.pretrained, strict=False, logger=logger)
+        else:
+            if logger: logger.info("No pretrained loading")
 
     def forward(self, contextImgDEM, contextWeather, targetWeather):
 
@@ -955,7 +1114,7 @@ class VideoSwinUNet(nn.Module):
         # print("Decoder output shape {}".format(decoder_output.shape))
 
         if self.config['patchSize'] != (1, 1, 1):
-            x = F.interpolate(x, size=(self.config['outputTime'], self.config['inputHeightWidth'], self.config['inputHeightWidth']), mode='trilinear', align_corners=False)
+            x = F.interpolate(x, size=(self.config['outputTime'], self.config['inputHeightWidth'], self.config['inputHeightWidth']), mode='nearest')
             # print("Final interpolation output shape {}".format(decoder_output.shape))
 
         x = self.head(x)
@@ -978,6 +1137,9 @@ if __name__ == "__main__":
     endTime = time.time()
     print("Model creation time {}".format(endTime - startTime))
     print(model)
+
+    for k in list(model.state_dict().keys()):
+        print(k + f" {torch.mean(model.state_dict()[k].float())}")
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'])
 
@@ -1143,6 +1305,13 @@ def validation_loop(dataloader,
 
     batchNumber = 0
 
+    pool = mp.Pool(processes=config['batchSize'])
+    allENSMetrics = []
+    def appendENSResults(result):
+        allENSMetrics.append([result['MAD'], result['OLS'], result['EMD'], result['SSIM']])
+    def handler(error):
+        print(f'Error: {error}', flush=True)
+
     # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
     # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
     with torch.no_grad():
@@ -1204,13 +1373,50 @@ def validation_loop(dataloader,
                         rr.log('/validation/prediction/{}'.format(data['cubename'][i]), rr.Image(grid))
             
             if epoch % config['calculateENSonValidationFreq'] == 0 or epoch == config['epochs']:
-                ensCalculator(pred.permute(0, 2, 3, 4, 1), y.permute(0, 2, 3, 4, 1), 1-masks.permute(0, 2, 3, 4, 1))
+                # pred = torch.clamp(pred.clone(), min=0, max=1)
+                # ensCalculator(pred.permute(0, 2, 3, 4, 1), y.permute(0, 2, 3, 4, 1), 1-masks.permute(0, 2, 3, 4, 1))
+                # preprocessing
+                pred = torch.clamp(pred, min=0, max=1).permute(0, 3, 4, 1, 2).detach().cpu().numpy() # BHWCT
+                target = y.permute(0, 3, 4, 1, 2).detach().cpu().numpy() # BHWCT
+                mask = masks.permute(0, 3, 4, 1, 2).detach().cpu().numpy().repeat(4,3)
+                ndvi_pred = ((pred[:,:,:,3,:] - pred[:,:,:,2,:])/(pred[:,:,:,3,:] + pred[:,:,:,2,:] + 1e-6))[:,:,:,np.newaxis,:]
+                ndvi_targ = ((target[:,:,:,3,:] - target[:,:,:,2,:])/(target[:,:,:,3,:] + target[:,:,:,2,:] + 1e-6))[:,:,:,np.newaxis,:]
+                ndvi_mask = mask[:,:,:,0,:][:,:,:,np.newaxis,:]
+                for t in range(pred.shape[0]):
+                    pool.apply_async(calculateENSMetrics, args=(pred[t], target[t], mask[t], ndvi_pred[t], ndvi_targ[t], ndvi_mask[t]), callback=appendENSResults, error_callback=handler)
 
         if epoch % config['calculateENSonValidationFreq'] == 0 or epoch == config['epochs']:
             logger.info("Validation split Earthnet Score on epoch {}".format(epoch))
-            ens = ensCalculator.compute()
-            logger.info(ens)
-            earthnetScore = ens['EarthNetScore']
-            ensCalculator.reset()
+            pool.close()
+            pool.join()
+            allENSMetrics = np.array(allENSMetrics, dtype = np.float64)
+            meanScores = np.nanmean(allENSMetrics, axis = 0).tolist()
+            earthnetScore = harmonicMean(meanScores)
+            logger.info(f"MAD: {meanScores[0]}, OLS: {meanScores[1]}, EMD: {meanScores[2]}, SSIM: {meanScores[3]}, ENS: {earthnetScore}")
+            # ens = ensCalculator.compute()
+            # logger.info(ens)
+            # earthnetScore = ens['EarthNetScore']
+            # ensCalculator.reset()
 
     return l1LossSum / batchNumber, SSIMLossSum / batchNumber, mseLossSum / batchNumber, vggLossSum / batchNumber, earthnetScore
+
+def calculateENSMetrics(pred, targ, mask, ndvi_pred, ndvi_targ, ndvi_mask):
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+    mad, _ = CubeCalculator.MAD(pred, targ, mask)
+    ols, _ = CubeCalculator.OLS(ndvi_pred, ndvi_targ, ndvi_mask)
+    emd, _ = CubeCalculator.EMD(ndvi_pred, ndvi_targ, ndvi_mask)
+    ssim, _ = CubeCalculator.SSIM(pred, targ, mask)
+    
+    return {
+        "MAD": mad,
+        "OLS": ols,
+        "EMD": emd,
+        "SSIM": ssim,
+    }
+
+def harmonicMean(vals):
+    vals = list(filter(None, vals))
+    if len(vals) == 0:
+        return None
+    else:
+        return min(1,len(vals)/sum([1/(v+1e-8) for v in vals]))

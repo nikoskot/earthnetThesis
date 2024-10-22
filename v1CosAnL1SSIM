@@ -3,12 +3,12 @@
 #SBATCH --time=8:00:00
 #SBATCH --gpus=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=10
-#SBATCH --dependency=afterany:123126
+#SBATCH --cpus-per-task=16
+#SBATCH --dependency=afterany:124005
 
 python checkGPU.py
 
-python /home/nikoskot/earthnetThesis/swinUnet/trainVideoSwinUnetAll.py --config /home/nikoskot/earthnetThesis/experiments/configV1CosAnL1SSIM.yml --resumeTraining --resumeCheckpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_01-10-2024_16-50-26/checkpointLast.pth
+python /home/nikoskot/earthnetThesis/swinUnet/trainVideoSwinUnetAll.py --config /home/nikoskot/earthnetThesis/experiments/configV1CosAnL1SSIM.yml --resumeTraining --resumeCheckpoint /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_15-10-2024_16-50-16/checkpointLast.pth
 
 # python /home/nikoskot/earthnetThesis/swinUnet/testVideoSwinUnet.py --trainingFolder /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_13-09-2024_10-31-50 --testSplit iid_test_split --checkpoint checkpointENS_20-09-2024_09-47-44.pth
 

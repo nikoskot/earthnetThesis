@@ -17,6 +17,19 @@ from earthnet.parallel_score import CubeCalculator
 import yaml
 import rerun as rr
 from earthnet.plot_cube import gallery
+import torch.multiprocessing as mp
+import os
+import re
+
+def closest_divisors(n):
+    # Find the square root of the number
+    sqrt_n = int(np.sqrt(n))
+    
+    # Iterate from sqrt(n) down to 1 to find the divisors
+    for i in range(sqrt_n, 0, -1):
+        if n % i == 0:
+            # Return the pair (i, n // i) when the divisor is found
+            return i, n // i
 
 def timeUpsample(x, factor):
     """ 
@@ -24,7 +37,7 @@ def timeUpsample(x, factor):
         x: (B, C, T, H, W)
     """
     _, _, T, H, W = x.shape
-    return F.interpolate(input=x, size=(T*factor, H, W), mode='trilinear')
+    return F.interpolate(input=x, size=(T*factor, H, W), mode='nearest')
 
 class Mlp(nn.Module):
     """ Multilayer perceptron."""
@@ -362,8 +375,8 @@ class PatchExpansionV2(nn.Module):
     def __init__(self, dim, outputChannels, spatialScale=2, norm=None):
         super().__init__()
         self.spatialScale = spatialScale
-        self.upsampe = nn.Upsample(scale_factor=(1, spatialScale, spatialScale), mode='trilinear')
-        self.conv = nn.Conv3d(in_channels=dim, out_channels=outputChannels, kernel_size=(1,1,1), stride=(1,1,1), padding=(0,0,0), bias=True)
+        self.upsampe = nn.Upsample(scale_factor=(1, spatialScale, spatialScale), mode='nearest')
+        self.conv = nn.Conv3d(in_channels=dim, out_channels=outputChannels, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=True)
         if norm == 'LayerNorm':
             self.norm = nn.LayerNorm(outputChannels)
         elif norm == 'BatchNorm':
@@ -738,7 +751,7 @@ class Decoder(nn.Module):
             
             if i != 0:
                 if x_out.size()[-3:] != x_i.size()[-3:]:
-                    x_out = F.interpolate(x_out, size=x_i.size()[-3:], mode='trilinear', align_corners=False)
+                    x_out = F.interpolate(x_out, size=x_i.size()[-3:], mode='nearest')
 
                 x_i = torch.cat((x_out, x_i), dim=1)
 
@@ -872,6 +885,107 @@ class VideoSwinUNet(nn.Module):
         del checkpoint
         torch.cuda.empty_cache()
 
+    def transfer_weights(self, logger, config):
+        checkpoint = torch.load(self.pretrained, map_location='cpu')
+        state_dict = checkpoint['state_dict']
+
+        new_state_dict = {}
+
+        # delete relative_position_index since we always re-init it
+        relative_position_index_keys = [k for k in state_dict.keys() if "relative_position_index" in k]
+        for k in relative_position_index_keys:
+            del state_dict[k]
+
+        # delete attn_mask since we always re-init it
+        attn_mask_keys = [k for k in state_dict.keys() if "attn_mask" in k]
+        for k in attn_mask_keys:
+            del state_dict[k]
+
+        # delete last norm layer
+        del state_dict['backbone.norm.weight'], state_dict['backbone.norm.bias']
+
+        # If we have different number of embedding dimension, reshape the weights
+        if config['C'] != 96:
+            factor = 96 // config['C']
+            for k in state_dict.keys():
+                if 'patch_embed.proj.weight' in k:
+                    # reduce only 1st dimension
+                    A, B, C, D, E = state_dict[k].shape
+                    state_dict[k] = state_dict[k].reshape(config['C'], factor, B, C, D, E).mean(1).reshape(config['C'], B, C, D, E)
+                elif 'relative_position_bias_table' in k:
+                    continue
+                else:
+                    # reduce all dimensions
+                    if len(state_dict[k].shape) == 1:
+                        A = state_dict[k].shape[0]
+                        state_dict[k] = state_dict[k].reshape(A // factor, factor).mean(1).reshape(A // factor)
+                    elif len(state_dict[k].shape) == 2:
+                        A, B = state_dict[k].shape
+                        state_dict[k] = state_dict[k].reshape(A // factor, factor, B // factor, factor).mean(dim=(1, 3)).reshape(A // factor, B // factor)
+
+        # prepare patch embed weights
+        m1 = state_dict['backbone.patch_embed.proj.weight'].mean()
+        s1 = state_dict['backbone.patch_embed.proj.weight'].std()
+        state_dict['backbone.patch_embed.proj.weight'] = state_dict['backbone.patch_embed.proj.weight'].mean(axis=(1, 2, 3, 4)).\
+        unsqueeze(-1).unsqueeze(-1).unsqueeze(-1).unsqueeze(-1).repeat(1, config['modelInputCh'], config['patchSize'][0], config['patchSize'][1], config['patchSize'][2])
+        m2 = state_dict['backbone.patch_embed.proj.weight'].mean()
+        s2 = state_dict['backbone.patch_embed.proj.weight'].std()
+        state_dict['backbone.patch_embed.proj.weight'] = m1 + (state_dict['backbone.patch_embed.proj.weight'] - m2) * s1/s2
+
+        patch_embed_keys = [k for k in state_dict.keys() if "patch_embed" in k]
+        for k in patch_embed_keys:
+            new_state_dict[k.removeprefix("backbone.")] = state_dict[k]
+
+        # change 'backbone' prefix to 'encoder' prefix and add 1 to the downsample layers numbers for the encoder
+        for k in list(state_dict.keys()):
+            match = re.search(r"backbone.layers\.(\d+)", k)
+            if not match:
+                continue
+            numLayer = int(match.group(1))
+            if (numLayer == 0 or numLayer == 1 or numLayer == 2):
+                if "downsample" in k:
+                    new_state_dict["encoder.layers." + str(numLayer + 1) + k.removeprefix("backbone.layers." + str(numLayer))] = state_dict[k]
+                    # del state_dict[k]
+                else:
+                    if "relative_position_bias_table" in k:
+                        state_dict["encoder" + k.removeprefix("backbone")] = state_dict[k]
+                        del state_dict[k]
+                    else:
+                        new_state_dict["encoder" + k.removeprefix("backbone")] = state_dict[k]
+                        # del state_dict[k]
+        
+        # bicubic interpolate relative_position_bias_table if not match
+        relative_position_bias_table_keys = [k for k in state_dict.keys() if "relative_position_bias_table" in k]
+        for k in relative_position_bias_table_keys:
+            if k in list(self.state_dict().keys()):
+                relative_position_bias_table_pretrained = state_dict[k]
+                relative_position_bias_table_current = self.state_dict()[k]
+                L1, nH1 = relative_position_bias_table_pretrained.size()
+                L2, nH2 = relative_position_bias_table_current.size()
+                L2 = (2*config['windowSize'][1]-1) * (2*config['windowSize'][2]-1)
+                wd = config['windowSize'][0]
+                if nH1 != nH2:
+                    if logger: logger.warning(f"Error in loading {k}, passing")
+                else:
+                    if L1 != L2:
+                        # S1 = int(L1 ** 0.5)
+                        S1, D1 = closest_divisors(L1)
+                        relative_position_bias_table_pretrained_resized = torch.nn.functional.interpolate(
+                            relative_position_bias_table_pretrained.permute(1, 0).view(1, nH1, S1, D1), size=(2*config['windowSize'][1]-1, 2*config['windowSize'][2]-1),
+                            mode='bicubic')
+                        relative_position_bias_table_pretrained = relative_position_bias_table_pretrained_resized.view(nH2, L2).permute(1, 0)
+                state_dict[k] = relative_position_bias_table_pretrained.repeat(2*wd-1,1)
+                new_state_dict[k] = state_dict[k]
+        
+        # for k in list(new_state_dict.keys()):
+        #     print(k + f" {new_state_dict[k].shape}")
+        msg = self.load_state_dict(new_state_dict, strict=False)
+        if logger:
+            logger.info(msg)
+            logger.info(f"=> loaded successfully '{self.pretrained}'")
+        del checkpoint
+        torch.cuda.empty_cache()
+
     def init_weights(self, logger, config, init_type='xavier', gain=1):
         """Initialize the weights in backbone.
 
@@ -920,19 +1034,20 @@ class VideoSwinUNet(nn.Module):
                     if i == 4:
                         nn.init.constant_(m.bias, 0.263)
 
-        # if config['pretrained']:
-        #     self.pretrained = config['pretrained']
-        # if isinstance(config['pretrained'], str):
-        #     if logger: logger.info(f'load model from: {self.pretrained}')
+        if config['pretrained']:
+            self.pretrained = config['pretrained']
+        if isinstance(config['pretrained'], str):
+            if logger: logger.info(f'load model from: {self.pretrained}')
 
-        #     if config['pretrained2D']:
-        #         # Inflate 2D model into 3D model.
-        #         self.inflate_weights(logger, config)
-        #     else:
-        #         # Directly load 3D model.
-        #         torch.load(self, self.pretrained, strict=False, logger=logger)
-        # else:
-        #     if logger: logger.info("No pretrained loading")
+            if config['pretrained2D']:
+                # Inflate 2D model into 3D model.
+                self.inflate_weights(logger, config)
+            elif config['pretrained3D']:
+                # Directly load 3D model.
+                self.transfer_weights(logger, config)
+                # torch.load(self, self.pretrained, strict=False, logger=logger)
+        else:
+            if logger: logger.info("No pretrained loading")
 
     def forward(self, x):
 
@@ -958,7 +1073,7 @@ class VideoSwinUNet(nn.Module):
         # print("Decoder output shape {}".format(decoder_output.shape))
 
         if self.config['patchSize'] != (1, 1, 1):
-            x = F.interpolate(x, size=(self.config['outputTime'], self.config['inputHeightWidth'], self.config['inputHeightWidth']), mode='trilinear', align_corners=False)
+            x = F.interpolate(x, size=(self.config['outputTime'], self.config['inputHeightWidth'], self.config['inputHeightWidth']), mode='nearest')
             # print("Final interpolation output shape {}".format(decoder_output.shape))
 
         x = self.head(x)
@@ -974,13 +1089,16 @@ if __name__ == "__main__":
             config = yaml.safe_load(f)
         return config
     
-    config = load_config('/home/nikoskot/earthnetThesis/experiments/config.yml')
+    config = load_config('/home/nikoskot/earthnetThesis/experiments/dummy.yml')
 
     startTime = time.time()
     model = VideoSwinUNet(config, logger=None).to(torch.device('cuda'))
     endTime = time.time()
     print("Model creation time {}".format(endTime - startTime))
     print(model)
+
+    for k in list(model.state_dict().keys()):
+        print(k + f" {torch.mean(model.state_dict()[k].float())}")
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'])
 
@@ -1024,7 +1142,7 @@ def train_loop(dataloader,
                logger, 
                trainVisualizationCubenames,
                epoch):
-    print("v1 train")
+
     # Set the model to training mode - important for batch normalization and dropout layers
     model.train()
     l1LossSum = 0
@@ -1067,7 +1185,6 @@ def train_loop(dataloader,
             totalLoss = totalLoss + (config['ssimWeight'] * ssimLossValue)
         if config['useVGG']:
             totalLoss = totalLoss + (config['vggWeight'] * vggLossValue)
-
         totalLoss.backward()
 
         for param in model.parameters():
@@ -1131,7 +1248,7 @@ def validation_loop(dataloader,
                     epoch,
                     ensCalculator,
                     logger):
-    print("v1 val")
+    
     # Set the model to evaluation mode - important for batch normalization and dropout layers
     model.eval()
     l1LossSum = 0
@@ -1141,6 +1258,13 @@ def validation_loop(dataloader,
     earthnetScore = 0
 
     batchNumber = 0
+
+    pool = mp.Pool(processes=config['batchSize'])
+    allENSMetrics = []
+    def appendENSResults(result):
+        allENSMetrics.append([result['MAD'], result['OLS'], result['EMD'], result['SSIM']])
+    def handler(error):
+        print(f'Error: {error}', flush=True)
 
     # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
     # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
@@ -1201,14 +1325,50 @@ def validation_loop(dataloader,
                         rr.log('/validation/prediction/{}'.format(data['cubename'][i]), rr.Image(grid))
             
             if epoch % config['calculateENSonValidationFreq'] == 0 or epoch == config['epochs']:
-                pred = torch.clamp(pred.clone(), min=0, max=1)
-                ensCalculator(pred.permute(0, 2, 3, 4, 1), y.permute(0, 2, 3, 4, 1), 1-masks.permute(0, 2, 3, 4, 1))
+                # pred = torch.clamp(pred.clone(), min=0, max=1)
+                # ensCalculator(pred.permute(0, 2, 3, 4, 1), y.permute(0, 2, 3, 4, 1), 1-masks.permute(0, 2, 3, 4, 1))
+                # preprocessing
+                pred = torch.clamp(pred, min=0, max=1).permute(0, 3, 4, 1, 2).detach().cpu().numpy() # BHWCT
+                target = y.permute(0, 3, 4, 1, 2).detach().cpu().numpy() # BHWCT
+                mask = masks.permute(0, 3, 4, 1, 2).detach().cpu().numpy().repeat(4,3)
+                ndvi_pred = ((pred[:,:,:,3,:] - pred[:,:,:,2,:])/(pred[:,:,:,3,:] + pred[:,:,:,2,:] + 1e-6))[:,:,:,np.newaxis,:]
+                ndvi_targ = ((target[:,:,:,3,:] - target[:,:,:,2,:])/(target[:,:,:,3,:] + target[:,:,:,2,:] + 1e-6))[:,:,:,np.newaxis,:]
+                ndvi_mask = mask[:,:,:,0,:][:,:,:,np.newaxis,:]
+                for t in range(pred.shape[0]):
+                    pool.apply_async(calculateENSMetrics, args=(pred[t], target[t], mask[t], ndvi_pred[t], ndvi_targ[t], ndvi_mask[t]), callback=appendENSResults, error_callback=handler)
 
         if epoch % config['calculateENSonValidationFreq'] == 0 or epoch == config['epochs']:
             logger.info("Validation split Earthnet Score on epoch {}".format(epoch))
-            ens = ensCalculator.compute()
-            logger.info(ens)
-            earthnetScore = ens['EarthNetScore']
-            ensCalculator.reset()
+            pool.close()
+            pool.join()
+            allENSMetrics = np.array(allENSMetrics, dtype = np.float64)
+            meanScores = np.nanmean(allENSMetrics, axis = 0).tolist()
+            earthnetScore = harmonicMean(meanScores)
+            logger.info(f"MAD: {meanScores[0]}, OLS: {meanScores[1]}, EMD: {meanScores[2]}, SSIM: {meanScores[3]}, ENS: {earthnetScore}")
+            # ens = ensCalculator.compute()
+            # logger.info(ens)
+            # earthnetScore = ens['EarthNetScore']
+            # ensCalculator.reset()
 
     return l1LossSum / batchNumber, SSIMLossSum / batchNumber, mseLossSum / batchNumber, vggLossSum / batchNumber, earthnetScore
+
+def calculateENSMetrics(pred, targ, mask, ndvi_pred, ndvi_targ, ndvi_mask):
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+    mad, _ = CubeCalculator.MAD(pred, targ, mask)
+    ols, _ = CubeCalculator.OLS(ndvi_pred, ndvi_targ, ndvi_mask)
+    emd, _ = CubeCalculator.EMD(ndvi_pred, ndvi_targ, ndvi_mask)
+    ssim, _ = CubeCalculator.SSIM(pred, targ, mask)
+    
+    return {
+        "MAD": mad,
+        "OLS": ols,
+        "EMD": emd,
+        "SSIM": ssim,
+    }
+
+def harmonicMean(vals):
+    vals = list(filter(None, vals))
+    if len(vals) == 0:
+        return None
+    else:
+        return min(1,len(vals)/sum([1/(v+1e-8) for v in vals]))

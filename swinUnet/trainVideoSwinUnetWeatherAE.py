@@ -308,6 +308,8 @@ def trainWeatherDataAutoEncoder(config, args):
         optimizer = torch.optim.AdamW(model.parameters(), lr=config['lr'], weight_decay=config['weightDecay'])
     elif config['trainingOptimizer'] == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'], weight_decay=config['weightDecay'])
+    elif config['trainingOptimizer'] == "sgd":
+        optimizer = torch.optim.SGD(model.parameters(), lr=config['lr'])
     else:
         raise NotImplementedError
     

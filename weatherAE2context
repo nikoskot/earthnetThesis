@@ -1,0 +1,17 @@
+#!/bin/bash
+#SBATCH --partition=A100short
+#SBATCH --time=8:00:00
+#SBATCH --gpus=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
+#SBATCH --dependency=afterany:123835
+
+python checkGPU.py
+
+python /home/nikoskot/earthnetThesis/swinUnet/trainVideoSwinUnetWeatherAE.py --config /home/nikoskot/earthnetThesis/experiments/configWeatherDataAE2context.yml --resumeTraining --resumeCheckpoint /home/nikoskot/earthnetThesis/experiments/weatherDataAE/weatherDataAE_13-10-2024_11-54-50/checkpointLast.pth
+
+# python /home/nikoskot/earthnetThesis/swinUnet/hyperparameterOptimizeWeatherAE.py --config /home/nikoskot/earthnetThesis/experiments/configWeatherDataAE.yml --optimizeHyperparams
+
+# python /home/nikoskot/earthnetThesis/swinUnet/testVideoSwinUnet.py --trainingFolder /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_20-09-2024_18-43-53 --testSplit iid_test_split --checkpoint checkpoint_22-09-2024_02-53-50.pth
+
+# python /home/nikoskot/earthnetThesis/swinUnet/ensScoreCalculation.py --predictionsFolder /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_20-09-2024_18-43-53/predictions/checkpoint_22-09-2024_02-53-50.pth/iid_test_split --targetsFolder /home/nikoskot/earthnetThesis/EarthnetDataset/iid_test_split/target --dataOutputFilePath /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_20-09-2024_18-43-53/checkpoint_22-09-2024_02-53-50data_output.json --scoreOutputFilePath /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_20-09-2024_18-43-53/checkpoint_22-09-2024_02-53-50score_output.json

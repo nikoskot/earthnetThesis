@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.utils.checkpoint as checkpoint
 import numpy as np
 import random
 from earthnetDataloader import EarthnetTestDataset, EarthnetTrainDataset, Preprocessing, PreprocessingStack, PreprocessingSeparate, PreprocessingV2, PreprocessingV7, PreprocessingV8
@@ -300,6 +299,8 @@ def trainVideoSwinUnet(config, args):
         from videoSwinUnetMMActionV1 import VideoSwinUNet, train_loop, validation_loop
     elif config['modelType'].endswith('V2'):
         from videoSwinUnetMMActionV2 import VideoSwinUNet, train_loop, validation_loop
+    elif config['modelType'].endswith('V3'):
+        from videoSwinUnetMMActionV3 import VideoSwinUNet, train_loop, validation_loop
     elif config['modelType'].endswith('V5'):
         from videoSwinUnetMMActionV5 import VideoSwinUNet, train_loop, validation_loop
     elif config['modelType'].endswith('V6'):
@@ -318,8 +319,14 @@ def trainVideoSwinUnet(config, args):
     ssimLoss = maskedSSIMLoss
     vggLoss = MaskedVGGLoss()
 
+    parameterGroups = []
     if config['trainingOptimizer'] == "adamw":
-        optimizer = torch.optim.AdamW(model.parameters(), lr=config['lr'], weight_decay=config['weightDecay'])
+        if config['pretrained3D']:
+            encoder_params = [p for name, p in model.named_parameters() if 'encoder' in name]
+            others = [p for name, p in model.named_parameters() if 'encoder' not in name]
+            optimizer = torch.optim.AdamW([{'params': others}, {'params': encoder_params, 'lr': config['pretrainedLr']}], lr=config['lr'], weight_decay=config['weightDecay'])
+        else:
+            optimizer = torch.optim.AdamW(model.parameters(), lr=config['lr'], weight_decay=config['weightDecay'])
     elif config['trainingOptimizer'] == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'], weight_decay=config['weightDecay'])
     else:
@@ -349,8 +356,8 @@ def trainVideoSwinUnet(config, args):
         checkpoint = torch.load(args.resumeCheckpoint) if args.resumeCheckpoint.endswith('.pth') else torch.load(os.path.join(args.resumeCheckpoint, lastCheckpointName))
         model.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = checkpoint['lr']
+        # for param_group in optimizer.param_groups:
+        #     param_group['lr'] = checkpoint['lr']
         if config['scheduler'] is not None:
             scheduler.load_state_dict(checkpoint['scheduler'])
         if checkpoint['warmupScheduler'] is not None:
@@ -372,6 +379,8 @@ def trainVideoSwinUnet(config, args):
         preprocessingStage = PreprocessingStack()
     elif config['modelType'].endswith('V2'):
         preprocessingStage = PreprocessingV2()
+    elif config['modelType'].endswith('V3'):
+        preprocessingStage = Preprocessing()
     elif config['modelType'].endswith('V5') or config['modelType'].endswith('V6'):
         preprocessingStage = PreprocessingSeparate()
     elif config['modelType'].endswith('V7'):
