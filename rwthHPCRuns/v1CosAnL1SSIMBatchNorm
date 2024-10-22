@@ -1,0 +1,20 @@
+#!/usr/bin/zsh 
+
+### Job Parameters 
+#SBATCH --partition=c23g
+#SBATCH --time=16:00:00         
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=8
+
+export CONDA_ROOT=$HOME/miniforge3
+source $CONDA_ROOT/etc/profile.d/conda.sh
+export PATH="$CONDA_ROOT/bin:$PATH"
+conda activate dev
+
+python /hpcwork/nq011071/earthnetThesis/checkGPU.py
+
+python /hpcwork/nq011071/earthnetThesis/swinUnet/trainVideoSwinUnetAll.py --config /hpcwork/nq011071/earthnetThesis/rwthHPCRuns/configv1BatchNorm.yml --resumeTraining --resumeCheckpoint /hpcwork/nq011071/earthnetThesis/experimentsRwthHPC/videoSwinUnetV1/videoSwinUnetV1_05-10-2024_17-44-35/checkpointLast.pth
+
+# python /home/nikoskot/earthnetThesis/swinUnet/testVideoSwinUnet.py --trainingFolder /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_13-09-2024_10-31-50 --testSplit iid_test_split --checkpoint checkpointENS_20-09-2024_09-47-44.pth
+
+# python /home/nikoskot/earthnetThesis/swinUnet/ensScoreCalculation.py --predictionsFolder /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_13-09-2024_10-31-50/predictions/checkpointENS_20-09-2024_09-47-44.pth/iid_test_split --targetsFolder /home/nikoskot/earthnetThesis/EarthnetDataset/iid_test_split/target --dataOutputFilePath /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_13-09-2024_10-31-50/checkpointENS_20-09-2024_09-47-44data_output.json --scoreOutputFilePath /home/nikoskot/earthnetThesis/experiments/videoSwinUnetV1/videoSwinUnetV1_13-09-2024_10-31-50/checkpointENS_20-09-2024_09-47-44score_output.json

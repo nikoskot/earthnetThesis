@@ -1,5 +1,9 @@
 EarthnetDataset/
+<<<<<<< Updated upstream
 GreenEarthnetDataset
+=======
+GreenEarthnetDataset/
+>>>>>>> Stashed changes
 *.npz
 *.nc
 *.pth
@@ -8,3 +12,4 @@ predictions/
 experiments/configWindows.yml
 __pycache__/
 *.rrd
+*.zip

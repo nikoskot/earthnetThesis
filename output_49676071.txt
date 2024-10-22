@@ -1,0 +1,23 @@
+3.11.10
+True
+0
+NVIDIA H100
+tensor([[0.1888, 0.8444, 0.0284],
+        [0.7510, 0.5553, 0.2325],
+        [0.9393, 0.7521, 0.9332]], device='cuda:0')
+/home/nq011071/miniforge3/envs/dev/lib/python3.11/site-packages/kornia/feature/lightglue.py:44: FutureWarning: `torch.cuda.amp.custom_fwd(args...)` is deprecated. Please use `torch.amp.custom_fwd(args..., device_type='cuda')` instead.
+  @torch.cuda.amp.custom_fwd(cast_inputs=torch.float32)
+cuda
+Traceback (most recent call last):
+  File "/hpcwork/nq011071/earthnetThesis/swinUnet/trainVideoSwinUnetWeatherAE.py", line 580, in <module>
+    trainWeatherDataAutoEncoder(config, args)
+  File "/hpcwork/nq011071/earthnetThesis/swinUnet/trainVideoSwinUnetWeatherAE.py", line 299, in trainWeatherDataAutoEncoder
+    model = WeatherDataAutoEncoder(config).to(device)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rwthfs/rz/cluster/hpcwork/nq011071/earthnetThesis/swinUnet/WeatherDataAutoEncoder.py", line 121, in __init__
+    self.encoder = Encoder(config)
+                   ^^^^^^^^^^^^^^^
+  File "/rwthfs/rz/cluster/hpcwork/nq011071/earthnetThesis/swinUnet/WeatherDataAutoEncoder.py", line 26, in __init__
+    avgPoolingTime = 5 if self.config['autoencoderReduceTime'] else 1
+                          ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'autoencoderReduceTime'
