@@ -83,4 +83,4 @@ autoencoderNumLayers: 2
 autoencoderReduceTime: false
 contextWeatherAutoencoderWeights: /home/nikoskot/earthnetThesis/experiments/weatherDataAE/weatherDataAE_13-10-2024_11-54-50/checkpoint_13-10-2024_19-55-08.pth
 targetWeatherAutoencoderWeights: /home/nikoskot/earthnetThesis/experiments/weatherDataAE/weatherDataAE_13-10-2024_11-56-21/checkpoint_13-10-2024_19-56-38.pth
-runFolder: videoSwinUnetV7_22-10-2024_14-07-56
+runFolder: videoSwinUnetV7_23-10-2024_06-08-53

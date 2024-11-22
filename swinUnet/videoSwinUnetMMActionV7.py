@@ -1130,7 +1130,7 @@ if __name__ == "__main__":
             config = yaml.safe_load(f)
         return config
     
-    config = load_config('/home/nikoskot/earthnetThesis/experiments/configV7.yml')
+    config = load_config('/home/nikoskot/earthnetThesis/experiments/videoSwinUnetV7/videoSwinUnetV7_20-10-2024_14-06-14/configV7.yml')
 
     startTime = time.time()
     model = VideoSwinUNet(config, logger=None).to(torch.device('cuda'))
@@ -1399,6 +1399,70 @@ def validation_loop(dataloader,
             # ensCalculator.reset()
 
     return l1LossSum / batchNumber, SSIMLossSum / batchNumber, mseLossSum / batchNumber, vggLossSum / batchNumber, earthnetScore
+
+def testing_loop(dataloader, 
+                model, 
+                l1Loss, 
+                ssimLoss, 
+                mseLoss,
+                vggLoss,
+                predsFolder,
+                config):
+
+    # Set the model to evaluation mode - important for batch normalization and dropout layers
+    model.eval()
+    l1LossSum = 0
+    SSIMLossSum = 0
+    mseLossSum = 0
+    vggLossSum = 0
+
+    batchNumber = 0
+
+    # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
+    # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
+    with torch.no_grad():
+        for data in tqdm.tqdm(dataloader):
+            
+            batchNumber += 1
+            
+            # Move data to GPU
+            contextImgDEM = data['contextImgDEM'].to(torch.device('cuda'))
+            contextWeather = data['contextWeather'].to(torch.device('cuda'))
+            targetWeather = data['targetWeather'].to(torch.device('cuda'))
+            y = data['y'].to(torch.device('cuda'))
+            masks = data['targetMask'].to(torch.device('cuda'))
+
+            # Compute prediction and loss
+            pred = model(contextImgDEM, contextWeather, targetWeather)
+            # pred = torch.clamp(pred, min=0.0, max=1.0)
+
+            l1LossValue = l1Loss(pred, y, masks)
+            if config['useMSE']:
+                mseLossValue = mseLoss(pred, y, masks)
+            if config['useSSIM']:
+                ssimLossValue = ssimLoss(torch.clamp(pred, min=0, max=1), y, masks)
+            if config['useVGG']:
+                vggLossValue = vggLoss(torch.clamp(pred.clone(), min=0, max=1), y.clone(), masks)
+
+            # Add the loss to the total loss
+            l1LossSum += l1LossValue.item()
+            if config['useSSIM']:
+                SSIMLossSum += ssimLossValue.item()
+            if config['useMSE']:
+                mseLossSum += mseLossValue.item()
+            if config['useVGG']:
+                vggLossSum += vggLossValue.item()
+
+            tiles = data['tile']
+            cubenames = data['cubename']
+
+            # Save predictions
+            for i in range(len(tiles)):
+                path = os.path.join(predsFolder, tiles[i])
+                os.makedirs(path, exist_ok=True)
+                np.savez_compressed(os.path.join(path, cubenames[i]), highresdynamic=pred[i].permute(2, 3, 0, 1).detach().cpu().numpy().astype(np.float16))
+
+    return l1LossSum / batchNumber, SSIMLossSum / batchNumber, mseLossSum / batchNumber, vggLossSum / batchNumber
 
 def calculateENSMetrics(pred, targ, mask, ndvi_pred, ndvi_targ, ndvi_mask):
     os.environ["CUDA_VISIBLE_DEVICES"] = ""

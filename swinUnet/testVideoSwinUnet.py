@@ -2,11 +2,11 @@ import torch
 import torch.nn as nn
 import torch.utils.checkpoint as checkpoint
 import numpy as np
-from earthnetDataloader import EarthnetTestDataset, EarthnetTrainDataset, Preprocessing, PreprocessingStack
+from earthnetDataloader import EarthnetTestDataset, EarthnetTrainDataset, Preprocessing, PreprocessingV2, PreprocessingStack, PreprocessingV7, PreprocessingV8, PreprocessingSeparate
 from torch.utils.data import DataLoader, random_split, Subset
 from earthnet_scores import EarthNet2021ScoreUpdateWithoutCompute
 import tqdm
-from videoSwinUnetMMActionV1 import VideoSwinUNet
+# from videoSwinUnetMMActionV1 import VideoSwinUNet
 import os
 import argparse
 import yaml
@@ -31,67 +31,67 @@ def load_config(config_path):
     return config
 
 
-def testing_loop(dataloader, 
-                model, 
-                l1Loss, 
-                ssimLoss, 
-                mseLoss,
-                vggLoss,
-                predsFolder,
-                config):
+# def testing_loop(dataloader, 
+#                 model, 
+#                 l1Loss, 
+#                 ssimLoss, 
+#                 mseLoss,
+#                 vggLoss,
+#                 predsFolder,
+#                 config):
 
-    # Set the model to evaluation mode - important for batch normalization and dropout layers
-    model.eval()
-    l1LossSum = 0
-    SSIMLossSum = 0
-    mseLossSum = 0
-    vggLossSum = 0
+#     # Set the model to evaluation mode - important for batch normalization and dropout layers
+#     model.eval()
+#     l1LossSum = 0
+#     SSIMLossSum = 0
+#     mseLossSum = 0
+#     vggLossSum = 0
 
-    batchNumber = 0
+#     batchNumber = 0
 
-    # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
-    # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
-    with torch.no_grad():
-        for data in tqdm.tqdm(dataloader):
+#     # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
+#     # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
+#     with torch.no_grad():
+#         for data in tqdm.tqdm(dataloader):
             
-            batchNumber += 1
+#             batchNumber += 1
             
-            # Move data to GPU
-            x = data['x'].to(torch.device('cuda'))
-            y = data['y'].to(torch.device('cuda'))
-            masks = data['targetMask'].to(torch.device('cuda'))
+#             # Move data to GPU
+#             x = data['x'].to(torch.device('cuda'))
+#             y = data['y'].to(torch.device('cuda'))
+#             masks = data['targetMask'].to(torch.device('cuda'))
 
-            # Compute prediction and loss
-            pred = model(x)
-            # pred = torch.clamp(pred, min=0.0, max=1.0)
+#             # Compute prediction and loss
+#             pred = model(x)
+#             # pred = torch.clamp(pred, min=0.0, max=1.0)
 
-            l1LossValue = l1Loss(pred, y, masks)
-            if config['useMSE']:
-                mseLossValue = mseLoss(pred, y, masks)
-            if config['useSSIM']:
-                ssimLossValue = ssimLoss(torch.clamp(pred, min=0, max=1), y, masks)
-            if config['useVGG']:
-                vggLossValue = vggLoss(torch.clamp(pred.clone(), min=0, max=1), y.clone(), masks)
+#             l1LossValue = l1Loss(pred, y, masks)
+#             if config['useMSE']:
+#                 mseLossValue = mseLoss(pred, y, masks)
+#             if config['useSSIM']:
+#                 ssimLossValue = ssimLoss(torch.clamp(pred, min=0, max=1), y, masks)
+#             if config['useVGG']:
+#                 vggLossValue = vggLoss(torch.clamp(pred.clone(), min=0, max=1), y.clone(), masks)
 
-            # Add the loss to the total loss
-            l1LossSum += l1LossValue.item()
-            if config['useSSIM']:
-                SSIMLossSum += ssimLossValue.item()
-            if config['useMSE']:
-                mseLossSum += mseLossValue.item()
-            if config['useVGG']:
-                vggLossSum += vggLossValue.item()
+#             # Add the loss to the total loss
+#             l1LossSum += l1LossValue.item()
+#             if config['useSSIM']:
+#                 SSIMLossSum += ssimLossValue.item()
+#             if config['useMSE']:
+#                 mseLossSum += mseLossValue.item()
+#             if config['useVGG']:
+#                 vggLossSum += vggLossValue.item()
 
-            tiles = data['tile']
-            cubenames = data['cubename']
+#             tiles = data['tile']
+#             cubenames = data['cubename']
 
-            # Save predictions
-            for i in range(len(tiles)):
-                path = os.path.join(predsFolder, tiles[i])
-                os.makedirs(path, exist_ok=True)
-                np.savez_compressed(os.path.join(path, cubenames[i]), highresdynamic=pred[i].permute(2, 3, 0, 1).detach().cpu().numpy().astype(np.float16))
+#             # Save predictions
+#             for i in range(len(tiles)):
+#                 path = os.path.join(predsFolder, tiles[i])
+#                 os.makedirs(path, exist_ok=True)
+#                 np.savez_compressed(os.path.join(path, cubenames[i]), highresdynamic=pred[i].permute(2, 3, 0, 1).detach().cpu().numpy().astype(np.float16))
 
-    return l1LossSum / batchNumber, SSIMLossSum / batchNumber, mseLossSum / batchNumber, vggLossSum / batchNumber
+#     return l1LossSum / batchNumber, SSIMLossSum / batchNumber, mseLossSum / batchNumber, vggLossSum / batchNumber
 
 
 def main():
@@ -120,20 +120,47 @@ def main():
     checkpoint = torch.load(os.path.join(args.trainingFolder, args.checkpoint))
 
     # Intiialize Video Swin Unet model and move to GPU
-    model = VideoSwinUNet(config, logger).to(torch.device('cuda'))
+    if config['modelType'].endswith('V1'):
+        from videoSwinUnetMMActionV1 import VideoSwinUNet, testing_loop
+    elif config['modelType'].endswith('V2'):
+        from videoSwinUnetMMActionV2 import VideoSwinUNet, testing_loop
+    elif config['modelType'].endswith('V3'):
+        from videoSwinUnetMMActionV3 import VideoSwinUNet, testing_loop
+    elif config['modelType'].endswith('V5'):
+        from videoSwinUnetMMActionV5 import VideoSwinUNet, testing_loop
+    elif config['modelType'].endswith('V6'):
+        from videoSwinUnetMMActionV6 import VideoSwinUNet, testing_loop
+    elif config['modelType'].endswith('V7'):
+        from videoSwinUnetMMActionV7 import VideoSwinUNet, testing_loop
+    elif config['modelType'].endswith('V8'):
+        from videoSwinUnetMMActionV8 import VideoSwinUNet, testing_loop
+
+    # Intiialize Video Swin Unet model and move to GPU
+    model = VideoSwinUNet(config, logger).to(device)
     model.load_state_dict(checkpoint['state_dict'])
 
     # Setup Loss Function
     l1Loss = MaskedLoss(lossType='l1', lossFunction=nn.L1Loss(reduction='sum'))
+    # l1Loss = MaskedLoss(lossType='mse', lossFunction=nn.MSELoss(reduction='sum'))
     mseLoss = MaskedLoss(lossType='mse', lossFunction=nn.MSELoss(reduction='sum'))
     ssimLoss = maskedSSIMLoss
     vggLoss = MaskedVGGLoss()
 
     # Set Preprocessing for Earthnet data
-    if config['modelInputCh'] == 11:
+    if config['modelType'].endswith('V1') and (config['modelInputCh'] == 11):
         preprocessingStage = Preprocessing()
-    elif config['modelInputCh'] == 81:
+    elif config['modelType'].endswith('V1') and config['modelInputCh'] == 81:
         preprocessingStage = PreprocessingStack()
+    elif config['modelType'].endswith('V2'):
+        preprocessingStage = PreprocessingV2()
+    elif config['modelType'].endswith('V3'):
+        preprocessingStage = Preprocessing()
+    elif config['modelType'].endswith('V5') or config['modelType'].endswith('V6'):
+        preprocessingStage = PreprocessingSeparate()
+    elif config['modelType'].endswith('V7'):
+        preprocessingStage = PreprocessingV7(reduceTime=not config['autoencoderReduceTime'])
+    elif config['modelType'].endswith('V8'):
+        preprocessingStage = PreprocessingV8()
 
     # Create dataset for testing part of Earthnet dataset
     if config['overfitTraining']:

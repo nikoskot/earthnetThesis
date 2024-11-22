@@ -83,4 +83,4 @@ gradientClipValue: 0.5
 useMSE: false
 useSSIM: true
 useVGG: false
-runFolder: videoSwinUnetV8_22-10-2024_14-11-23
+runFolder: videoSwinUnetV8_23-10-2024_06-12-23
